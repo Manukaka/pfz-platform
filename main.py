@@ -19,7 +19,13 @@ from app.core.lunar import LunarEngine
 from app.core.sea_mask import is_sea as _accurate_is_sea, get_coast_lng_for_lat
 from app.core.pfz_algorithm import PFZAlgorithm
 from app.core.modern_agents import GholSpecialistAgent, DeepSeaTunaAgent
-from app.data.earthkit_client import get_accurate_sst, fetch_sst_grid_ecmwf
+try:
+    from app.data.earthkit_client import get_accurate_sst, fetch_sst_grid_ecmwf
+except Exception:
+    def get_accurate_sst(*args, **kwargs):  # type: ignore[misc]
+        return None, "unavailable"
+    def fetch_sst_grid_ecmwf(*args, **kwargs):  # type: ignore[misc]
+        return None
 from app.data.incois_client import (
     score_pfz_incois, enrich_zone_with_incois, get_incois_sector,
     get_nearest_landing_center, get_seasonal_info, calculate_wind_drift,
