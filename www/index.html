@@ -31,7 +31,7 @@
         }
         body { background:var(--bg); color:var(--text); font-family:'Space Mono',monospace; height:100vh; overflow:hidden; }
         #topbar {
-            position:fixed; top:0; left:0; right:0; height:48px;
+            position:fixed; top:0; left:0; right:0; height:37px;
             background:var(--panel);
             border-bottom:2px solid var(--border);
             display:flex; align-items:center; padding:0 12px; gap:10px;
@@ -124,7 +124,7 @@
         .lang-switch { margin-left:auto; display:flex; gap:4px; }
         .lang-btn { background:transparent; border:1px solid var(--border); color:var(--dim); padding:3px 9px; border-radius:4px; font-size:10px; cursor:pointer; font-family:'Space Mono',monospace; }
         .lang-btn.active { background:var(--accent); color:#000; border-color:var(--accent); }
-        #map { position:fixed; top:48px; left:0; right:0; bottom:32px; z-index:1; }
+        #map { position:fixed; top:37px; left:0; right:0; bottom:21px; z-index:1; }
         #layers-btn { display:none; }
         #layer-panel {
             display:none;
@@ -307,7 +307,7 @@
         .ip-lbl { color:var(--dim); }
         .ip-val { color:var(--accent2); }
         #bottom-drawer {
-            position:fixed; bottom:32px; left:0; right:0;
+            position:fixed; bottom:21px; left:0; right:0;
             height:0;
             overflow:hidden;
             background:var(--panel);
@@ -362,7 +362,7 @@
         .flc-state { color:var(--dim); font-size:9px; }
         #ham-btn { position:fixed; top:58px; right:10px; z-index:600; background:var(--panel); border:1px solid var(--border); width:36px; height:36px; border-radius:6px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
         #ham-btn span { width:16px; height:2px; background:var(--accent); border-radius:2px; }
-        #side-menu { position:fixed; top:48px; right:-270px; width:255px; bottom:32px; background:var(--panel); border-left:1px solid var(--border); z-index:700; backdrop-filter:blur(16px); transition:right 0.3s; overflow-y:auto; padding:12px; }
+        #side-menu { position:fixed; top:37px; right:-270px; width:255px; bottom:21px; background:var(--panel); border-left:1px solid var(--border); z-index:700; backdrop-filter:blur(16px); transition:right 0.3s; overflow-y:auto; padding:12px; }
         #side-menu.open { right:0; }
         .ms-title { font-size:9px; letter-spacing:2px; color:var(--accent); text-transform:uppercase; margin:14px 0 8px; padding-bottom:5px; border-bottom:1px solid var(--border); }
         .ms-title:first-child { margin-top:0; }
@@ -384,7 +384,7 @@
         .anchor-active { border-color:#ff4444!important; animation:anchor-pulse 1s infinite; }
         #gps-btn { position:fixed; bottom:80px; right:52px; z-index:500; background:var(--panel); border:1px solid var(--accent); color:var(--accent); width:36px; height:36px; border-radius:6px; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
         #sos-btn { position:fixed; bottom:42px; right:52px; z-index:500; background:#cc0000; color:#fff; border:2px solid #ff4444; padding:6px 10px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; letter-spacing:1px; font-family:'Space Mono',monospace; box-shadow:0 0 12px rgba(255,0,0,0.5); }
-        #statusbar { position:fixed; bottom:0; left:0; right:0; height:32px; background:var(--panel); border-top:1px solid var(--border); display:flex; align-items:center; padding:0 12px; gap:16px; z-index:500; font-size:10px; color:var(--dim); }
+        #statusbar { position:fixed; bottom:0; left:0; right:0; height:21px; background:var(--panel); border-top:1px solid var(--border); display:flex; align-items:center; padding:0 12px; gap:16px; z-index:500; font-size:10px; color:var(--dim); }
         .sb-item { display:flex; gap:5px; }
         .sb-lbl { color:var(--accent); }
         @keyframes dash { to { stroke-dashoffset:-20; } }
@@ -458,10 +458,10 @@
         /* ── PFZ DETAIL RIGHT PANEL ─────────────────────────── */
         #pfz-detail-panel {
             position: fixed;
-            top: 48px;
+            top: 37px;
             right: -380px;
             width: 360px;
-            bottom: 32px;
+            bottom: 21px;
             background: rgba(8,18,38,0.98);
             border-left: 2px solid var(--border);
             z-index: 650;
@@ -574,10 +574,10 @@
         /* ── INCOIS ADVISORY PANEL ──────────────────────────── */
         #incois-panel {
             position: fixed;
-            top: 48px;
+            top: 37px;
             left: -420px;
             width: 400px;
-            bottom: 32px;
+            bottom: 21px;
             background: rgba(8,18,38,0.98);
             border-right: 2px solid var(--border);
             z-index: 650;
@@ -651,7 +651,7 @@
         }
         /* Loading overlay for PFZ refresh */
         .pfz-loading-overlay {
-            position: fixed; top: 48px; left: 0; right: 0;
+            position: fixed; top: 37px; left: 0; right: 0;
             height: 3px; z-index: 999;
             background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), var(--accent), transparent);
             background-size: 200% 100%;
@@ -689,7 +689,7 @@
             .lang-btn { padding: 2px 6px; font-size: 9px; }
             /* Map — fill space between topbar and statusbar */
             #map { top: 44px; bottom: 40px; }
-            .pfz-loading-overlay { top: 44px; }
+            .pfz-loading-overlay { top: 37px; }
             /* Statusbar — scrollable, taller touch target */
             #statusbar {
                 height: 40px; overflow-x: auto; overflow-y: hidden;
