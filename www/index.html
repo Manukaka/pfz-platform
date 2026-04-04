@@ -1030,8 +1030,13 @@
     <div class="ms-title">🗺️ Map Overlays</div>
     <div class="tog-row"><span>EEZ Boundary</span><div class="tog on" id="tog-eez" onclick="toggleEEZ(this)"></div></div>
     <div class="tog-row"><span>FLC Ports</span><div class="tog on" id="tog-flc" onclick="toggleFLC(this)"></div></div>
-    <div class="tog-row"><span>PFZ Zones</span><div class="tog on" id="tog-pfz" onclick="togglePFZ(this)"></div></div>
+    <div class="ms-title" style="margin-top:8px;">🐟 PFZ Layers</div>
+    <div class="tog-row"><span>🐟 Our PFZ Zones</span><div class="tog on" id="tog-pfz" onclick="togglePFZ(this)"></div></div>
+    <div class="tog-row"><span>🤖 AI Agent Zones</span><div class="tog" id="tog-agent-layer" onclick="toggleAgentLayer(this)"></div></div>
+    <div class="tog-row"><span>🏛️ INCOIS Layer</span><div class="tog" id="tog-incois-map" onclick="toggleINCOISMapLayer(this)"></div></div>
+    <div class="ms-title" style="margin-top:8px;">🗺️ Data Overlays</div>
     <div class="tog-row"><span>🌡️ SST Heatmap</span><div class="tog" id="tog-sst" onclick="toggleSST(this)"></div></div>
+    <div class="tog-row"><span>🌿 Chlorophyll</span><div class="tog" id="tog-chl" onclick="toggleCHLLayer(this)"></div></div>
     <div class="tog-row"><span>🌊 Bathymetry</span><div class="tog" id="tog-bathy" onclick="toggleBathymetry(this)"></div></div>
     <div class="tog-row"><span>⚓ Sea Marks</span><div class="tog" id="tog-seamark" onclick="toggleSeaMarks(this)"></div></div>
 
@@ -1042,6 +1047,7 @@
 
     <div class="ms-title">🧭 Navigation & Analysis</div>
     <button class="menu-btn green" onclick="runAgentAnalysis();toggleMenu();">🤖 Run Agent Analysis</button>
+    <button class="menu-btn" onclick="showHistoryCalendar();toggleMenu();">📅 PFZ इतिहास (History)</button>
     <button class="menu-btn" onclick="showBroadcastHistory();toggleMenu();">📢 Broadcast History</button>
     <button class="menu-btn" onclick="toggleForecast();toggleMenu();">⛅ 6-Day Forecast</button>
     <button class="menu-btn" onclick="toggleBearing()">📐 Bearing Calculator</button>
@@ -1076,6 +1082,7 @@
 
 <div id="legend">
     <div class="leg-title">MAP LEGEND</div>
+    <div class="leg-row"><div style="width:24px;height:8px;background:linear-gradient(to right,#00f,#0f0,#ff0,#f00);border-radius:2px;opacity:0.6;"></div><span>🌿 Chlorophyll</span></div>
     <div class="leg-row"><div class="leg-line" style="border-color:#ff4444;"></div><span>उच्च PFZ</span></div>
     <div class="leg-row"><div class="leg-line" style="border-color:#ffaa00;"></div><span>मध्यम PFZ</span></div>
     <div class="leg-row"><div class="leg-line" style="border-color:#00ff88;"></div><span>कमी PFZ</span></div>
@@ -2412,6 +2419,168 @@ function toggleSST(el) {
     } else {
         if (sstLayer) map.removeLayer(sstLayer);
     }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// INCOIS MAP LAYER — blue dashed lines (independent from Our PFZ + Agent)
+// ══════════════════════════════════════════════════════════════════════════════
+let incoisMapGroup = L.featureGroup();
+let incoisMapLoaded = false;
+
+function toggleINCOISMapLayer(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        if (!incoisMapLoaded) {
+            loadINCOISMapLayer();
+        } else {
+            incoisMapGroup.addTo(map);
+        }
+    } else {
+        map.removeLayer(incoisMapGroup);
+    }
+}
+
+function loadINCOISMapLayer() {
+    fetch('https://samudra-ai.onrender.com/api/incois/live?_t=' + Date.now())
+        .then(r => r.json())
+        .then(data => {
+            incoisMapGroup.clearLayers();
+            if (data.available === false) {
+                showToast('🏛️ INCOIS data not available for today', 'warn');
+                const tog = document.getElementById('tog-incois-map');
+                if (tog) tog.classList.remove('on');
+                return;
+            }
+            const features = (data.geojson || {}).features || [];
+            if (features.length === 0) {
+                showToast('🏛️ INCOIS: No zones today', 'warn');
+                return;
+            }
+            features.forEach(feature => {
+                const coords = feature.geometry.coordinates.map(c => [c[1], c[0]]);
+                if (coords.length < 2) return;
+                const line = L.polyline(coords, {
+                    color: '#4488ff', weight: 3, opacity: 0.9,
+                    dashArray: '8 5', lineCap: 'round'
+                });
+                const props = feature.properties;
+                line.bindTooltip(
+                    '🏛️ INCOIS Advisory<br>Type: ' + (props.type || 'medium') + '<br>Source: INCOIS',
+                    {sticky: true}
+                );
+                incoisMapGroup.addLayer(line);
+            });
+            incoisMapGroup.addTo(map);
+            incoisMapLoaded = true;
+            showToast('🏛️ INCOIS: ' + features.length + ' zones loaded', 'info');
+        })
+        .catch(e => {
+            showToast('🏛️ INCOIS fetch failed', 'warn');
+            console.warn('INCOIS map layer error:', e);
+            const tog = document.getElementById('tog-incois-map');
+            if (tog) tog.classList.remove('on');
+        });
+}
+
+function showToast(msg, type) {
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);' +
+        'background:' + (type==='warn' ? 'rgba(255,170,0,0.9)' : 'rgba(0,200,255,0.9)') + ';' +
+        'color:#000;padding:6px 14px;border-radius:20px;font-size:10px;z-index:3000;' +
+        'font-family:\'Space Mono\',monospace;pointer-events:none;white-space:nowrap;';
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 3000);
+}
+
+function toggleAgentLayer(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        agentPFZGroup.addTo(map);
+    } else {
+        map.removeLayer(agentPFZGroup);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CHLOROPHYLL HEATMAP LAYER — canvas-based colour overlay
+// ══════════════════════════════════════════════════════════════════════════════
+let chlHeatLayer = null;
+let chlHeatData = [];
+
+function toggleCHLLayer(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        if (chlHeatLayer) {
+            map.addLayer(chlHeatLayer);
+            return;
+        }
+        fetch('https://samudra-ai.onrender.com/api/chlorophyll/heatmap?_t=' + Date.now())
+            .then(r => r.json())
+            .then(data => {
+                chlHeatData = data.points || [];
+                if (!chlHeatData.length) { showToast('🌿 CHL data not available', 'warn'); return; }
+                chlHeatLayer = _buildCHLLayer(chlHeatData);
+                var tog = document.getElementById('tog-chl');
+                if (tog && tog.classList.contains('on')) map.addLayer(chlHeatLayer);
+            })
+            .catch(function() { showToast('🌿 CHL fetch failed', 'warn'); });
+    } else {
+        if (chlHeatLayer) map.removeLayer(chlHeatLayer);
+    }
+}
+
+function _chlToColor(chl) {
+    var t = Math.min(1, chl / 2.0);
+    var r, g, b;
+    if (t < 0.25) {
+        r = 0; g = Math.round(t * 4 * 200); b = 255;
+    } else if (t < 0.5) {
+        r = 0; g = 200 + Math.round((t - 0.25) * 4 * 55); b = Math.round(255 - (t - 0.25) * 4 * 255);
+    } else if (t < 0.75) {
+        r = Math.round((t - 0.5) * 4 * 255); g = 255; b = 0;
+    } else {
+        r = 255; g = Math.round(255 - (t - 0.75) * 4 * 200); b = 0;
+    }
+    return 'rgba(' + r + ',' + g + ',' + b + ',0.40)';
+}
+
+function _buildCHLLayer(points) {
+    var CanvasLayer = L.Layer.extend({
+        onAdd: function(map) {
+            this._map = map;
+            this._canvas = this._initCanvas();
+            map.on('moveend zoomend', this._redraw, this);
+            this._redraw();
+        },
+        onRemove: function(map) {
+            var pane = map.getPane('overlayPane');
+            if (pane && this._canvas && pane.contains(this._canvas)) pane.removeChild(this._canvas);
+            map.off('moveend zoomend', this._redraw, this);
+        },
+        _initCanvas: function() {
+            var c = document.createElement('canvas');
+            c.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;z-index:200;';
+            map.getPane('overlayPane').appendChild(c);
+            return c;
+        },
+        _redraw: function() {
+            var size = this._map.getSize();
+            this._canvas.width = size.x;
+            this._canvas.height = size.y;
+            var ctx = this._canvas.getContext('2d');
+            ctx.clearRect(0, 0, size.x, size.y);
+            var r = 18;
+            points.forEach(function(pt) {
+                var px = map.latLngToContainerPoint([pt.lat, pt.lon]);
+                ctx.fillStyle = _chlToColor(pt.chl);
+                ctx.beginPath();
+                ctx.arc(px.x, px.y, r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+    });
+    return new CanvasLayer();
 }
 
 function toggleBathymetry(el) {
