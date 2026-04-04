@@ -784,7 +784,7 @@
 ════════════════════════════════════════════════════════════════════════════ -->
 <div id="auth-overlay" class="auth-overlay">
     <div id="login-card" class="auth-card">
-        <h2 id="login-title">SAMUDRA AI 🔐</h2>
+        <h2 id="login-title">दर्यासागर 🔐</h2>
         <div id="login-form">
             <p style="font-size:11px;color:var(--dim);text-align:center;margin-bottom:12px;">Admin: use your password<br>Fishermen: enter your name + access key</p>
             <input type="text" id="username_input" class="auth-input" placeholder="USERNAME / YOUR NAME" required autofocus>
@@ -950,8 +950,8 @@
         </svg>
     </div>
 
-    <div class="spl-title">SAMUDRA</div>
-    <div class="spl-subtitle">A I &nbsp;•&nbsp; समुद्र</div>
+    <div class="spl-title">दर्यासागर</div>
+    <div class="spl-subtitle">DARYASAGAR &nbsp;•&nbsp; समुद्र</div>
     <div class="spl-tagline">मच्छिमारांसाठी बुद्धिमान मार्गदर्शन</div>
     <div class="spl-dev">Dev: Manoj Dhamdhere</div>
     <div class="spl-dots">
@@ -3060,7 +3060,7 @@ function loadINCOISAdvisory() {
         let html = '';
         // Metadata bar
         html += '<div style="padding:8px 16px;font-size:9px;color:var(--dim);border-bottom:1px solid var(--border);">';
-        html += '<div style="color:var(--accent2);font-weight:700;margin-bottom:3px;">📡 ' + (data.source || 'SAMUDRA AI') + '</div>';
+        html += '<div style="color:var(--accent2);font-weight:700;margin-bottom:3px;">📡 ' + (data.source || 'दर्यासागर') + '</div>';
         html += '<div>Issued: ' + (data.issued || '--').substring(0, 19) + '</div>';
         html += '<div>Season: ' + (data.season?.name || '--') + ' | Activity: ' + ((data.season?.activity || 0) * 100).toFixed(0) + '%</div>';
         html += '<div>Methodology: ' + (data.methodology || '--') + '</div>';
@@ -3852,7 +3852,7 @@ async function approveUser(id, fullName, phone) {
     const key = data.access_key;
     const expiry = new Date(data.expiry).toLocaleString();
     // WhatsApp message with access key
-    const msg = `SAMUDRA AI Access Approved!\n\nAccess Key: ${key}\nValid: ${hours} hour(s) (until ${expiry})\n\nHow to login:\n1. Open SAMUDRA AI app\n2. Enter your name as Username\n3. Enter this key as Password\n\n- Manoj (Admin)`;
+    const msg = `दर्यासागर Access Approved!\n\nAccess Key: ${key}\nValid: ${hours} hour(s) (until ${expiry})\n\nHow to login:\n1. Open दर्यासागर app\n2. Enter your name as Username\n3. Enter this key as Password\n\n- Manoj (Admin)`;
     const waLink = `https://wa.me/${phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`;
     // Show key prominently with WhatsApp share
     const modal = document.createElement('div');
