@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">दर्यासागर</string>
+    <string name="title_activity_main">दर्यासागर</string>
+    <string name="package_name">com.samudra.pfz</string>
+    <string name="custom_url_scheme">com.samudra.pfz</string>
+</resources>
