@@ -1,2 +1,70 @@
-node_modules
+# ── Secrets ────────────────────────────────────────────────────────────────
 .env
+auth.json
+
+# ── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# ── Node / Capacitor ─────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+
+# ── IDE / Editor ─────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+
+# ── Android build outputs ─────────────────────────────────────────────────────
+android/.gradle/
+android/app/build/
+android/build/
+android/.idea/
+*.apk
+*.aab
+
+# ── Generated data files (recreated at runtime) ────────────────────────────
+sst_data.json
+chl_data.json
+wind_data.json
+current_data.json
+wave_data.json
+weather_meta.json
+pfz_data.geojson
+data/history/*.json
+
+# ── Status / report markdown files ────────────────────────────────────────────
+100_PERCENT_SUCCESS.md
+ACTUAL_PROJECT_STATUS.md
+AGENTS_ARCHITECTURE.md
+API_IMPLEMENTATION_STATUS.md
+API_SETUP_GUIDE.md
+DEBUG_COMPLETE_REPORT.md
+DEBUG_REPORT.md
+FINAL_STATUS_REPORT.md
+FINAL_STATUS_SUMMARY.md
+FRONTEND_IMPROVEMENTS_COMPLETE.md
+FRONTEND_IMPROVEMENT_PLAN.md
+FULL_SETUP_PROGRESS.md
+GEBCO_IMPLEMENTATION_COMPLETE.md
+GEBCO_SETUP_GUIDE.md
+GETTING_STARTED.md
+GHOL_SPECIALIST_SYSTEM.md
+HONEST_SYSTEM_STATUS.md
+IMPLEMENTATION_COMPLETE_SUMMARY.md
+LOCAL_TESTING_GUIDE.md
+PHASE_1_COMPLETE.md
+PHASE_2_GHOL_COMPLETE.md
+QUICK_START_NEW_INTERFACE.md
+REAL_DATA_IMPLEMENTATION_COMPLETE.md
+REAL_DATA_INTEGRATION.md
+START_SERVER.md
+SYSTEM_STATUS.md
+TESTING_GUIDE.md
+TOOLS_AND_GUIDES.md
+UI_ANIMATION_FIXES.md

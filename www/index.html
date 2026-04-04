@@ -733,10 +733,45 @@
             #forecast-panel .fc-body { display: none; }
             #forecast-panel.expanded .fc-body { display: block; }
         }
-        /* Safe area insets for notch/punch-hole cameras */
+        /* ── Safe area insets: push content inside status bar & nav bar ───── */
         @supports (padding: env(safe-area-inset-top)) {
-            #topbar { padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
-            #statusbar { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); padding-bottom: env(safe-area-inset-bottom); }
+            :root {
+                --sat: env(safe-area-inset-top, 0px);
+                --sab: env(safe-area-inset-bottom, 0px);
+                --sal: env(safe-area-inset-left, 0px);
+                --sar: env(safe-area-inset-right, 0px);
+            }
+            /* Topbar pushed below status bar */
+            #topbar    { height:calc(37px + var(--sat)); padding-top:var(--sat); padding-left:max(8px,var(--sal)); padding-right:max(8px,var(--sar)); }
+            /* Map fills safe viewport */
+            #map       { top:calc(37px + var(--sat)); bottom:calc(21px + var(--sab)); }
+            /* Statusbar pushed above nav bar */
+            #statusbar { height:calc(21px + var(--sab)); padding-bottom:var(--sab); padding-left:max(10px,var(--sal)); padding-right:max(10px,var(--sar)); }
+            /* Side menu respects both bars */
+            #side-menu { top:calc(37px + var(--sat)); bottom:calc(21px + var(--sab)); }
+            /* Overlays anchored below topbar */
+            #flc-search  { top:calc(58px  + var(--sat)); }
+            #ham-btn     { top:calc(58px  + var(--sat)); }
+            #vel-status  { top:calc(98px  + var(--sat)); }
+            #info-panel  { top:calc(58px  + var(--sat)); }
+            /* Overlays anchored above statusbar */
+            #legend        { bottom:calc(42px  + var(--sab)); }
+            #sos-btn       { bottom:calc(42px  + var(--sab)); }
+            #gps-btn       { bottom:calc(80px  + var(--sab)); }
+            #bottom-drawer { bottom:calc(21px  + var(--sab)); }
+            #bearing-panel { bottom:calc(200px + var(--sab)); }
+        }
+        /* Mobile safe-area overrides */
+        @media screen and (max-width: 500px) {
+            @supports (padding: env(safe-area-inset-top)) {
+                #topbar    { height:calc(44px + var(--sat)); padding-top:var(--sat); }
+                #map       { top:calc(44px + var(--sat)); bottom:calc(40px + var(--sab)); }
+                #statusbar { height:calc(40px + var(--sab)); padding-bottom:var(--sab); }
+                #ham-btn   { top:calc(50px + var(--sat)); }
+                #legend    { bottom:calc(46px + var(--sab)); }
+                #gps-btn   { bottom:calc(88px + var(--sab)); }
+                #sos-btn   { bottom:calc(46px + var(--sab)); }
+            }
         }
     </style>
 </head>
@@ -1869,7 +1904,8 @@ function loadPFZLive() {
             const popupContent = buildPFZPopup(props, coords);
 
             // Show in fixed right panel instead of Leaflet popup
-            centerMarker.on('click', function() {
+            centerMarker.on('click', function(e) {
+                L.DomEvent.stopPropagation(e);
                 showPFZDetail(popupContent);
                 document.getElementById('to-lat').value = midLat.toFixed(4);
                 document.getElementById('to-lng').value = midLon.toFixed(4);
@@ -2940,18 +2976,6 @@ map.on('click', async function(e){
         document.getElementById('sb-sst').textContent = '—';
         document.getElementById('sb-chl').textContent = '—';
         document.getElementById('sb-depth').textContent = '— (जमीन)';
-        const popupContent = `
-            <div style="font-family:'Space Mono',monospace;min-width:180px;">
-                <div style="font-size:11px;font-weight:700;color:#ffaa00;margin-bottom:6px;border-bottom:1px solid rgba(255,170,0,0.3);padding-bottom:4px;">🏔️ Land Area</div>
-                <div style="font-size:10px;line-height:1.6;">
-                    <div style="color:#00ff88;font-weight:700;">${toDMS(lat,true)}</div>
-                    <div style="color:#00ff88;font-weight:700;margin-bottom:6px;">${toDMS(lng,false)}</div>
-                    <div style="color:#7090a0;">Depth: <span style="color:#ffaa00;">— (Land)</span></div>
-                    <div style="color:#7090a0;">SST: <span style="color:#7090a0;">N/A</span></div>
-                    <div style="color:#7090a0;">CHL: <span style="color:#7090a0;">N/A</span></div>
-                </div>
-            </div>`;
-        clickMarker.bindPopup(popupContent, {maxWidth: 250}).openPopup();
         showPanel('🏔️ जमीन क्षेत्र', [
             ['DMS',       toDMS(lat,true),    'var(--accent2)'],
             ['',          toDMS(lng,false),   'var(--accent2)'],
@@ -2972,20 +2996,7 @@ map.on('click', async function(e){
     document.getElementById('sb-chl').textContent = chlVal !== '--' ? chlVal+' mg/m³' : '--';
     document.getElementById('sb-depth').textContent = '…';
 
-    // Show popup with loading depth
-    const popupContent = `
-        <div style="font-family:'Space Mono',monospace;min-width:180px;">
-            <div style="font-size:11px;font-weight:700;color:#00c8ff;margin-bottom:6px;border-bottom:1px solid rgba(0,200,255,0.3);padding-bottom:4px;">📍 Ocean Location</div>
-            <div style="font-size:10px;line-height:1.6;">
-                <div style="color:#00ff88;font-weight:700;">${toDMS(lat,true)}</div>
-                <div style="color:#00ff88;font-weight:700;margin-bottom:6px;">${toDMS(lng,false)}</div>
-                <div style="color:#7090a0;">Depth: <span style="color:#00c8ff;"><span class="spin">⟳</span> loading...</span></div>
-                <div style="color:#7090a0;">SST: <span style="color:#ffaa00;">${sstVal !== '--' ? sstVal+'°C' : '--'}</span></div>
-                <div style="color:#7090a0;">CHL: <span style="color:#00ff88;">${chlVal !== '--' ? chlVal+' mg/m³' : '--'}</span></div>
-            </div>
-        </div>
-    `;
-    clickMarker.bindPopup(popupContent, {maxWidth: 250}).openPopup();
+    // No Leaflet popup — only info panel (prevents double-popup)
 
     showPanel('📍 समुद्र माहिती', [
         ['DMS',       toDMS(lat,true),                          'var(--accent2)'],
@@ -3007,20 +3018,7 @@ map.on('click', async function(e){
     const rows = document.getElementById('ip-body').querySelectorAll('.ip-row');
     if(rows[2]) rows[2].querySelector('.ip-val').textContent = depth;
 
-    // Update popup with real depth
-    const updatedPopupContent = `
-        <div style="font-family:'Space Mono',monospace;min-width:180px;">
-            <div style="font-size:11px;font-weight:700;color:#00c8ff;margin-bottom:6px;border-bottom:1px solid rgba(0,200,255,0.3);padding-bottom:4px;">📍 Ocean Location</div>
-            <div style="font-size:10px;line-height:1.6;">
-                <div style="color:#00ff88;font-weight:700;">${toDMS(lat,true)}</div>
-                <div style="color:#00ff88;font-weight:700;margin-bottom:6px;">${toDMS(lng,false)}</div>
-                <div style="color:#7090a0;">Depth: <span style="color:#00c8ff;font-weight:700;">${depth}</span></div>
-                <div style="color:#7090a0;">SST: <span style="color:#ffaa00;">${sstVal !== '--' ? sstVal+'°C' : '--'}</span></div>
-                <div style="color:#7090a0;">CHL: <span style="color:#00ff88;">${chlVal !== '--' ? chlVal+' mg/m³' : '--'}</span></div>
-            </div>
-        </div>
-    `;
-    clickMarker.setPopupContent(updatedPopupContent);
+    // Depth updated in info panel only (no Leaflet popup)
 });
 
 map.on('dblclick',function(){

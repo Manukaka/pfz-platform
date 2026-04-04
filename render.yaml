@@ -22,3 +22,7 @@ services:
         value: '74.5'
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: INCOIS_USER
+        value: manojdhamdhere@live.com
+      - key: INCOIS_PASS
+        sync: false

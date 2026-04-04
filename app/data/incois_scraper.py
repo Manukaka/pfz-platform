@@ -1,11 +1,13 @@
 # app/data/incois_scraper.py
 """
 INCOIS PFZ Advisory Scraper — 5:30 PM IST daily fetch.
-Tries multiple public INCOIS endpoints. Returns structured data or None.
+Tries authenticated login to samudra.incois.gov.in then fetches PFZ advisory.
+Falls back to public endpoints. Returns structured data or None.
 On failure: only INCOIS panel shows 'not available' — never affects other layers.
 """
 import logging
 import json
+import os
 import re
 from datetime import datetime
 from typing import Optional, Dict, List
@@ -16,27 +18,94 @@ import pytz
 logger = logging.getLogger(__name__)
 IST = pytz.timezone("Asia/Kolkata")
 
-INCOIS_ENDPOINTS = [
-    "https://samudra.incois.gov.in/INCOIS/pfzViewAction.do",
-    "https://samudra.incois.gov.in/INCOIS/advisoryData.json",
+INCOIS_BASE = "https://samudra.incois.gov.in/INCOIS"
+INCOIS_PUBLIC_ENDPOINTS = [
+    f"{INCOIS_BASE}/pfzViewAction.do",
+    f"{INCOIS_BASE}/advisoryData.json",
     "https://incois.gov.in/portal/pfz/pfz.jsp",
+]
+# These require a logged-in session
+INCOIS_AUTH_ENDPOINTS = [
+    f"{INCOIS_BASE}/pfzViewAction.do",
+    f"{INCOIS_BASE}/advisoryData.json",
 ]
 
 
+async def _get_authenticated_client() -> Optional[httpx.AsyncClient]:
+    """Login to INCOIS Samudra portal and return an authenticated client, or None."""
+    user = os.getenv("INCOIS_USER", "")
+    pwd  = os.getenv("INCOIS_PASS", "")
+    if not user or not pwd:
+        return None
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 DaryaSagar/2.0",
+        "Referer": f"{INCOIS_BASE}/loginPage.jsp",
+        "Origin": "https://samudra.incois.gov.in",
+    }
+    login_payloads = [
+        # Struts / Spring Security variants
+        {"j_username": user, "j_password": pwd},
+        {"username": user, "password": pwd},
+        {"userId": user, "password": pwd},
+    ]
+    login_urls = [
+        f"{INCOIS_BASE}/j_spring_security_check",
+        f"{INCOIS_BASE}/loginAction.do",
+        f"{INCOIS_BASE}/userLoginAction.do",
+    ]
+    client = httpx.AsyncClient(timeout=20.0, follow_redirects=True, headers=headers)
+    for login_url in login_urls:
+        for payload in login_payloads:
+            try:
+                resp = await client.post(login_url, data=payload)
+                # Success: redirected to dashboard (not back to login page)
+                if resp.status_code in (200, 302) and "login" not in str(resp.url).lower():
+                    logger.info(f"INCOIS login succeeded via {login_url}")
+                    return client
+            except Exception as e:
+                logger.debug(f"INCOIS login attempt {login_url} failed: {e}")
+                continue
+    await client.aclose()
+    return None
+
+
 async def fetch_incois_advisory() -> Optional[Dict]:
-    """Attempt to fetch real INCOIS advisory. Returns structured dict or None."""
-    for url in INCOIS_ENDPOINTS:
+    """Attempt to fetch real INCOIS PFZ advisory. Returns structured dict or None."""
+    # Try 1: authenticated session
+    auth_client = await _get_authenticated_client()
+    if auth_client:
+        try:
+            for url in INCOIS_AUTH_ENDPOINTS:
+                try:
+                    resp = await auth_client.get(url)
+                    if resp.status_code == 200:
+                        parsed = _parse_incois_response(resp.text, resp.headers.get("content-type", ""))
+                        if parsed:
+                            logger.info(f"INCOIS authenticated fetch OK from {url}: {parsed.get('zones_count',0)} zones")
+                            await auth_client.aclose()
+                            return parsed
+                except Exception as e:
+                    logger.warning(f"INCOIS auth fetch failed {url}: {e}")
+        finally:
+            try:
+                await auth_client.aclose()
+            except Exception:
+                pass
+
+    # Try 2: public endpoints (no auth)
+    for url in INCOIS_PUBLIC_ENDPOINTS:
         try:
             async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
-                resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0 DaryaSagar/1.0"})
+                resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0 DaryaSagar/2.0"})
                 if resp.status_code == 200:
                     parsed = _parse_incois_response(resp.text, resp.headers.get("content-type", ""))
                     if parsed:
-                        logger.info(f"INCOIS data fetched from {url}: {len(parsed.get('zones_count', 0))} zones")
+                        logger.info(f"INCOIS public fetch OK from {url}")
                         return parsed
         except Exception as e:
-            logger.warning(f"INCOIS fetch failed for {url}: {e}")
+            logger.warning(f"INCOIS public fetch failed {url}: {e}")
             continue
+
     logger.warning("All INCOIS endpoints failed — returning None")
     return None
 
