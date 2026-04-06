@@ -3,7 +3,6 @@ package com.samudra.pfz
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
-import android.view.View
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
@@ -50,5 +49,14 @@ class MainActivity : BridgeActivity() {
         // 4. Force High Performance for Scientific Visualization
         // Hint to the OS to prioritize this window's rendering
         window.addFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED)
+    }
+
+    // Override back button — delegate to JavaScript _handleBackPress()
+    @Suppress("DEPRECATION")
+    override fun onBackPressed() {
+        bridge.webView.evaluateJavascript(
+            "if(typeof _handleBackPress==='function'){_handleBackPress();}else{window.history.back();}",
+            null
+        )
     }
 }
