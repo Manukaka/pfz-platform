@@ -732,10 +732,7 @@
             #sos-btn { bottom: 46px; right: 60px; font-size: 10px; padding: 5px 8px; }
             /* Agent button */
             #agent-btn { font-size: 10px; padding: 6px 10px; }
-            /* Forecast panel — stays small, collapsed by default on mobile */
-            #forecast-panel { width: 155px; left: 8px; }
-            #forecast-panel .fc-body { display: none; }
-            #forecast-panel.expanded .fc-body { display: block; }
+            /* Forecast panel — centered popup on mobile, no override needed */
         }
         /* ── Safe area insets: push content inside status bar & nav bar ───── */
         @supports (padding: env(safe-area-inset-top)) {
@@ -1085,7 +1082,7 @@
     <div class="tog-row"><span>🔄 प्रवाह (Currents)</span><div class="tog" id="tog-current" onclick="toggleCurrent(this)"></div></div>
 
     <div class="ms-title">🧭 Navigation & Analysis</div>
-    <button class="menu-btn green" onclick="runAgentAnalysis();toggleMenu();">🤖 Run Agent Analysis</button>
+    <button id="agent-btn" class="menu-btn green" onclick="runAgentAnalysis();toggleMenu();">🤖 Run Agent Analysis</button>
     <button class="menu-btn" onclick="showHistoryCalendar();toggleMenu();">📅 PFZ इतिहास (History)</button>
     <button class="menu-btn" onclick="showBroadcastHistory();toggleMenu();">📢 Broadcast History</button>
     <button class="menu-btn" onclick="toggleForecast();toggleMenu();">⛅ 6-Day Forecast</button>
@@ -2044,8 +2041,7 @@ let agentZonesData = [];
 
 async function runAgentAnalysis() {
     const btn = document.getElementById('agent-btn');
-    btn.classList.add('loading');
-    btn.innerHTML = '🤖 Analyzing<span class="spin">⟳</span>';
+    if (btn) { btn.classList.add('loading'); btn.innerHTML = '⏳ Analyzing... (60s)<span class="spin">⟳</span>'; }
 
     const bounds = map.getBounds();
     const body = {
@@ -2060,7 +2056,7 @@ async function runAgentAnalysis() {
         let agentData = null;
         try {
             const ctrl = new AbortController();
-            const tid = setTimeout(() => ctrl.abort(), 45000); // 45s timeout
+            const tid = setTimeout(() => ctrl.abort(), 90000); // 90s timeout for cold start
             const claudeResp = await fetch('https://samudra-ai.onrender.com/api/agents/claude', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -3253,12 +3249,21 @@ function _handleBackPress() {
         navigator.app.exitApp();
     }
 }
-// Push dummy state so back button triggers popstate instead of app exit
+// Back button via Capacitor App plugin (primary — works in Android WebView)
+document.addEventListener('deviceready', function() {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+        window.Capacitor.Plugins.App.addListener('backButton', function() {
+            _handleBackPress();
+        });
+    }
+}, false);
+
+// Fallback: popstate for browsers / older Capacitor
 if (window.history && window.history.pushState) {
     window.history.pushState({ daryasagar: true }, '');
 }
 window.addEventListener('popstate', function() {
-    window.history.pushState({ daryasagar: true }, ''); // re-push so app never runs out of history
+    window.history.pushState({ daryasagar: true }, '');
     _handleBackPress();
 });
 
