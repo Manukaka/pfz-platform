@@ -981,9 +981,9 @@
 
 <!-- 6-Day Forecast Panel -->
 <div id="forecast-panel">
-    <div class="fc-header" onclick="toggleForecast()">
+    <div class="fc-header">
         <span>⛅ 6-Day Forecast</span>
-        <span class="fc-toggle">✕</span>
+        <span class="fc-toggle" onclick="toggleForecast()" style="cursor:pointer;padding:4px 8px;font-size:14px;">✕</span>
     </div>
     <div id="forecast-tiles" class="fc-body">
         <div style="color:var(--dim);font-size:9px;padding:8px;">Loading forecast…</div>
@@ -3164,15 +3164,8 @@ setTimeout(function() {
 // ══════════════════════════════════════════════════════════════════════════════
 // 6-DAY MARINE FORECAST — auto-load on page start
 // ══════════════════════════════════════════════════════════════════════════════
-(function positionForecastPanel(){
-    // Position forecast panel just below data-layers-panel
-    const dlp = document.getElementById('data-layers-panel');
-    const fp = document.getElementById('forecast-panel');
-    if (dlp && fp) {
-        const r = dlp.getBoundingClientRect();
-        fp.style.top = (r.bottom + 6) + 'px';
-    }
-})();
+// Forecast panel is centered via CSS (top:50% left:50% transform)
+// No JS positioning needed
 
 function loadForecast() {
     const iconMap = {sun:'☀️',['cloud-sun']:'⛅',fog:'🌫️',drizzle:'🌧️',rain:'🌧️',snow:'🌨️',storm:'⛈️'};
@@ -3712,6 +3705,7 @@ document.getElementById('login-btn').onclick = async () => {
     try {
         const r = await fetch('https://samudra-ai.onrender.com/api/auth/login', {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: u, password: p })
         });
         if (r.ok) {
