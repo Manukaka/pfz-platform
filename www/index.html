@@ -3580,45 +3580,69 @@ function exportPDFReport() {
 
     // ── Save / Share ─────────────────────────────────────────────────────────
     const filename = 'DaryaSagar-Report-' + now.toISOString().slice(0,10) + '.pdf';
-    try {
-        const pdfBlob = doc.output('blob');
-        const file = new File([pdfBlob], filename, {type:'application/pdf'});
-        if (navigator.share && navigator.canShare && navigator.canShare({files:[file]})) {
-            navigator.share({title:'दर्यासागर PFZ Report', text:'Fishing Zone Analysis Report', files:[file]})
-                .catch(function(e) {
-                    if (e.name !== 'AbortError') _pdfFallbackSave(doc, filename);
-                });
-        } else {
-            _pdfFallbackSave(doc, filename);
-        }
-    } catch(saveErr) {
-        _pdfFallbackSave(doc, filename);
-    }
+    _savePDF(doc, filename);
     } catch(err) {
-        alert('PDF Generation Error:\n' + err.message + '\n\nLine: ' + (err.stack || '').split('\n')[1]);
+        alert('PDF Error: ' + err.message);
     }
 }
 
-function _pdfFallbackSave(doc, filename) {
+async function _savePDF(doc, filename) {
     try {
-        // Method 1: data URI link (works in most Android WebView)
-        const dataUri = doc.output('datauristring');
+        const base64 = doc.output('datauristring').split(',')[1]; // pure base64
+
+        // Method 1: Capacitor Filesystem + Share (most reliable on Android)
+        const { Filesystem, Share } = window.Capacitor && window.Capacitor.Plugins
+            ? window.Capacitor.Plugins : {};
+
+        if (Filesystem && Share) {
+            try {
+                // Write to cache directory (no permission needed)
+                await Filesystem.writeFile({
+                    path: filename,
+                    data: base64,
+                    directory: 'CACHE'
+                });
+                const uriResult = await Filesystem.getUri({
+                    path: filename,
+                    directory: 'CACHE'
+                });
+                await Share.share({
+                    title: 'DaryaSagar PFZ Report',
+                    text: 'Fishing Zone Analysis Report',
+                    url: uriResult.uri,
+                    dialogTitle: 'Save or Share PDF'
+                });
+                return;
+            } catch (capErr) {
+                if (capErr.name === 'AbortError' || capErr.message === 'Share canceled') return;
+                console.warn('Capacitor share failed:', capErr.message);
+            }
+        }
+
+        // Method 2: Web Share API with Blob file
+        try {
+            const pdfBlob = doc.output('blob');
+            const file = new File([pdfBlob], filename, {type:'application/pdf'});
+            if (navigator.share && navigator.canShare && navigator.canShare({files:[file]})) {
+                await navigator.share({title:'DaryaSagar Report', files:[file]});
+                return;
+            }
+        } catch(shareErr) {
+            if (shareErr.name === 'AbortError') return;
+        }
+
+        // Method 3: data URI anchor click (desktop browser / Chrome)
+        const dataUri = 'data:application/pdf;base64,' + base64;
         const a = document.createElement('a');
         a.href = dataUri;
         a.download = filename;
-        a.target = '_blank';
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
+        setTimeout(() => document.body.removeChild(a), 1000);
+        showToast('PDF downloaded: ' + filename, 'info');
+
     } catch(e) {
-        try {
-            // Method 2: open in new tab (user can long-press Save)
-            const dataUri = doc.output('datauristring');
-            window.open(dataUri, '_blank');
-        } catch(e2) {
-            // Method 3: jsPDF save (triggers download in desktop browsers)
-            doc.save(filename);
-        }
+        alert('PDF Save Error: ' + e.message);
     }
 }
 
