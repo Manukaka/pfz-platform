@@ -188,45 +188,41 @@ def fetch_current():
     print(f"[OK] current_data.json saved ({NX*NY} points)")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 4. CHLOROPHYLL — NASA ERDDAP CoastWatch (MODIS Aqua, daily)
-#    URL: erdMH1chla1day dataset, Arabian Sea grid
+# 4. CHLOROPHYLL — NOAA OceanWatch ERDDAP (MODIS Aqua, monthly composite)
+#    Dataset: aqua_chla_monthly_2018_0 on oceanwatch.pifsc.noaa.gov
 # ══════════════════════════════════════════════════════════════════════════════
 def fetch_chlorophyll():
-    print("Fetching CHLOROPHYLL data (NASA ERDDAP) …")
+    print("Fetching CHLOROPHYLL data (NOAA OceanWatch ERDDAP) …")
 
-    # ERDDAP URL — last available day, Arabian Sea bounding box
-    # Stride=2 to reduce data size
+    # OceanWatch ERDDAP — last available month, Arabian Sea bounding box
+    # Dataset columns: [time, latitude, longitude, chlor_a]  (NO altitude column)
     url = (
-        "https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdMH1chla1day.json"
-        f"?chlorophyll[(last)][(LAT1):(LAT2)][(LON1):(LON2)]"
-        .replace("(LAT1)", str(LAT1))
-        .replace("(LAT2)", str(LAT2))
-        .replace("(LON1)", str(LON1))
-        .replace("(LON2)", str(LON2))
+        "https://oceanwatch.pifsc.noaa.gov/erddap/griddap/aqua_chla_monthly_2018_0.json"
+        f"?chlor_a[(last)][({LAT1}):({LAT2})][({LON1}):({LON2})]"
     )
 
     try:
-        r = requests.get(url, timeout=30)
+        r = requests.get(url, timeout=60)
         r.raise_for_status()
         raw = r.json()
         rows = raw["table"]["rows"]
 
-        # rows: [time, altitude, lat, lon, chlorophyll]
+        # rows: [time, latitude, longitude, chlor_a]
         points = []
         for row in rows:
             try:
-                chl = float(row[4]) if row[4] is not None else None
+                chl = float(row[3]) if row[3] is not None else None
                 if chl is not None and not math.isnan(chl) and chl > 0:
                     points.append({
-                        "lat": float(row[2]),
-                        "lon": float(row[3]),
+                        "lat": float(row[1]),
+                        "lon": float(row[2]),
                         "chl": round(chl, 4)
                     })
             except (TypeError, ValueError):
                 pass
 
         result = {
-            "source"    : "NASA ERDDAP - MODIS Aqua Chlorophyll-a (1-day)",
+            "source"    : "NOAA OceanWatch ERDDAP - MODIS Aqua Chlorophyll-a (monthly)",
             "updated"   : NOW,
             "grid_size" : len(points),
             "points"    : points
@@ -236,7 +232,7 @@ def fetch_chlorophyll():
         print(f"[OK] chl_data.json saved ({len(points)} valid points)")
 
     except Exception as e:
-        print(f"⚠️  ERDDAP fetch failed: {e}")
+        print(f"⚠️  OceanWatch ERDDAP fetch failed: {e}")
         print("    Generating fallback chlorophyll grid …")
         _fallback_chlorophyll()
 
@@ -310,7 +306,7 @@ def save_meta():
             "wind"         : "Open-Meteo (10m wind)",
             "wave"         : "Open-Meteo Marine (height+dir → U/V)",
             "current"      : "Open-Meteo Marine (velocity+dir → U/V)",
-            "chlorophyll"  : "NASA ERDDAP CoastWatch MODIS Aqua",
+            "chlorophyll"  : "NOAA OceanWatch ERDDAP MODIS Aqua (monthly)",
             "sst"          : "Open-Meteo Marine"
         }
     }
