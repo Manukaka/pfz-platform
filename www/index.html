@@ -3307,10 +3307,8 @@ function showForecastDetail(dayIdx) {
         </div>`;
     document.body.appendChild(ov);
 }
-// Auto-run agent analysis + forecast on app start (respects 4hr cache)
-setTimeout(function() { runAgentAnalysis(); }, 3000);
-// Refresh agent analysis every 4 hours
-setInterval(function() { localStorage.removeItem(_AGENT_CACHE_KEY); runAgentAnalysis(); }, 4 * 60 * 60 * 1000);
+// Only load forecast on start (lightweight), agent analysis runs on user click only
+setTimeout(loadForecast, 2000);
 
 // ══════════════════════════════════════════════════════════════════════════════
 // PDF REPORT EXPORT — with दर्यासागर letterhead
