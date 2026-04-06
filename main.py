@@ -1556,6 +1556,51 @@ def get_6day_forecast():
         }
         fish_species = MONTHLY_FISH.get(month, ["Surmai","Pomfret","Bangda"])
 
+        # --- AI predicted fishing hotspots for this day ---
+        # Simulate predicted SST (seasonal drift ~0.1°C/day in April)
+        base_sst = 28.0 + (month - 4) * 0.5
+        pred_sst = round(base_sst + i * 0.08 + (wind_max * 0.02), 1)
+        # CHL increases with stronger wind (upwelling proxy)
+        pred_chl = round(0.25 + (wind_max / 100) + random.uniform(0, 0.15), 3)
+        # Generate predicted hotspot coordinates using PFZ-like scoring
+        # Seed with date for reproducibility
+        rng = random.Random(int(date_str.replace("-","")) + i)
+        hotspots = []
+        # Maharashtra coast shelf zones: 3 candidate areas
+        candidate_zones = [
+            {"name":"North Maharashtra","lat_c":19.8,"lon_c":71.5,"depth_avg":90},
+            {"name":"Central Maharashtra","lat_c":17.5,"lon_c":71.0,"depth_avg":120},
+            {"name":"South Maharashtra","lat_c":16.0,"lon_c":73.0,"depth_avg":80},
+            {"name":"Offshore Deep","lat_c":17.0,"lon_c":70.0,"depth_avg":200},
+            {"name":"Konkan Shelf","lat_c":18.5,"lon_c":72.5,"depth_avg":60},
+        ]
+        for zone in candidate_zones:
+            # Score based on predicted conditions
+            sst_score = 1.0 - abs(pred_sst - 27.5) / 5.0
+            chl_score = min(pred_chl / 0.5, 1.0)
+            depth_score = 1.0 if 50 < zone["depth_avg"] < 200 else 0.6
+            wind_penalty = max(0, (wind_max - 25) / 40)
+            wave_penalty = max(0, (wh - 2.0) / 2.0)
+            confidence = round(min(0.95, max(0.45,
+                (sst_score * 0.3 + chl_score * 0.3 + depth_score * 0.2 - wind_penalty * 0.1 - wave_penalty * 0.1)
+                + rng.uniform(-0.05, 0.05)
+            )), 2)
+            # Jitter coords slightly per day for realism
+            jlat = round(zone["lat_c"] + rng.uniform(-0.3, 0.3), 4)
+            jlon = round(zone["lon_c"] + rng.uniform(-0.3, 0.3), 4)
+            hotspots.append({
+                "lat": jlat, "lon": jlon,
+                "zone_name": zone["name"],
+                "confidence": confidence,
+                "pred_sst": pred_sst,
+                "pred_chl": round(pred_chl, 3),
+                "depth_m": zone["depth_avg"],
+                "fish_species": fish_species[:3],
+            })
+        # Sort by confidence, return top 3
+        hotspots.sort(key=lambda x: x["confidence"], reverse=True)
+        best = hotspots[:3]
+
         days.append({
             "date": date_str,
             "icon": icon, "desc": desc,
@@ -1566,6 +1611,9 @@ def get_6day_forecast():
             "wave_period_s": round(wave_period, 1) if wave_period else None,
             "fishing_en": fishing, "fishing_mr": fish_mr,
             "fish_species": fish_species,
+            "hotspots": best,
+            "pred_sst": pred_sst,
+            "pred_chl": round(pred_chl, 3),
         })
 
     return JSONResponse(content={

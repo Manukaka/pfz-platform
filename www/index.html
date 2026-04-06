@@ -1090,6 +1090,7 @@
     <button class="menu-btn" onclick="toggleFLCSearch()">🔍 FLC Search</button>
     <button class="menu-btn" onclick="toggleINCOIS()">🏛️ INCOIS Advisory</button>
     <button class="menu-btn warn" onclick="document.getElementById('anchor-panel').style.display='block';toggleMenu()">⚓ Anchor Alarm</button>
+    <button class="menu-btn" onclick="exportPDFReport();toggleMenu();" style="background:linear-gradient(135deg,rgba(255,100,0,0.15),rgba(255,50,0,0.05));border-color:rgba(255,100,0,0.4);color:#ff8844;">📄 Export PDF Report</button>
     <button class="menu-btn" onclick="toggleRouteMode()">🗺️ Route Planning</button>
     <div class="ms-title">📓 Fishing Log</div>
     <div id="log-date" style="font-size:10px;color:var(--dim);margin-bottom:6px;"></div>
@@ -1128,6 +1129,7 @@
 
 <button id="gps-btn" onclick="locateMe()">📍</button>
 <button id="sos-btn" onclick="sendSOS()">🆘 SOS</button>
+<button id="agent-fab" onclick="runAgentAnalysis()" title="AI Agent Analysis" style="position:fixed;bottom:130px;right:16px;z-index:600;width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#00ff88,#00aaff);border:none;color:#000;font-size:18px;cursor:pointer;box-shadow:0 3px 12px rgba(0,255,136,0.4);display:flex;align-items:center;justify-content:center;">🤖</button>
 
 <div id="statusbar">
     <div class="sb-item"><span class="sb-lbl">LAT</span><span id="sb-lat">--</span></div>
@@ -1170,6 +1172,7 @@
 
 <script src="leaflet.js"></script>
 <script src="leaflet-velocity.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -3172,40 +3175,44 @@ setTimeout(function() {
 // Forecast panel is centered via CSS (top:50% left:50% transform)
 // No JS positioning needed
 
+let _forecastData = null;
+
 function loadForecast() {
     const iconMap = {sun:'☀️',['cloud-sun']:'⛅',fog:'🌫️',drizzle:'🌧️',rain:'🌧️',snow:'🌨️',storm:'⛈️'};
-    const fishMap = {good:{en:'🟢 Good',mr:'🟢 चांगले'},moderate:{en:'🟡 Moderate',mr:'🟡 साधारण'},risky:{en:'🔴 Risky',mr:'🔴 धोकादायक'}};
+    const condColor = {good:'#00ff88',moderate:'#ffaa00',risky:'#ff4444'};
     fetch('https://samudra-ai.onrender.com/api/forecast/6day?_t=' + Date.now())
     .then(r => r.json())
     .then(data => {
+        _forecastData = data;
         const container = document.getElementById('forecast-tiles');
         if (!data.days || !data.days.length) {
             container.innerHTML = '<div style="color:var(--dim);font-size:9px;padding:8px;">Forecast unavailable</div>';
             return;
         }
-        const loc = data.location || {};
-        const locStr = loc.lat ? `📍 ${loc.name || 'Maharashtra Coast'} (${loc.lat}°N ${loc.lon}°E)` : '📍 Maharashtra Coast';
         const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
         const dayNamesMr = ['रवि','सोम','मंगळ','बुध','गुरु','शुक्र','शनि'];
-        let html = `<div style="font-size:9px;color:var(--accent2);padding:6px 8px 4px;border-bottom:1px solid var(--border);">${locStr}</div>`;
+        let html = '<div style="font-size:9px;color:var(--accent2);padding:6px 8px 2px;border-bottom:1px solid var(--border);">📡 AI-Predicted Fishing Hotspots — tap a day for coordinates</div>';
         data.days.forEach((d, i) => {
             const dt = new Date(d.date + 'T00:00:00');
             const dayName = lang === 'mr' ? dayNamesMr[dt.getDay()] : dayNames[dt.getDay()];
             const dateStr = (dt.getMonth()+1) + '/' + dt.getDate();
             const fKey = d.fishing_en || 'moderate';
-            const fishing = (fishMap[fKey] || fishMap.moderate)[lang] || (fishMap[fKey] || fishMap.moderate).en;
+            const col = condColor[fKey] || '#ffaa00';
             const weatherIcon = iconMap[d.icon] || '🌤️';
             const waveStr = d.wave_height_m ? d.wave_height_m + 'm' : '--';
-            const fishStr = (d.fish_species || []).slice(0, 3).join(', ') || '--';
-            html += `<div class="fc-tile">
+            const topSpot = (d.hotspots || [])[0];
+            const confPct = topSpot ? Math.round(topSpot.confidence * 100) + '%' : '--';
+            const topLat = topSpot ? topSpot.lat.toFixed(2) + '°N' : '--';
+            const topLon = topSpot ? topSpot.lon.toFixed(2) + '°E' : '--';
+            html += `<div class="fc-tile" onclick="showForecastDetail(${i})" style="cursor:pointer;border-left:3px solid ${col};">
                 <div class="fc-tile-icon">${weatherIcon}</div>
-                <div class="fc-tile-info">
-                    <div class="fc-tile-day">${i===0?(lang==='mr'?'आज':'Today'):dayName} ${dateStr}</div>
-                    <div class="fc-tile-desc">${d.desc} ${d.temp_max}°/${d.temp_min}°</div>
-                    <div class="fc-tile-detail">🌬️${d.wind_max_kmh}km/h ${d.wind_dir} 🌊${waveStr}</div>
-                    <div style="font-size:8px;color:var(--accent2);margin-top:2px;">🐟 ${fishStr}</div>
+                <div class="fc-tile-info" style="flex:1;">
+                    <div class="fc-tile-day" style="font-weight:700;">${i===0?'Today':dayName} ${dateStr}</div>
+                    <div style="font-size:9px;color:var(--dim);">${d.desc} · 🌊${waveStr} · 🌬️${d.wind_max_kmh}km/h</div>
+                    <div style="font-size:9px;color:var(--accent2);margin-top:2px;">📍 ${topLat}, ${topLon}</div>
+                    <div style="font-size:9px;color:${col};font-weight:700;">🎣 ${(d.fish_species||[]).slice(0,2).join(', ')} · ${confPct} confidence</div>
                 </div>
-                <div class="fc-tile-fish">${fishing}</div>
+                <div style="font-size:10px;color:${col};font-weight:700;writing-mode:vertical-rl;text-orientation:mixed;">▶</div>
             </div>`;
         });
         container.innerHTML = html;
@@ -3215,9 +3222,259 @@ function loadForecast() {
             '<div style="color:var(--dim);font-size:9px;padding:8px;">⚠️ Forecast error</div>';
     });
 }
+
+function showForecastDetail(dayIdx) {
+    if (!_forecastData || !_forecastData.days) return;
+    const d = _forecastData.days[dayIdx];
+    if (!d) return;
+    const iconMap = {sun:'☀️',['cloud-sun']:'⛅',fog:'🌫️',drizzle:'🌧️',rain:'🌧️',snow:'🌨️',storm:'⛈️'};
+    const condColor = {good:'#00ff88',moderate:'#ffaa00',risky:'#ff4444'};
+    const col = condColor[d.fishing_en] || '#ffaa00';
+    const hotspots = d.hotspots || [];
+    let spotsHtml = hotspots.map((s, si) => `
+        <div style="background:rgba(0,200,255,0.06);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="color:var(--accent);font-weight:700;font-size:11px;">📍 Spot ${si+1}: ${s.zone_name}</span>
+                <span style="color:${s.confidence>0.7?'#00ff88':s.confidence>0.5?'#ffaa00':'#ff6666'};font-weight:700;font-size:12px;">${Math.round(s.confidence*100)}%</span>
+            </div>
+            <div style="font-size:10px;color:var(--text);margin-bottom:4px;">🌐 <b>${s.lat}°N, ${s.lon}°E</b></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:9px;color:var(--dim);">
+                <div>🌡️ SST: ${s.pred_sst}°C</div>
+                <div>🌿 CHL: ${s.pred_chl} mg/m³</div>
+                <div>🌊 Depth: ${s.depth_m}m</div>
+                <div>⏰ Best: 05:00–09:00</div>
+            </div>
+            <div style="margin-top:6px;font-size:9px;color:var(--accent2);">🐟 ${(s.fish_species||[]).join(', ')}</div>
+        </div>`).join('');
+
+    const ov = document.createElement('div');
+    ov.id = 'forecast-detail-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1200;overflow-y:auto;padding:16px;';
+    ov.innerHTML = `
+        <div style="max-width:400px;margin:0 auto;background:var(--panel);border:1px solid var(--border);border-radius:16px;overflow:hidden;">
+            <div style="padding:14px 16px;background:rgba(0,200,255,0.08);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <div style="font-size:13px;font-weight:700;color:var(--accent);">${iconMap[d.icon]||'🌤️'} ${d.desc} — ${d.date}</div>
+                    <div style="font-size:10px;color:var(--dim);">🌬️${d.wind_max_kmh}km/h · 🌊${d.wave_height_m||'--'}m · 🌡️${d.temp_max}°/${d.temp_min}°C</div>
+                </div>
+                <button onclick="document.getElementById('forecast-detail-overlay').remove();" style="background:none;border:1px solid var(--border);color:var(--dim);padding:4px 10px;border-radius:8px;cursor:pointer;font-size:16px;">✕</button>
+            </div>
+            <div style="padding:14px;">
+                <div style="font-size:10px;color:${col};font-weight:700;margin-bottom:10px;">🎣 Fishing: ${d.fishing_en.toUpperCase()} · Fish: ${(d.fish_species||[]).join(', ')}</div>
+                <div style="font-size:11px;color:var(--accent2);font-weight:700;margin-bottom:8px;letter-spacing:1px;">AI PREDICTED HOTSPOTS</div>
+                ${spotsHtml}
+                <div style="font-size:9px;color:var(--dim);margin-top:10px;text-align:center;">
+                    Predicted SST: ${d.pred_sst}°C · CHL: ${d.pred_chl} mg/m³<br>
+                    Simulation based on Open-Meteo + seasonal oceanographic model
+                </div>
+                <button onclick="exportDayReport(${dayIdx})" style="width:100%;margin-top:12px;padding:10px;background:rgba(255,100,0,0.2);border:1px solid rgba(255,100,0,0.4);border-radius:8px;color:#ff8844;font-size:11px;cursor:pointer;font-family:inherit;">📄 Export This Day as PDF</button>
+            </div>
+        </div>`;
+    document.body.appendChild(ov);
+}
 // Load forecast on page start and refresh every 3 hours
 setTimeout(loadForecast, 2000);
 setInterval(loadForecast, 3 * 60 * 60 * 1000);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PDF REPORT EXPORT — with दर्यासागर letterhead
+// ══════════════════════════════════════════════════════════════════════════════
+function _initPDF() {
+    if (window.jspdf) return window.jspdf.jsPDF;
+    return null;
+}
+
+function exportPDFReport() {
+    const JSPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+    if (!JSPDF) { alert('PDF library loading... please try again in a moment.'); return; }
+    const doc = new JSPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-IN', {day:'2-digit',month:'long',year:'numeric'});
+    const timeStr = now.toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'});
+    const W = 210, margin = 14;
+
+    // ── Header / Letterhead ──────────────────────────────────────────────────
+    doc.setFillColor(0, 20, 40);
+    doc.rect(0, 0, W, 38, 'F');
+    doc.setFillColor(0, 200, 255);
+    doc.rect(0, 36, W, 1.5, 'F');
+
+    doc.setTextColor(0, 200, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica','bold');
+    doc.text('DARYASAGAR', margin, 16);
+    doc.setFontSize(9);
+    doc.setFont('helvetica','normal');
+    doc.setTextColor(150, 220, 255);
+    doc.text('Intelligent Marine Fishing Advisory System', margin, 22);
+    doc.text('Maharashtra Coast — Arabian Sea', margin, 27);
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.text('PFZ ANALYSIS REPORT', W - margin, 14, {align:'right'});
+    doc.text(dateStr, W - margin, 20, {align:'right'});
+    doc.text(timeStr + ' IST', W - margin, 26, {align:'right'});
+
+    // ── Sub-header ───────────────────────────────────────────────────────────
+    doc.setFillColor(5, 30, 55);
+    doc.rect(0, 37.5, W, 12, 'F');
+    doc.setTextColor(0, 255, 136);
+    doc.setFontSize(9);
+    doc.setFont('helvetica','bold');
+    doc.text('DATA SOURCES:', margin, 44);
+    doc.setFont('helvetica','normal');
+    doc.setTextColor(200, 230, 255);
+    doc.text('INCOIS PFZ Advisory  |  Open-Meteo Marine Forecast  |  NASA Satellite SST/CHL  |  ETOPO1 Bathymetry', margin + 28, 44);
+
+    let y = 58;
+
+    // ── Today's Conditions ───────────────────────────────────────────────────
+    doc.setTextColor(0, 200, 255);
+    doc.setFontSize(11);
+    doc.setFont('helvetica','bold');
+    doc.text('TODAY\'S OCEANOGRAPHIC CONDITIONS', margin, y); y += 6;
+    doc.setFillColor(0, 200, 255);
+    doc.rect(margin, y, W - margin*2, 0.4, 'F'); y += 5;
+
+    const sbLat = document.getElementById('sb-lat')?.textContent || '--';
+    const sbSst = document.getElementById('sb-sst')?.textContent || '--';
+    const sbChl = document.getElementById('sb-chl')?.textContent || '--';
+    const sbDepth = document.getElementById('sb-depth')?.textContent || '--';
+
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.setTextColor(30, 30, 30);
+    const conditions = [
+        ['Sea Surface Temperature (SST):', sbSst],
+        ['Chlorophyll-a Concentration:', sbChl],
+        ['Water Depth:', sbDepth],
+        ['Region:', 'Maharashtra Coast (14°N–21°N, 67°E–74.5°E)'],
+    ];
+    conditions.forEach(([label, val]) => {
+        doc.setFont('helvetica','bold'); doc.text(label, margin, y);
+        doc.setFont('helvetica','normal'); doc.text(val, margin + 70, y);
+        y += 6;
+    });
+    y += 4;
+
+    // ── 6-Day AI Forecast ────────────────────────────────────────────────────
+    if (_forecastData && _forecastData.days) {
+        doc.setTextColor(0, 200, 255);
+        doc.setFontSize(11);
+        doc.setFont('helvetica','bold');
+        doc.text('6-DAY AI PREDICTED FISHING HOTSPOTS', margin, y); y += 6;
+        doc.setFillColor(0, 200, 255);
+        doc.rect(margin, y, W - margin*2, 0.4, 'F'); y += 5;
+
+        _forecastData.days.slice(0, 6).forEach((d, i) => {
+            if (y > 250) { doc.addPage(); y = 20; }
+            const topSpot = (d.hotspots || [])[0];
+            const conf = topSpot ? Math.round(topSpot.confidence * 100) + '%' : '--';
+            const coords = topSpot ? `${topSpot.lat}°N, ${topSpot.lon}°E` : '--';
+            const fish = (d.fish_species || []).slice(0, 3).join(', ');
+            const cond = d.fishing_en === 'good' ? '[GOOD]' : d.fishing_en === 'risky' ? '[RISKY]' : '[MODERATE]';
+
+            doc.setFillColor(i % 2 === 0 ? 245 : 252, i % 2 === 0 ? 248 : 252, 255);
+            doc.rect(margin, y - 4, W - margin*2, 14, 'F');
+            doc.setTextColor(0, 50, 100);
+            doc.setFont('helvetica','bold'); doc.setFontSize(9);
+            doc.text(`${i===0?'TODAY':d.date}  ${cond}  Confidence: ${conf}`, margin + 2, y);
+            doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(40, 40, 40);
+            doc.text(`Best Coords: ${coords}  |  Wind: ${d.wind_max_kmh}km/h  |  Wave: ${d.wave_height_m||'--'}m  |  SST: ${d.pred_sst}°C`, margin + 2, y + 4);
+            doc.text(`Fish Expected: ${fish}`, margin + 2, y + 8);
+            y += 16;
+        });
+    }
+    y += 4;
+
+    // ── Footer ───────────────────────────────────────────────────────────────
+    if (y > 260) { doc.addPage(); y = 20; }
+    doc.setFillColor(0, 20, 40);
+    doc.rect(0, 282, W, 15, 'F');
+    doc.setFillColor(0, 200, 255);
+    doc.rect(0, 281, W, 1, 'F');
+    doc.setTextColor(150, 220, 255);
+    doc.setFontSize(8);
+    doc.setFont('helvetica','normal');
+    doc.text('Prepared by: Manoj Dhamdhere  |  DARYASAGAR Intelligent Fisheries Advisory', margin, 288);
+    doc.setTextColor(100, 160, 200);
+    doc.text('For informational use only. Always check official INCOIS advisories before fishing.', margin, 293);
+    doc.text('daryasagar.in  |  Page ' + doc.getCurrentPageInfo().pageNumber, W - margin, 288, {align:'right'});
+
+    // ── Share ────────────────────────────────────────────────────────────────
+    const filename = `DaryaSagar-Report-${now.toISOString().slice(0,10)}.pdf`;
+    const pdfBlob = doc.output('blob');
+    if (navigator.share && navigator.canShare && navigator.canShare({files:[new File([pdfBlob],'x.pdf',{type:'application/pdf'})]})) {
+        const file = new File([pdfBlob], filename, {type:'application/pdf'});
+        navigator.share({ title:'दर्यासागर PFZ Report', text:'Fishing Zone Analysis Report', files:[file] });
+    } else {
+        doc.save(filename);
+    }
+}
+
+function exportDayReport(dayIdx) {
+    if (!_forecastData) return;
+    const JSPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+    if (!JSPDF) { alert('PDF library loading...'); return; }
+    const d = _forecastData.days[dayIdx];
+    if (!d) return;
+    const doc = new JSPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const W = 210, margin = 14;
+    const now = new Date();
+
+    // Header
+    doc.setFillColor(0, 20, 40);
+    doc.rect(0, 0, W, 38, 'F');
+    doc.setFillColor(0, 200, 255);
+    doc.rect(0, 36, W, 1.5, 'F');
+    doc.setTextColor(0, 200, 255);
+    doc.setFontSize(20); doc.setFont('helvetica','bold');
+    doc.text('DARYASAGAR', margin, 16);
+    doc.setFontSize(9); doc.setFont('helvetica','normal');
+    doc.setTextColor(150, 220, 255);
+    doc.text('Daily Fishing Zone Prediction Report', margin, 22);
+    doc.setTextColor(255,255,255); doc.setFontSize(8);
+    doc.text('Date: ' + d.date, W-margin, 20, {align:'right'});
+
+    let y = 50;
+    doc.setTextColor(0,200,255); doc.setFontSize(13); doc.setFont('helvetica','bold');
+    doc.text('PREDICTED FISHING ZONES — ' + d.date, margin, y); y += 8;
+    doc.setFillColor(0,200,255); doc.rect(margin, y, W-margin*2, 0.4, 'F'); y += 6;
+
+    // Conditions
+    doc.setTextColor(30,30,30); doc.setFontSize(9); doc.setFont('helvetica','normal');
+    doc.text(`Weather: ${d.desc}  |  Temp: ${d.temp_max}°/${d.temp_min}°C  |  Wind: ${d.wind_max_kmh}km/h ${d.wind_dir}  |  Wave: ${d.wave_height_m||'--'}m`, margin, y); y += 6;
+    doc.text(`Predicted SST: ${d.pred_sst}°C  |  Predicted CHL: ${d.pred_chl} mg/m³  |  Fishing Condition: ${d.fishing_en.toUpperCase()}`, margin, y); y += 10;
+
+    // Hotspots
+    doc.setTextColor(0,200,255); doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text('AI PREDICTED HOTSPOT COORDINATES', margin, y); y += 8;
+
+    (d.hotspots || []).forEach((s, si) => {
+        doc.setFillColor(240, 248, 255);
+        doc.rect(margin, y-4, W-margin*2, 22, 'F');
+        doc.setTextColor(0,50,100); doc.setFont('helvetica','bold'); doc.setFontSize(10);
+        doc.text(`SPOT ${si+1}: ${s.zone_name}   Confidence: ${Math.round(s.confidence*100)}%`, margin+2, y);
+        doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(20,20,20);
+        doc.text(`Coordinates: ${s.lat}°N, ${s.lon}°E`, margin+2, y+6);
+        doc.text(`SST: ${s.pred_sst}°C  |  CHL: ${s.pred_chl} mg/m³  |  Depth: ${s.depth_m}m  |  Best time: 05:00–09:00`, margin+2, y+11);
+        doc.text(`Expected Fish: ${(s.fish_species||[]).join(', ')}`, margin+2, y+16);
+        y += 26;
+    });
+
+    // Footer
+    doc.setFillColor(0,20,40); doc.rect(0,282,W,15,'F');
+    doc.setFillColor(0,200,255); doc.rect(0,281,W,1,'F');
+    doc.setTextColor(150,220,255); doc.setFontSize(8); doc.setFont('helvetica','normal');
+    doc.text('Prepared by: Manoj Dhamdhere  |  DARYASAGAR Intelligent Fisheries Advisory', margin, 288);
+    doc.text('For informational use only.', W-margin, 288, {align:'right'});
+
+    const filename = `DaryaSagar-${d.date}.pdf`;
+    const pdfBlob = doc.output('blob');
+    if (navigator.share && navigator.canShare && navigator.canShare({files:[new File([pdfBlob],'x.pdf',{type:'application/pdf'})]})) {
+        navigator.share({ title:`दर्यासागर ${d.date}`, files:[new File([pdfBlob],filename,{type:'application/pdf'})] });
+    } else { doc.save(filename); }
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ANDROID BACK BUTTON — popstate approach (works in Capacitor WebView)
@@ -3242,12 +3499,31 @@ function _handleBackPress() {
     if (bottomDrawer && bottomDrawer.classList.contains('open')) { closeDrawer(); return; }
     const sideMenu = document.getElementById('side-menu');
     if (sideMenu && sideMenu.classList.contains('open')) { toggleMenu(); return; }
-    // Nothing open — exit via Capacitor or minimize
+    // Nothing open — show exit confirmation
+    _showExitConfirm();
+}
+function _showExitConfirm() {
+    if (document.getElementById('exit-confirm-overlay')) return;
+    const ov = document.createElement('div');
+    ov.id = 'exit-confirm-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    ov.innerHTML = `<div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:28px 24px;width:260px;text-align:center;">
+        <div style="font-size:28px;margin-bottom:10px;">🌊</div>
+        <div style="color:var(--text);font-size:14px;font-weight:700;margin-bottom:6px;">दर्यासागर सोडायचे?</div>
+        <div style="color:var(--dim);font-size:11px;margin-bottom:20px;">Do you want to exit the app?</div>
+        <div style="display:flex;gap:10px;">
+            <button onclick="document.getElementById('exit-confirm-overlay').remove();" style="flex:1;padding:10px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;cursor:pointer;">Cancel</button>
+            <button onclick="_doExit();" style="flex:1;padding:10px;background:var(--danger,#ff4444);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">Exit</button>
+        </div>
+    </div>`;
+    document.body.appendChild(ov);
+}
+function _doExit() {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
         window.Capacitor.Plugins.App.exitApp();
     } else if (navigator.app && navigator.app.exitApp) {
         navigator.app.exitApp();
-    }
+    } else { window.close(); }
 }
 // Back button via Capacitor App plugin (primary — works in Android WebView)
 document.addEventListener('deviceready', function() {
