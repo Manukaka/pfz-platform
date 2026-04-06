@@ -1167,7 +1167,7 @@
 
 <script src="leaflet.js"></script>
 <script src="leaflet-velocity.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="js/jspdf.umd.min.js"></script>
 <script>
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2060,8 +2060,20 @@ function _getAgentCacheAge() {
 
 async function runAgentAnalysis() {
     const btn = document.getElementById('agent-btn');
+    const fab = document.getElementById('agent-fab');
+
+    // 4-hour cache check
+    const cached = _getAgentCache();
+    if (cached) {
+        const age = _getAgentCacheAge();
+        displayClaudeZones(cached.zones || [], cached.source || 'cached');
+        showToast('✅ ' + (cached.zones?.length||0) + ' zones (cached ' + age + ', refreshes every 4h)', 'info');
+        if (!_forecastData) loadForecast();
+        return;
+    }
 
     if (btn) { btn.classList.add('loading'); btn.innerHTML = '⏳ Analyzing...'; }
+    if (fab) { fab.innerHTML = '⏳'; fab.style.opacity = '0.7'; }
     showToast('🤖 Running AI analysis + forecast...', 'info');
 
     const bounds = map.getBounds();
@@ -2089,8 +2101,10 @@ async function runAgentAnalysis() {
             if (claudeResult.status === 'success' && claudeResult.data) {
                 agentData = claudeResult.data;
                 const zones = agentData.zones || [];
+                _setAgentCache(agentData); // save for 4 hours
                 displayClaudeZones(zones, agentData.source || 'claude');
                 if (btn) { btn.innerHTML = '✅ ' + zones.length + ' Zones!'; btn.classList.remove('loading'); setTimeout(function() { btn.innerHTML = '🤖 Agent Analysis'; }, 3000); }
+                if (fab) { fab.innerHTML = '🤖'; fab.style.opacity = '1'; }
                 loadForecast(); // also trigger 6-day forecast
                 if (zones.length === 0) showToast('Analysis complete — no zones in current view', 'info');
                 return;
@@ -3419,7 +3433,7 @@ function exportPDFReport() {
             doc.setTextColor(...confCol); doc.setFont('helvetica','bold'); doc.setFontSize(10);
             doc.text('ZONE ' + (zi+1) + ': ' + (z.quality || 'medium').toUpperCase() + '  —  Confidence: ' + conf + '%', margin + 3, y + 1);
             doc.setTextColor(20, 20, 20); doc.setFont('helvetica','normal'); doc.setFontSize(8);
-            const coords = z.center ? z.center.lat.toFixed(4) + '°N, ' + z.center.lng.toFixed(4) + '°E' : '--';
+            const coords = (z.center && z.center.lat) ? (z.center.lat).toFixed(4) + 'N, ' + (z.center.lng).toFixed(4) + 'E' : '--';
             doc.text('Coordinates: ' + coords + '  |  Best Time: ' + (z.best_fishing_time || '05:00-09:00'), margin + 3, y + 6);
             const fishNames = (z.fish_species || []).map(f => (f.name_en || f.name || '').replace(/[^\x00-\x7E]/g, '')).filter(Boolean).join(', ');
             doc.text('Fish: ' + (fishNames || 'Various pelagic species'), margin + 3, y + 11);
