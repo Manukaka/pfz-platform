@@ -1,0 +1,429 @@
+============================================================
+PFZ Platform — Data Fetch  2026-03-26T16:39:55Z
+Grid: 12×11 = 132 points
+============================================================
+Fetching WIND data …
+  Wind (25.0,55.0): spd=31.6 dir=157°
+  Wind (25.0,57.0): spd=23.4 dir=119°
+  Wind (25.0,59.0): spd=31.6 dir=114°
+  Wind (25.0,61.0): spd=10.0 dir=139°
+  Wind (25.0,63.0): spd=9.7 dir=285°
+  Wind (25.0,65.0): spd=15.2 dir=301°
+  Wind (25.0,67.0): spd=4.0 dir=297°
+  Wind (25.0,69.0): spd=9.1 dir=277°
+  OM fetch error (25.0,71.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Max retries exceeded with url: /v1/forecast?latitude=25.0&longitude=71.0&hourly=wind_speed_10m,wind_direction_10m&forecast_days=1&timezone=UTC (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1010)')))
+  Wind (25.0,71.0): spd=0.0 dir=0°
+  OM fetch error (25.0,73.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Max retries exceeded with url: /v1/forecast?latitude=25.0&longitude=73.0&hourly=wind_speed_10m,wind_direction_10m&forecast_days=1&timezone=UTC (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1010)')))
+  Wind (25.0,73.0): spd=0.0 dir=0°
+  Wind (25.0,75.0): spd=1.8 dir=233°
+  OM fetch error (25.0,77.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Max retries exceeded with url: /v1/forecast?latitude=25.0&longitude=77.0&hourly=wind_speed_10m,wind_direction_10m&forecast_days=1&timezone=UTC (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1010)')))
+  Wind (25.0,77.0): spd=0.0 dir=0°
+  Wind (23.0,55.0): spd=30.1 dir=143°
+  Wind (23.0,57.0): spd=34.0 dir=123°
+  Wind (23.0,59.0): spd=16.1 dir=214°
+  Wind (23.0,61.0): spd=27.0 dir=190°
+  Wind (23.0,63.0): spd=13.5 dir=228°
+  Wind (23.0,65.0): spd=8.7 dir=277°
+  Wind (23.0,67.0): spd=17.1 dir=311°
+  Wind (23.0,69.0): spd=11.5 dir=328°
+  Wind (23.0,71.0): spd=4.0 dir=270°
+  Wind (23.0,73.0): spd=3.8 dir=311°
+  Wind (23.0,75.0): spd=3.0 dir=256°
+  Wind (23.0,77.0): spd=5.2 dir=304°
+  Wind (21.0,55.0): spd=22.4 dir=165°
+  Wind (21.0,57.0): spd=24.4 dir=161°
+  Wind (21.0,59.0): spd=9.4 dir=187°
+  Wind (21.0,61.0): spd=17.8 dir=201°
+  Wind (21.0,63.0): spd=8.4 dir=220°
+  Wind (21.0,65.0): spd=5.8 dir=360°
+  Wind (21.0,67.0): spd=15.7 dir=340°
+  Wind (21.0,69.0): spd=22.7 dir=340°
+  Wind (21.0,71.0): spd=5.9 dir=349°
+  Wind (21.0,73.0): spd=3.2 dir=90°
+  Wind (21.0,75.0): spd=5.4 dir=278°
+  Wind (21.0,77.0): spd=4.6 dir=288°
+  Wind (19.0,55.0): spd=15.9 dir=167°
+  Wind (19.0,57.0): spd=23.8 dir=177°
+  Wind (19.0,59.0): spd=23.1 dir=182°
+  Wind (19.0,61.0): spd=13.4 dir=188°
+  Wind (19.0,63.0): spd=4.7 dir=171°
+  Wind (19.0,65.0): spd=9.2 dir=11°
+  Wind (19.0,67.0): spd=15.8 dir=360°
+  Wind (19.0,69.0): spd=22.2 dir=352°
+  Wind (19.0,71.0): spd=30.3 dir=340°
+  Wind (19.0,73.0): spd=7.3 dir=351°
+  Wind (19.0,75.0): spd=4.0 dir=350°
+  Wind (19.0,77.0): spd=3.9 dir=236°
+  Wind (17.0,55.0): spd=13.6 dir=220°
+  Wind (17.0,57.0): spd=27.0 dir=182°
+  Wind (17.0,59.0): spd=18.6 dir=171°
+  Wind (17.0,61.0): spd=8.8 dir=161°
+  Wind (17.0,63.0): spd=4.1 dir=75°
+  Wind (17.0,65.0): spd=11.3 dir=22°
+  Wind (17.0,67.0): spd=20.5 dir=2°
+  Wind (17.0,69.0): spd=27.9 dir=349°
+  Wind (17.0,71.0): spd=21.3 dir=2°
+  Wind (17.0,73.0): spd=21.0 dir=347°
+  Wind (17.0,75.0): spd=4.3 dir=360°
+  Wind (17.0,77.0): spd=5.2 dir=146°
+  Wind (15.0,55.0): spd=23.2 dir=167°
+  Wind (15.0,57.0): spd=19.2 dir=163°
+  Wind (15.0,59.0): spd=12.4 dir=144°
+  Wind (15.0,61.0): spd=6.6 dir=103°
+  Wind (15.0,63.0): spd=9.3 dir=54°
+  Wind (15.0,65.0): spd=14.7 dir=25°
+  Wind (15.0,67.0): spd=18.8 dir=7°
+  Wind (15.0,69.0): spd=24.5 dir=357°
+  Wind (15.0,71.0): spd=23.1 dir=4°
+  Wind (15.0,73.0): spd=13.7 dir=355°
+  Wind (15.0,75.0): spd=2.7 dir=113°
+  Wind (15.0,77.0): spd=3.6 dir=217°
+  Wind (13.0,55.0): spd=18.2 dir=146°
+  Wind (13.0,57.0): spd=13.7 dir=117°
+  Wind (13.0,59.0): spd=12.0 dir=97°
+  Wind (13.0,61.0): spd=12.1 dir=78°
+  Wind (13.0,63.0): spd=14.1 dir=50°
+  Wind (13.0,65.0): spd=16.2 dir=32°
+  Wind (13.0,67.0): spd=17.5 dir=14°
+  Wind (13.0,69.0): spd=15.3 dir=345°
+  Wind (13.0,71.0): spd=6.6 dir=22°
+  Wind (13.0,73.0): spd=0.8 dir=117°
+  Wind (13.0,75.0): spd=2.1 dir=149°
+  Wind (13.0,77.0): spd=2.3 dir=162°
+  Wind (11.0,55.0): spd=16.3 dir=115°
+  Wind (11.0,57.0): spd=15.9 dir=87°
+  Wind (11.0,59.0): spd=16.8 dir=80°
+  Wind (11.0,61.0): spd=19.5 dir=56°
+  Wind (11.0,63.0): spd=20.6 dir=44°
+  Wind (11.0,65.0): spd=21.2 dir=32°
+  Wind (11.0,67.0): spd=17.1 dir=28°
+  Wind (11.0,69.0): spd=10.5 dir=16°
+  Wind (11.0,71.0): spd=7.8 dir=22°
+  Wind (11.0,73.0): spd=7.8 dir=347°
+  Wind (11.0,75.0): spd=5.4 dir=318°
+  Wind (11.0,77.0): spd=4.7 dir=4°
+  OM fetch error (9.0,55.0): HTTPSConnectionPool(host='api.open-meteo.com', port=443): Max retries exceeded with url: /v1/forecast?latitude=9.0&longitude=55.0&hourly=wind_speed_10m,wind_direction_10m&forecast_days=1&timezone=UTC (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1010)')))
+  Wind (9.0,55.0): spd=0.0 dir=0°
+  Wind (9.0,57.0): spd=22.2 dir=65°
+  Wind (9.0,59.0): spd=19.0 dir=65°
+  Wind (9.0,61.0): spd=20.6 dir=54°
+  Wind (9.0,63.0): spd=19.9 dir=45°
+  Wind (9.0,65.0): spd=17.0 dir=36°
+  Wind (9.0,67.0): spd=15.3 dir=34°
+  Wind (9.0,69.0): spd=12.7 dir=47°
+  Wind (9.0,71.0): spd=8.0 dir=27°
+  Wind (9.0,73.0): spd=0.8 dir=333°
+  Wind (9.0,75.0): spd=2.3 dir=162°
+  Wind (9.0,77.0): spd=2.4 dir=63°
+  Wind (7.0,55.0): spd=16.6 dir=72°
+  Wind (7.0,57.0): spd=21.4 dir=63°
+  Wind (7.0,59.0): spd=22.5 dir=49°
+  Wind (7.0,61.0): spd=20.4 dir=49°
+  Wind (7.0,63.0): spd=16.1 dir=70°
+  Wind (7.0,65.0): spd=13.4 dir=66°
+  Wind (7.0,67.0): spd=12.6 dir=59°
+  Wind (7.0,69.0): spd=10.9 dir=73°
+  Wind (7.0,71.0): spd=9.3 dir=74°
+  Wind (7.0,73.0): spd=7.0 dir=55°
+  Wind (7.0,75.0): spd=8.9 dir=63°
+  Wind (7.0,77.0): spd=14.0 dir=67°
+  Wind (5.0,55.0): spd=13.4 dir=76°
+  Wind (5.0,57.0): spd=15.2 dir=76°
+  Wind (5.0,59.0): spd=21.4 dir=70°
+  Wind (5.0,61.0): spd=21.1 dir=60°
+  Wind (5.0,63.0): spd=18.6 dir=58°
+  Wind (5.0,65.0): spd=18.7 dir=71°
+  Wind (5.0,67.0): spd=12.9 dir=77°
+  Wind (5.0,69.0): spd=14.5 dir=84°
+  Wind (5.0,71.0): spd=15.5 dir=95°
+  Wind (5.0,73.0): spd=8.7 dir=66°
+  Wind (5.0,75.0): spd=7.9 dir=74°
+  Wind (5.0,77.0): spd=9.6 dir=77°
+[OK] wind_data.json saved (132 points)
+Fetching WAVE data …
+  Wave (25.0,55.0): h=0.76m dir=198deg U=0.000 V=0.000
+  Wave (25.0,57.0): h=0.80m dir=103deg U=0.000 V=0.000
+  Wave (25.0,59.0): h=0.92m dir=129deg U=0.000 V=0.000
+  Wave (25.0,61.0): h=1.22m dir=178deg U=0.000 V=0.000
+  Wave (25.0,63.0): h=1.02m dir=199deg U=0.000 V=0.000
+  Wave (25.0,65.0): h=0.78m dir=214deg U=0.000 V=0.000
+  Wave (25.0,67.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (25.0,69.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (25.0,71.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (25.0,73.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (25.0,75.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (25.0,77.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (23.0,55.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (23.0,57.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (23.0,59.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (23.0,61.0): h=1.32m dir=196deg U=0.000 V=0.000
+  Wave (23.0,63.0): h=1.02m dir=202deg U=0.000 V=0.000
+  Wave (23.0,65.0): h=0.72m dir=206deg U=0.000 V=0.000
+  Wave (23.0,67.0): h=0.58m dir=200deg U=-0.298 V=-0.818
+  Wave (23.0,69.0): h=0.34m dir=294deg U=0.000 V=0.000
+  Wave (23.0,71.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (23.0,73.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (23.0,75.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (23.0,77.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (21.0,55.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (21.0,57.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (21.0,59.0): h=0.68m dir=163deg U=0.000 V=0.000
+  Wave (21.0,61.0): h=1.02m dir=192deg U=0.000 V=0.000
+  Wave (21.0,63.0): h=0.82m dir=193deg U=0.000 V=0.000
+  Wave (21.0,65.0): h=0.64m dir=187deg U=0.000 V=0.000
+  Wave (21.0,67.0): h=0.62m dir=190deg U=-0.162 V=-0.916
+  Wave (21.0,69.0): h=0.66m dir=228deg U=-0.736 V=-0.662
+  Wave (21.0,71.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (21.0,73.0): h=0.20m dir=236deg U=0.000 V=0.000
+  Wave (21.0,75.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (21.0,77.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (19.0,55.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (19.0,57.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (19.0,59.0): h=1.00m dir=182deg U=0.000 V=0.000
+  Wave (19.0,61.0): h=0.78m dir=187deg U=0.000 V=0.000
+  Wave (19.0,63.0): h=0.66m dir=180deg U=0.000 V=0.000
+  Wave (19.0,65.0): h=0.62m dir=178deg U=0.000 V=0.000
+  Wave (19.0,67.0): h=0.60m dir=174deg U=0.094 V=-0.895
+  Wave (19.0,69.0): h=0.76m dir=216deg U=-0.670 V=-0.922
+  Wave (19.0,71.0): h=0.82m dir=323deg U=-0.740 V=0.982
+  Wave (19.0,73.0): h=0.30m dir=292deg U=0.000 V=0.000
+  Wave (19.0,75.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (19.0,77.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (17.0,55.0): h=1.06m dir=166deg U=0.000 V=0.000
+  Wave (17.0,57.0): h=1.18m dir=178deg U=0.000 V=0.000
+  Wave (17.0,59.0): h=0.74m dir=178deg U=0.000 V=0.000
+  Wave (17.0,61.0): h=0.66m dir=165deg U=0.000 V=0.000
+  Wave (17.0,63.0): h=0.66m dir=167deg U=0.000 V=0.000
+  Wave (17.0,65.0): h=0.64m dir=164deg U=0.000 V=0.000
+  Wave (17.0,67.0): h=0.78m dir=131deg U=0.883 V=-0.768
+  Wave (17.0,69.0): h=0.94m dir=35deg U=0.809 V=1.155
+  Wave (17.0,71.0): h=0.98m dir=337deg U=-0.574 V=1.353
+  Wave (17.0,73.0): h=0.80m dir=305deg U=-0.983 V=0.688
+  Wave (17.0,75.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (17.0,77.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (15.0,55.0): h=0.90m dir=173deg U=0.000 V=0.000
+  Wave (15.0,57.0): h=0.88m dir=164deg U=0.000 V=0.000
+  Wave (15.0,59.0): h=0.72m dir=152deg U=0.000 V=0.000
+  Wave (15.0,61.0): h=0.66m dir=159deg U=0.000 V=0.000
+  Wave (15.0,63.0): h=0.76m dir=151deg U=0.000 V=0.000
+  Wave (15.0,65.0): h=0.80m dir=118deg U=0.000 V=0.000
+  Wave (15.0,67.0): h=0.96m dir=92deg U=1.439 V=-0.050
+  Wave (15.0,69.0): h=1.10m dir=23deg U=0.645 V=1.519
+  Wave (15.0,71.0): h=1.14m dir=354deg U=-0.179 V=1.701
+  Wave (15.0,73.0): h=1.04m dir=319deg U=-1.024 V=1.177
+  Wave (15.0,75.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (15.0,77.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (13.0,55.0): h=0.84m dir=140deg U=0.000 V=0.000
+  Wave (13.0,57.0): h=0.76m dir=151deg U=0.000 V=0.000
+  Wave (13.0,59.0): h=0.74m dir=151deg U=0.000 V=0.000
+  Wave (13.0,61.0): h=0.76m dir=146deg U=0.000 V=0.000
+  Wave (13.0,63.0): h=0.86m dir=122deg U=0.000 V=0.000
+  Wave (13.0,65.0): h=0.88m dir=98deg U=0.000 V=0.000
+  Wave (13.0,67.0): h=0.98m dir=73deg U=1.406 V=0.430
+  Wave (13.0,69.0): h=0.98m dir=32deg U=0.779 V=1.247
+  Wave (13.0,71.0): h=0.88m dir=348deg U=-0.274 V=1.291
+  Wave (13.0,73.0): h=0.82m dir=235deg U=-1.008 V=-0.706
+  Wave (13.0,75.0): h=0.58m dir=262deg U=0.000 V=0.000
+  Wave (13.0,77.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (11.0,55.0): h=0.76m dir=147deg U=0.000 V=0.000
+  Wave (11.0,57.0): h=0.82m dir=138deg U=0.000 V=0.000
+  Wave (11.0,59.0): h=0.78m dir=137deg U=0.000 V=0.000
+  Wave (11.0,61.0): h=0.84m dir=133deg U=0.000 V=0.000
+  Wave (11.0,63.0): h=0.86m dir=118deg U=0.000 V=0.000
+  Wave (11.0,65.0): h=0.88m dir=98deg U=0.000 V=0.000
+  Wave (11.0,67.0): h=0.88m dir=121deg U=0.000 V=0.000
+  Wave (11.0,69.0): h=0.82m dir=99deg U=0.000 V=0.000
+  Wave (11.0,71.0): h=0.78m dir=171deg U=0.000 V=0.000
+  Wave (11.0,73.0): h=0.76m dir=167deg U=0.000 V=0.000
+  Wave (11.0,75.0): h=0.72m dir=190deg U=0.000 V=0.000
+  Wave (11.0,77.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (9.0,55.0): h=0.82m dir=132deg U=0.000 V=0.000
+  Wave (9.0,57.0): h=0.90m dir=122deg U=0.000 V=0.000
+  Wave (9.0,59.0): h=0.92m dir=120deg U=0.000 V=0.000
+  Wave (9.0,61.0): h=0.92m dir=119deg U=0.000 V=0.000
+  Wave (9.0,63.0): h=0.90m dir=112deg U=0.000 V=0.000
+  Wave (9.0,65.0): h=0.86m dir=100deg U=0.000 V=0.000
+  Wave (9.0,67.0): h=0.90m dir=145deg U=0.000 V=0.000
+  Wave (9.0,69.0): h=0.78m dir=155deg U=0.000 V=0.000
+  Wave (9.0,71.0): h=0.72m dir=186deg U=0.000 V=0.000
+  Wave (9.0,73.0): h=0.72m dir=162deg U=0.000 V=0.000
+  Wave (9.0,75.0): h=0.74m dir=161deg U=0.000 V=0.000
+  Wave (9.0,77.0): h=0.00m dir=0deg U=0.000 V=0.000
+  Wave (7.0,55.0): h=0.84m dir=134deg U=0.000 V=0.000
+  Wave (7.0,57.0): h=0.96m dir=117deg U=0.000 V=0.000
+  Wave (7.0,59.0): h=1.04m dir=113deg U=0.000 V=0.000
+  Wave (7.0,61.0): h=1.04m dir=109deg U=0.000 V=0.000
+  Wave (7.0,63.0): h=0.96m dir=112deg U=0.000 V=0.000
+  Wave (7.0,65.0): h=0.90m dir=114deg U=0.000 V=0.000
+  Wave (7.0,67.0): h=0.86m dir=157deg U=0.000 V=0.000
+  Wave (7.0,69.0): h=0.78m dir=171deg U=0.000 V=0.000
+  Wave (7.0,71.0): h=0.64m dir=189deg U=0.000 V=0.000
+  Wave (7.0,73.0): h=0.38m dir=198deg U=0.000 V=0.000
+  Wave (7.0,75.0): h=1.00m dir=136deg U=0.000 V=0.000
+  Wave (7.0,77.0): h=1.06m dir=149deg U=0.000 V=0.000
+  Wave (5.0,55.0): h=0.82m dir=132deg U=0.000 V=0.000
+  Wave (5.0,57.0): h=0.86m dir=126deg U=0.000 V=0.000
+  Wave (5.0,59.0): h=0.98m dir=107deg U=0.000 V=0.000
+  Wave (5.0,61.0): h=1.08m dir=106deg U=0.000 V=0.000
+  Wave (5.0,63.0): h=1.10m dir=112deg U=0.000 V=0.000
+  Wave (5.0,65.0): h=1.00m dir=125deg U=0.000 V=0.000
+  Wave (5.0,67.0): h=0.88m dir=151deg U=0.000 V=0.000
+  Wave (5.0,69.0): h=0.90m dir=163deg U=0.000 V=0.000
+  Wave (5.0,71.0): h=0.78m dir=180deg U=0.000 V=0.000
+  Wave (5.0,73.0): h=0.48m dir=164deg U=0.000 V=0.000
+  Wave (5.0,75.0): h=1.02m dir=142deg U=0.000 V=0.000
+  Wave (5.0,77.0): h=1.20m dir=141deg U=0.000 V=0.000
+[OK] wave_data.json saved (132 points)
+Fetching CURRENT data …
+  Current (25.0,55.0): vel=0.500 dir=45°
+  Current (25.0,57.0): vel=1.100 dir=342°
+  Current (25.0,59.0): vel=1.800 dir=6°
+  Current (25.0,61.0): vel=1.100 dir=18°
+  Current (25.0,63.0): vel=0.300 dir=45°
+  Current (25.0,65.0): vel=0.200 dir=0°
+  Current (25.0,67.0): vel=0.300 dir=135°
+  Current (25.0,69.0): vel=0.000 dir=0°
+  Current (25.0,71.0): vel=0.000 dir=0°
+  Current (25.0,73.0): vel=0.000 dir=0°
+  Current (25.0,75.0): vel=0.000 dir=0°
+  Current (25.0,77.0): vel=0.000 dir=0°
+  Current (23.0,55.0): vel=0.000 dir=0°
+  Current (23.0,57.0): vel=0.000 dir=0°
+  Current (23.0,59.0): vel=0.300 dir=45°
+  Current (23.0,61.0): vel=2.100 dir=15°
+  Current (23.0,63.0): vel=1.300 dir=135°
+  Current (23.0,65.0): vel=0.600 dir=162°
+  Current (23.0,67.0): vel=0.200 dir=270°
+  Current (23.0,69.0): vel=1.300 dir=124°
+  Current (23.0,71.0): vel=0.000 dir=0°
+  Current (23.0,73.0): vel=0.000 dir=0°
+  Current (23.0,75.0): vel=0.000 dir=0°
+  Current (23.0,77.0): vel=0.000 dir=0°
+  Current (21.0,55.0): vel=0.000 dir=0°
+  Current (21.0,57.0): vel=0.000 dir=0°
+  Current (21.0,59.0): vel=0.900 dir=37°
+  Current (21.0,61.0): vel=0.500 dir=225°
+  Current (21.0,63.0): vel=1.300 dir=124°
+  Current (21.0,65.0): vel=0.800 dir=297°
+  Current (21.0,67.0): vel=0.500 dir=180°
+  Current (21.0,69.0): vel=0.500 dir=270°
+  Current (21.0,71.0): vel=0.000 dir=0°
+  Current (21.0,73.0): vel=0.300 dir=45°
+  Current (21.0,75.0): vel=0.000 dir=0°
+  Current (21.0,77.0): vel=0.000 dir=0°
+  Current (19.0,55.0): vel=0.000 dir=0°
+  Current (19.0,57.0): vel=0.400 dir=27°
+  Current (19.0,59.0): vel=2.300 dir=0°
+  Current (19.0,61.0): vel=0.200 dir=270°
+  Current (19.0,63.0): vel=0.900 dir=323°
+  Current (19.0,65.0): vel=0.400 dir=117°
+  Current (19.0,67.0): vel=1.300 dir=8°
+  Current (19.0,69.0): vel=0.600 dir=198°
+  Current (19.0,71.0): vel=0.600 dir=146°
+  Current (19.0,73.0): vel=0.900 dir=53°
+  Current (19.0,75.0): vel=0.000 dir=0°
+  Current (19.0,77.0): vel=0.000 dir=0°
+  Current (17.0,55.0): vel=0.700 dir=90°
+  Current (17.0,57.0): vel=0.700 dir=14°
+  Current (17.0,59.0): vel=0.700 dir=14°
+  Current (17.0,61.0): vel=2.400 dir=81°
+  Current (17.0,63.0): vel=0.300 dir=135°
+  Current (17.0,65.0): vel=0.500 dir=225°
+  Current (17.0,67.0): vel=0.200 dir=180°
+  Current (17.0,69.0): vel=1.200 dir=141°
+  Current (17.0,71.0): vel=1.500 dir=249°
+  Current (17.0,73.0): vel=0.400 dir=180°
+  Current (17.0,75.0): vel=0.000 dir=0°
+  Current (17.0,77.0): vel=0.000 dir=0°
+  Current (15.0,55.0): vel=2.400 dir=318°
+  Current (15.0,57.0): vel=0.800 dir=117°
+  Current (15.0,59.0): vel=0.900 dir=90°
+  Current (15.0,61.0): vel=0.800 dir=243°
+  Current (15.0,63.0): vel=0.800 dir=243°
+  Current (15.0,65.0): vel=1.200 dir=63°
+  Current (15.0,67.0): vel=1.200 dir=117°
+  Current (15.0,69.0): vel=0.500 dir=270°
+  Current (15.0,71.0): vel=1.200 dir=207°
+  Current (15.0,73.0): vel=1.300 dir=270°
+  Current (15.0,75.0): vel=0.000 dir=0°
+  Current (15.0,77.0): vel=0.000 dir=0°
+  Current (13.0,55.0): vel=2.000 dir=63°
+  Current (13.0,57.0): vel=0.500 dir=270°
+  Current (13.0,59.0): vel=1.100 dir=180°
+  Current (13.0,61.0): vel=1.700 dir=221°
+  Current (13.0,63.0): vel=0.500 dir=90°
+  Current (13.0,65.0): vel=0.300 dir=225°
+  Current (13.0,67.0): vel=1.300 dir=225°
+  Current (13.0,69.0): vel=0.400 dir=117°
+  Current (13.0,71.0): vel=1.100 dir=270°
+  Current (13.0,73.0): vel=1.100 dir=261°
+  Current (13.0,75.0): vel=0.000 dir=90°
+  Current (13.0,77.0): vel=0.000 dir=0°
+  Current (11.0,55.0): vel=1.000 dir=338°
+  Current (11.0,57.0): vel=0.300 dir=225°
+  Current (11.0,59.0): vel=0.200 dir=180°
+  Current (11.0,61.0): vel=1.200 dir=51°
+  Current (11.0,63.0): vel=0.000 dir=90°
+  Current (11.0,65.0): vel=0.500 dir=90°
+  Current (11.0,67.0): vel=0.400 dir=90°
+  Current (11.0,69.0): vel=0.400 dir=117°
+  Current (11.0,71.0): vel=0.600 dir=56°
+  Current (11.0,73.0): vel=0.400 dir=27°
+  Current (11.0,75.0): vel=0.900 dir=0°
+  Current (11.0,77.0): vel=0.000 dir=0°
+  Current (9.0,55.0): vel=0.800 dir=315°
+  Current (9.0,57.0): vel=1.400 dir=40°
+  Current (9.0,59.0): vel=1.100 dir=72°
+  Current (9.0,61.0): vel=2.000 dir=5°
+  Current (9.0,63.0): vel=1.000 dir=22°
+  Current (9.0,65.0): vel=1.400 dir=23°
+  Current (9.0,67.0): vel=0.600 dir=146°
+  Current (9.0,69.0): vel=2.100 dir=329°
+  Current (9.0,71.0): vel=1.500 dir=256°
+  Current (9.0,73.0): vel=0.400 dir=207°
+  Current (9.0,75.0): vel=1.500 dir=339°
+  Current (9.0,77.0): vel=0.000 dir=0°
+  Current (7.0,55.0): vel=0.700 dir=104°
+  Current (7.0,57.0): vel=0.200 dir=0°
+  Current (7.0,59.0): vel=0.800 dir=207°
+  Current (7.0,61.0): vel=1.100 dir=279°
+  Current (7.0,63.0): vel=1.300 dir=286°
+  Current (7.0,65.0): vel=1.900 dir=304°
+  Current (7.0,67.0): vel=1.300 dir=225°
+  Current (7.0,69.0): vel=0.800 dir=27°
+  Current (7.0,71.0): vel=1.400 dir=337°
+  Current (7.0,73.0): vel=0.600 dir=124°
+  Current (7.0,75.0): vel=0.900 dir=101°
+  Current (7.0,77.0): vel=0.700 dir=180°
+  Current (5.0,55.0): vel=1.900 dir=253°
+  Current (5.0,57.0): vel=1.700 dir=257°
+  Current (5.0,59.0): vel=1.800 dir=264°
+  Current (5.0,61.0): vel=1.300 dir=236°
+  Current (5.0,63.0): vel=1.200 dir=231°
+  Current (5.0,65.0): vel=1.300 dir=278°
+  Current (5.0,67.0): vel=2.100 dir=250°
+  Current (5.0,69.0): vel=1.300 dir=225°
+  Current (5.0,71.0): vel=1.700 dir=221°
+  Current (5.0,73.0): vel=2.300 dir=270°
+  Current (5.0,75.0): vel=2.000 dir=280°
+  Current (5.0,77.0): vel=1.400 dir=310°
+[OK] current_data.json saved (132 points)
+Fetching CHLOROPHYLL data (NASA ERDDAP) …
+Traceback (most recent call last):
+  File "C:\Users\manoj\pfz-platform\fetch_weather.py", line 210, in fetch_chlorophyll
+    r.raise_for_status()
+  File "C:\Users\manoj\AppData\Local\Programs\Python\Python312\Lib\site-packages\requests\models.py", line 1021, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error:  for url: https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdMH1chla1day.json?chlorophyll%5B(last)%5D%5B5.0:25.0%5D%5B55.0:78.0%5D
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\manoj\pfz-platform\fetch_weather.py", line 330, in <module>
+    fetch_chlorophyll()
+  File "C:\Users\manoj\pfz-platform\fetch_weather.py", line 239, in fetch_chlorophyll
+    print(f"\u26a0\ufe0f  ERDDAP fetch failed: {e}")
+  File "C:\Users\manoj\AppData\Local\Programs\Python\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 0-1: character maps to <undefined>

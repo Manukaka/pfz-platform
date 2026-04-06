@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAMUDRA - Smart Fishing</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #fff;
+        }
+
+        .screen {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #007AFF 0%, #0051D5 100%);
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Main Content */
+        .main {
+            display: flex;
+            flex: 1;
+            gap: 0;
+        }
+
+        /* Left Panel */
+        .panel {
+            width: 300px;
+            background: #f5f5f7;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #007AFF;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+        }
+
+        .big-button {
+            width: 100%;
+            padding: 16px;
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 24px;
+        }
+
+        .big-button:hover {
+            background: #0051D5;
+        }
+
+        .big-button:active {
+            transform: scale(0.98);
+        }
+
+        .big-button.loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* Results Box */
+        .results-box {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid #eee;
+            flex: 1;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .results-box.show {
+            display: block;
+        }
+
+        .result-stat {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .result-stat:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #007AFF;
+        }
+
+        .stat-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        /* Map */
+        #map {
+            flex: 1;
+        }
+
+        .map-overlay {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 12px;
+            z-index: 400;
+        }
+
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 12px;
+            z-index: 400;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main {
+                flex-direction: column;
+            }
+
+            .panel {
+                width: 100%;
+                max-height: 50vh;
+            }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ddd;
+            border-top-color: #007AFF;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="screen">
+        <!-- Header -->
+        <header>
+            <div class="title">SAMUDRA</div>
+            <div class="subtitle">Smart Fishing Intelligence</div>
+        </header>
+
+        <!-- Main -->
+        <div class="main">
+            <!-- Left Panel -->
+            <div class="panel">
+                <h3 style="margin-bottom: 20px; font-size: 16px;">Find Fishing Zones</h3>
+
+                <div class="form-group">
+                    <label>Target Fish</label>
+                    <select id="fish">
+                        <option value="">All Species</option>
+                        <option value="ghol">GHOL (Premium)</option>
+                        <option value="papalet">Papalet</option>
+                        <option value="pomfret">Pomfret</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Search Radius</label>
+                    <select id="radius">
+                        <option value="50">50 km</option>
+                        <option value="75">75 km</option>
+                        <option value="100">100 km</option>
+                    </select>
+                </div>
+
+                <button class="big-button" id="analyzeBtn" onclick="analyze()">
+                    Analyze Now
+                </button>
+
+                <!-- Results -->
+                <div class="results-box" id="results">
+                    <div class="result-stat">
+                        <div class="stat-label">Active Zones</div>
+                        <div class="stat-value" id="zoneCount">0</div>
+                    </div>
+                    <div class="result-stat">
+                        <div class="stat-label">Best Location</div>
+                        <div class="stat-value" style="font-size: 14px;" id="bestLoc">—</div>
+                        <div class="stat-info" id="zoneDetails"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map -->
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+        <strong style="display: block; margin-bottom: 8px;">Zone Quality</strong>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #007AFF;"></div>
+            <span>Excellent</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #00B4FF;"></div>
+            <span>Good</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FFB800;"></div>
+            <span>Moderate</span>
+        </div>
+    </div>
+
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([17.0, 71.0], 9);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        let zoneMarkers = [];
+
+        async function analyze() {
+            const btn = document.getElementById('analyzeBtn');
+            const resultsBox = document.getElementById('results');
+
+            // Show loading
+            btn.classList.add('loading');
+            btn.innerHTML = '<span class="spinner"></span> Analyzing...';
+
+            try {
+                // Fetch zones
+                const response = await fetch('/api/pfz/zones', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lat_min: 14.0,
+                        lat_max: 21.0,
+                        lng_min: 67.0,
+                        lng_max: 74.5
+                    })
+                });
+
+                const data = await response.json();
+                const zones = data.zones || [];
+
+                // Clear old markers
+                zoneMarkers.forEach(m => map.removeLayer(m));
+                zoneMarkers = [];
+
+                // Plot zones
+                zones.forEach(zone => {
+                    const confidence = zone.confidence || 0.5;
+                    const color = confidence > 0.7 ? '#007AFF' : confidence > 0.4 ? '#00B4FF' : '#FFB800';
+
+                    const marker = L.circleMarker(
+                        [zone.center_lat, zone.center_lng],
+                        {
+                            radius: 10 + confidence * 5,
+                            color: color,
+                            fillColor: color,
+                            fillOpacity: 0.7,
+                            weight: 2
+                        }
+                    ).bindPopup(`
+                        <strong>Zone</strong><br>
+                        Quality: ${(confidence * 100).toFixed(0)}%<br>
+                        Temp: ${zone.sst?.toFixed(1)}°C<br>
+                        Depth: ${zone.depth?.toFixed(0)}m
+                    `);
+
+                    marker.addTo(map);
+                    zoneMarkers.push(marker);
+                });
+
+                // Update results
+                document.getElementById('zoneCount').textContent = zones.length;
+
+                if (zones.length > 0) {
+                    const best = zones[0];
+                    document.getElementById('bestLoc').textContent =
+                        `${best.center_lat.toFixed(2)}°N\n${best.center_lng.toFixed(2)}°E`;
+                    document.getElementById('zoneDetails').textContent =
+                        `Confidence: ${(best.confidence * 100).toFixed(0)}%`;
+
+                    // Fit map to zones
+                    const bounds = L.latLngBounds(
+                        zones.map(z => [z.center_lat, z.center_lng])
+                    );
+                    map.fitBounds(bounds.pad(0.15));
+                } else {
+                    document.getElementById('bestLoc').textContent = 'No zones found';
+                    document.getElementById('zoneDetails').textContent = '';
+                }
+
+                resultsBox.classList.add('show');
+
+            } catch (e) {
+                alert('Error: ' + e.message);
+            } finally {
+                btn.classList.remove('loading');
+                btn.textContent = 'Analyze Now';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow cleartext (HTTP) for local development -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">10.149.78.210</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+    </domain-config>
+    <!-- HTTPS to cloud backend (default, no cleartext) -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">onrender.com</domain>
+    </domain-config>
+</network-security-config>

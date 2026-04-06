@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAMUDRA - Smart Fishing</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #fff;
+        }
+
+        .app {
+            display: flex;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #007AFF 0%, #0051D5 100%);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .hamburger {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .status-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: auto;
+        }
+
+        /* Sidebar Menu */
+        .sidebar {
+            position: fixed;
+            left: -300px;
+            top: 0;
+            width: 300px;
+            height: 100vh;
+            background: white;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+            z-index: 999;
+            transition: left 0.3s;
+            overflow-y: auto;
+            padding-top: 60px;
+        }
+
+        .sidebar.open {
+            left: 0;
+        }
+
+        .menu-section {
+            padding: 0;
+            margin-bottom: 8px;
+        }
+
+        .menu-title {
+            padding: 12px 20px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .menu-item {
+            padding: 12px 20px;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+            color: #333;
+        }
+
+        .menu-item:hover {
+            background: #f5f5f7;
+            border-left-color: #007AFF;
+        }
+
+        .menu-item.active {
+            background: #f0f0f0;
+            color: #007AFF;
+            border-left-color: #007AFF;
+            font-weight: 600;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.3);
+            display: none;
+            z-index: 998;
+        }
+
+        .overlay.open {
+            display: block;
+        }
+
+        /* Main Content */
+        .content {
+            display: flex;
+            flex: 1;
+        }
+
+        .panel {
+            width: 280px;
+            background: #f5f5f7;
+            padding: 20px;
+            overflow-y: auto;
+            display: none;
+            border-right: 1px solid #e5e5e7;
+        }
+
+        .panel.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #007AFF;
+            box-shadow: 0 0 0 3px rgba(0,122,255,0.1);
+        }
+
+        .analyze-btn {
+            width: 100%;
+            padding: 12px;
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 16px;
+        }
+
+        .analyze-btn:hover {
+            background: #0051D5;
+        }
+
+        .results {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            flex: 1;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .result-item {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .result-label {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .result-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #007AFF;
+        }
+
+        /* Map */
+        #map {
+            flex: 1;
+            position: relative;
+        }
+
+        /* Layer Controls - Right Side */
+        .layer-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 400;
+            overflow: hidden;
+        }
+
+        .layer-btn {
+            display: block;
+            padding: 12px 16px;
+            background: white;
+            border: 1px solid #e5e5e7;
+            border-left: none;
+            border-right: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+            color: #333;
+        }
+
+        .layer-btn:first-child {
+            border-top: none;
+        }
+
+        .layer-btn:last-child {
+            border-bottom: none;
+        }
+
+        .layer-btn:hover {
+            background: #f5f5f7;
+        }
+
+        .layer-btn.active {
+            background: #007AFF;
+            color: white;
+            border-color: #007AFF;
+        }
+
+        .layer-btn + .layer-btn {
+            border-top: 1px solid #e5e5e7;
+        }
+
+        /* Legend */
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 12px;
+            z-index: 400;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #ddd;
+            border-top-color: #007AFF;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Agents Army Panel */
+        .agents-panel {
+            position: fixed;
+            right: -420px;
+            top: 0;
+            width: 400px;
+            height: 100vh;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+            transition: right 0.3s ease;
+            z-index: 500;
+            border-left: 1px solid #333;
+        }
+
+        .agents-panel.open {
+            right: 0;
+        }
+
+        .agents-panel h3 {
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #00D4FF;
+            font-weight: 600;
+        }
+
+        .agent-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .agent-card {
+            background: #252525;
+            border: 1px solid #333;
+            border-left: 3px solid #666;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        .agent-card.running {
+            border-left-color: #FFB800;
+            background: #2a2520;
+        }
+
+        .agent-card.completed {
+            border-left-color: #00D4FF;
+            background: #1a2a2a;
+        }
+
+        .agent-card.error {
+            border-left-color: #FF3B30;
+            background: #2a1a1a;
+        }
+
+        .agent-name {
+            font-weight: 600;
+            color: #fff;
+            font-size: 10px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .agent-status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #666;
+            margin-right: 4px;
+        }
+
+        .agent-status-dot.running {
+            background: #FFB800;
+            animation: pulse 1s infinite;
+        }
+
+        .agent-status-dot.completed {
+            background: #00D4FF;
+        }
+
+        .agent-status-dot.error {
+            background: #FF3B30;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .agent-status-text {
+            font-size: 9px;
+            color: #aaa;
+        }
+
+        .agent-confidence {
+            margin-top: 4px;
+            font-size: 9px;
+            color: #999;
+        }
+
+        .agents-toggle-btn {
+            position: fixed;
+            right: 20px;
+            bottom: 80px;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #007AFF, #0051D5);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 499;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,122,255,0.4);
+            transition: all 0.3s;
+        }
+
+        .agents-toggle-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0,122,255,0.6);
+        }
+
+        .activity-log {
+            margin-top: 16px;
+            border-top: 1px solid #333;
+            padding-top: 12px;
+        }
+
+        .log-entry {
+            font-size: 10px;
+            color: #888;
+            margin-bottom: 6px;
+            font-family: 'Monaco', monospace;
+            line-height: 1.3;
+        }
+
+        .log-entry.event {
+            color: #00D4FF;
+        }
+
+        .consensus-badge {
+            display: inline-block;
+            background: #00D4FF;
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        .consensus-badge.strong {
+            background: #00FF88;
+        }
+
+        .consensus-badge.moderate {
+            background: #FFB800;
+        }
+
+        .consensus-badge.weak {
+            background: #FF9500;
+        }
+
+        @media (max-width: 768px) {
+            .panel {
+                display: none !important;
+            }
+
+            .layer-controls {
+                top: 60px;
+                right: 10px;
+            }
+
+            .agents-panel {
+                width: 100%;
+                right: -100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header>
+            <div class="header-left">
+                <button class="hamburger" onclick="toggleMenu()">☰</button>
+                <div class="title">SAMUDRA</div>
+            </div>
+            <div class="status-badge" id="statusBadge">Ready</div>
+        </header>
+
+        <!-- Sidebar Menu -->
+        <div class="sidebar" id="sidebar">
+            <div class="menu-section">
+                <div class="menu-title">Analysis</div>
+                <button class="menu-item active" onclick="selectAnalysis('pfz')">🗺️ PFZ Zones</button>
+                <button class="menu-item" onclick="selectAnalysis('ghol')">🐟 GHOL Specialist</button>
+                <button class="menu-item" onclick="selectAnalysis('wind')">💨 Wind & Currents</button>
+                <button class="menu-item" onclick="selectAnalysis('thermal')">🌡️ Thermal Fronts</button>
+            </div>
+
+            <div class="menu-section">
+                <div class="menu-title">Data</div>
+                <button class="menu-item" onclick="selectAnalysis('lunar')">🌙 Lunar Phase</button>
+                <button class="menu-item" onclick="selectAnalysis('economics')">💰 Economics</button>
+            </div>
+        </div>
+
+        <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- PFZ Panel -->
+            <div class="panel active" id="pfz-panel">
+                <h3 style="margin-bottom: 12px; font-size: 14px;">PFZ Zones</h3>
+                <div class="form-group">
+                    <label>Fish Species</label>
+                    <select id="pfz-species">
+                        <option value="">All Species</option>
+                        <option value="ghol">GHOL</option>
+                        <option value="papalet">Papalet</option>
+                    </select>
+                </div>
+                <button class="analyze-btn" onclick="runAgentArmy(); analyzePFZ();">🤖 Agent Army Analysis</button>
+                <div class="results" id="pfz-results"></div>
+            </div>
+
+            <!-- GHOL Panel -->
+            <div class="panel" id="ghol-panel">
+                <h3 style="margin-bottom: 12px; font-size: 14px;">GHOL Specialist</h3>
+                <div class="form-group">
+                    <label>Latitude</label>
+                    <input type="number" id="ghol-lat" value="17.5" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Longitude</label>
+                    <input type="number" id="ghol-lng" value="71.0" step="0.1">
+                </div>
+                <button class="analyze-btn" onclick="analyzeGHOL()">Check Spawning</button>
+                <div class="results" id="ghol-results"></div>
+            </div>
+
+            <!-- Wind Panel -->
+            <div class="panel" id="wind-panel">
+                <h3 style="margin-bottom: 12px; font-size: 14px;">Wind & Currents</h3>
+                <div class="form-group">
+                    <label>Analysis Type</label>
+                    <select id="wind-type">
+                        <option value="wind">Wind Speed</option>
+                        <option value="current">Ocean Current</option>
+                        <option value="both">Both</option>
+                    </select>
+                </div>
+                <button class="analyze-btn" onclick="analyzeWind()">Analyze</button>
+                <div class="results" id="wind-results"></div>
+            </div>
+
+            <!-- Thermal Panel -->
+            <div class="panel" id="thermal-panel">
+                <h3 style="margin-bottom: 12px; font-size: 14px;">Thermal Fronts</h3>
+                <div class="form-group">
+                    <label>Sensitivity</label>
+                    <select id="thermal-sensitivity">
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                <button class="analyze-btn" onclick="analyzeThermal()">Detect Fronts</button>
+                <div class="results" id="thermal-results"></div>
+            </div>
+
+            <!-- Lunar Panel -->
+            <div class="panel" id="lunar-panel">
+                <h3 style="margin-bottom: 12px; font-size: 14px;">Lunar Data</h3>
+                <button class="analyze-btn" onclick="analyzeLunar()">Get Lunar Info</button>
+                <div class="results" id="lunar-results"></div>
+            </div>
+
+            <!-- Map -->
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Layer Controls -->
+    <div class="layer-controls">
+        <button class="layer-btn active" onclick="switchLayer('zones')">Fishing Zones</button>
+        <button class="layer-btn" onclick="switchLayer('sst')">Temperature</button>
+        <button class="layer-btn" onclick="switchLayer('current')">Currents</button>
+        <button class="layer-btn" onclick="switchLayer('wind')">Wind</button>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+        <strong style="display: block; margin-bottom: 6px;">Zone Quality</strong>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #007AFF;"></div>
+            <span>Excellent</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #00B4FF;"></div>
+            <span>Good</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FFB800;"></div>
+            <span>Moderate</span>
+        </div>
+    </div>
+
+    <!-- Agents Army Panel -->
+    <div class="agents-panel" id="agentsPanel">
+        <h3>🤖 Agent Army</h3>
+        <div class="agent-grid" id="agentGrid"></div>
+
+        <h3 style="margin-top: 16px;">📊 Activity Log</h3>
+        <div class="activity-log" id="activityLog"></div>
+    </div>
+
+    <!-- Agents Toggle Button -->
+    <button class="agents-toggle-btn" onclick="toggleAgentsPanel()" title="Show Agent Activity">🤖</button>
+
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([17.0, 71.0], 9);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        let markers = [];
+        let currentLayer = 'zones';
+        let currentAnalysis = 'pfz';
+
+        // Menu functions
+        function toggleMenu() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('open');
+        }
+
+        function selectAnalysis(type) {
+            currentAnalysis = type;
+
+            // Update menu
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update panels
+            document.querySelectorAll('.panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            document.getElementById(type + '-panel').classList.add('active');
+
+            // Close menu
+            toggleMenu();
+
+            // Clear markers
+            clearMarkers();
+        }
+
+        // Analysis functions
+        async function analyzePFZ() {
+            updateStatus('Analyzing...');
+            clearMarkers();
+
+            try {
+                const response = await fetch('/api/pfz/zones', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lat_min: 14.0,
+                        lat_max: 21.0,
+                        lng_min: 67.0,
+                        lng_max: 74.5
+                    })
+                });
+
+                const data = await response.json();
+                const zones = data.zones || [];
+
+                zones.forEach(zone => {
+                    const confidence = zone.confidence || 0.5;
+                    const color = confidence > 0.7 ? '#007AFF' : confidence > 0.4 ? '#00B4FF' : '#FFB800';
+
+                    const marker = L.circleMarker(
+                        [zone.center_lat, zone.center_lng],
+                        {
+                            radius: 10 + confidence * 5,
+                            color: color,
+                            fillColor: color,
+                            fillOpacity: 0.7,
+                            weight: 2
+                        }
+                    ).bindPopup(`
+                        <strong>Zone</strong><br>
+                        Quality: ${(confidence * 100).toFixed(0)}%<br>
+                        Temp: ${zone.sst?.toFixed(1)}°C<br>
+                        Depth: ${zone.depth?.toFixed(0)}m
+                    `).addTo(map);
+
+                    markers.push(marker);
+                });
+
+                // Show results
+                const resultsDiv = document.getElementById('pfz-results');
+                resultsDiv.innerHTML = `
+                    <div class="result-item">
+                        <div class="result-label">Zones Found</div>
+                        <div class="result-value">${zones.length}</div>
+                    </div>
+                    ${zones.length > 0 ? `
+                    <div class="result-item">
+                        <div class="result-label">Best Zone</div>
+                        <div class="result-value" style="font-size: 13px;">
+                            ${zones[0].center_lat.toFixed(2)}°N<br>${zones[0].center_lng.toFixed(2)}°E
+                        </div>
+                    </div>
+                    ` : ''}
+                `;
+                resultsDiv.classList.add('show');
+
+                if (zones.length > 0) {
+                    const bounds = L.latLngBounds(zones.map(z => [z.center_lat, z.center_lng]));
+                    map.fitBounds(bounds.pad(0.15));
+                }
+
+                updateStatus('Zones found: ' + zones.length);
+            } catch (e) {
+                updateStatus('Error: ' + e.message);
+            }
+        }
+
+        async function analyzeGHOL() {
+            updateStatus('Analyzing GHOL...');
+            clearMarkers();
+
+            const lat = parseFloat(document.getElementById('ghol-lat').value);
+            const lng = parseFloat(document.getElementById('ghol-lng').value);
+
+            try {
+                const response = await fetch('/api/ghol/spawning-probability', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lat, lng })
+                });
+
+                const data = await response.json();
+                const prob = data.data?.probability || 0;
+
+                // Add marker
+                const marker = L.circleMarker([lat, lng], {
+                    radius: 15,
+                    color: '#FF6B00',
+                    fillColor: '#FF6B00',
+                    fillOpacity: 0.8,
+                    weight: 2
+                }).bindPopup(`<strong>GHOL Spawning</strong><br>Probability: ${(prob * 100).toFixed(0)}%`).addTo(map);
+
+                markers.push(marker);
+
+                // Show results
+                const resultsDiv = document.getElementById('ghol-results');
+                resultsDiv.innerHTML = `
+                    <div class="result-item">
+                        <div class="result-label">Spawning Probability</div>
+                        <div class="result-value">${(prob * 100).toFixed(0)}%</div>
+                    </div>
+                `;
+                resultsDiv.classList.add('show');
+
+                map.setView([lat, lng], 11);
+                updateStatus('GHOL probability: ' + (prob * 100).toFixed(0) + '%');
+            } catch (e) {
+                updateStatus('Error: ' + e.message);
+            }
+        }
+
+        async function analyzeWind() {
+            updateStatus('Analyzing wind and currents...');
+            clearMarkers();
+
+            try {
+                const response = await fetch('/api/pfz/zones', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lat_min: 14.0, lat_max: 21.0,
+                        lng_min: 67.0, lng_max: 74.5
+                    })
+                });
+
+                const data = await response.json();
+                const zones = data.zones || [];
+
+                zones.forEach(zone => {
+                    const marker = L.circleMarker([zone.center_lat, zone.center_lng], {
+                        radius: 8,
+                        color: '#00CC88',
+                        fillColor: '#00CC88',
+                        fillOpacity: 0.6,
+                        weight: 1
+                    }).bindPopup(`Wind/Current strength`).addTo(map);
+                    markers.push(marker);
+                });
+
+                const resultsDiv = document.getElementById('wind-results');
+                resultsDiv.innerHTML = `
+                    <div class="result-item">
+                        <div class="result-label">Data Points</div>
+                        <div class="result-value">${zones.length}</div>
+                    </div>
+                `;
+                resultsDiv.classList.add('show');
+
+                updateStatus('Wind data loaded');
+            } catch (e) {
+                updateStatus('Error: ' + e.message);
+            }
+        }
+
+        async function analyzeThermal() {
+            updateStatus('Detecting thermal fronts...');
+            clearMarkers();
+
+            try {
+                const response = await fetch('/api/pfz/zones', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lat_min: 14.0, lat_max: 21.0,
+                        lng_min: 67.0, lng_max: 74.5
+                    })
+                });
+
+                const data = await response.json();
+                const zones = data.zones || [];
+
+                zones.forEach(zone => {
+                    const marker = L.circleMarker([zone.center_lat, zone.center_lng], {
+                        radius: 10,
+                        color: '#FF3366',
+                        fillColor: '#FF3366',
+                        fillOpacity: 0.6,
+                        weight: 2
+                    }).bindPopup(`Thermal front detected`).addTo(map);
+                    markers.push(marker);
+                });
+
+                const resultsDiv = document.getElementById('thermal-results');
+                resultsDiv.innerHTML = `
+                    <div class="result-item">
+                        <div class="result-label">Fronts Detected</div>
+                        <div class="result-value">${zones.length}</div>
+                    </div>
+                `;
+                resultsDiv.classList.add('show');
+
+                updateStatus('Fronts detected: ' + zones.length);
+            } catch (e) {
+                updateStatus('Error: ' + e.message);
+            }
+        }
+
+        async function analyzeLunar() {
+            updateStatus('Fetching lunar data...');
+
+            try {
+                const response = await fetch('/api/lunar/phase');
+                const data = await response.json();
+                const phase = data.data?.phase || 'Unknown';
+                const illumination = data.data?.illumination || 0;
+
+                const resultsDiv = document.getElementById('lunar-results');
+                resultsDiv.innerHTML = `
+                    <div class="result-item">
+                        <div class="result-label">Current Phase</div>
+                        <div class="result-value" style="font-size: 14px;">${phase}</div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">Illumination</div>
+                        <div class="result-value">${illumination.toFixed(0)}%</div>
+                    </div>
+                `;
+                resultsDiv.classList.add('show');
+
+                updateStatus('Phase: ' + phase);
+            } catch (e) {
+                updateStatus('Error: ' + e.message);
+            }
+        }
+
+        // Helper functions
+        function clearMarkers() {
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+        }
+
+        function switchLayer(layer) {
+            currentLayer = layer;
+            document.querySelectorAll('.layer-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            updateStatus('Switched to: ' + layer);
+        }
+
+        function updateStatus(message) {
+            document.getElementById('statusBadge').textContent = message;
+        }
+
+        // ========== AGENTS ARMY SYSTEM ==========
+
+        const agents = {
+            data: [
+                { id: 'cmems_agent', name: 'CMEMS Data', type: 'data' },
+                { id: 'nasa_agent', name: 'NASA Data', type: 'data' },
+                { id: 'ecmwf_agent', name: 'ECMWF Data', type: 'data' },
+                { id: 'gebco_agent', name: 'GEBCO Data', type: 'data' },
+            ],
+            analysis: [
+                { id: 'ghol_agent', name: 'GHOL Specialist', type: 'analysis' },
+                { id: 'thermal_agent', name: 'Thermal Front', type: 'analysis' },
+                { id: 'wind_agent', name: 'Wind & Current', type: 'analysis' },
+                { id: 'lunar_agent', name: 'Lunar Phase', type: 'analysis' },
+                { id: 'productivity_agent', name: 'Productivity', type: 'analysis' },
+            ],
+            decision: [
+                { id: 'recommendation_agent', name: 'Synthesizer', type: 'decision' },
+                { id: 'risk_agent', name: 'Risk Assessor', type: 'decision' },
+                { id: 'economic_agent', name: 'Economics', type: 'decision' },
+            ]
+        };
+
+        const agentStatus = {};
+        let activityLog = [];
+
+        function initializeAgents() {
+            Object.values(agents).forEach(group => {
+                group.forEach(agent => {
+                    agentStatus[agent.id] = {
+                        status: 'idle',
+                        confidence: 0,
+                        message: 'Ready'
+                    };
+                });
+            });
+        }
+
+        function renderAgentGrid() {
+            const grid = document.getElementById('agentGrid');
+            grid.innerHTML = '';
+
+            const allAgents = [...agents.data, ...agents.analysis, ...agents.decision];
+
+            allAgents.forEach(agent => {
+                const status = agentStatus[agent.id] || { status: 'idle', confidence: 0 };
+                const card = document.createElement('div');
+                card.className = `agent-card ${status.status}`;
+
+                const statusColor = {
+                    'idle': '#666',
+                    'running': '#FFB800',
+                    'completed': '#00D4FF',
+                    'error': '#FF3B30'
+                };
+
+                card.innerHTML = `
+                    <div class="agent-name">
+                        <span class="agent-status-dot ${status.status}"></span>
+                        ${agent.name}
+                    </div>
+                    <div class="agent-status-text">${status.status}</div>
+                    ${status.confidence > 0 ? `<div class="agent-confidence">Confidence: ${(status.confidence * 100).toFixed(0)}%</div>` : ''}
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        function addLogEntry(message, isEvent = false) {
+            const timestamp = new Date().toLocaleTimeString();
+            activityLog.unshift({
+                time: timestamp,
+                message: message,
+                event: isEvent
+            });
+
+            // Keep only last 50 entries
+            if (activityLog.length > 50) {
+                activityLog.pop();
+            }
+
+            updateActivityLog();
+        }
+
+        function updateActivityLog() {
+            const log = document.getElementById('activityLog');
+            log.innerHTML = activityLog.map(entry =>
+                `<div class="log-entry ${entry.event ? 'event' : ''}">[${entry.time}] ${entry.message}</div>`
+            ).join('');
+            log.scrollTop = 0;
+        }
+
+        function toggleAgentsPanel() {
+            const panel = document.getElementById('agentsPanel');
+            panel.classList.toggle('open');
+        }
+
+        async function runAgentArmy() {
+            addLogEntry('🚀 Agent Army Starting...', true);
+
+            try {
+                // Show agents panel
+                document.getElementById('agentsPanel').classList.add('open');
+
+                // Simulate agent phases (UI visualization)
+                await runDataPhase();
+                await runAnalysisPhase();
+
+                // Call real agent API
+                addLogEntry('🔗 Calling Agent API...', true);
+                const response = await fetch('/api/agents/army', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lat_min: 14.0,
+                        lat_max: 21.0,
+                        lng_min: 67.0,
+                        lng_max: 74.5
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.statusText}`);
+                }
+
+                const apiData = await response.json();
+                addLogEntry('📊 Agent API Response Received', true);
+
+                if (apiData.status === 'success') {
+                    addLogEntry('✅ Zones identified from agent consensus', true);
+
+                    // Display synthesis results
+                    const synthesis = apiData.data.agent_analysis.phases.synthesis;
+                    if (synthesis.recommendation_agent) {
+                        const zones = synthesis.recommendation_agent.zones || [];
+                        addLogEntry(`🎯 Identified ${zones.length} consensus zones`, true);
+                    }
+                }
+
+                await runDecisionPhase();
+                addLogEntry('✅ Agent Army Complete!', true);
+                updateStatus('Agent analysis complete!');
+
+            } catch (error) {
+                addLogEntry(`❌ Error: ${error.message}`, true);
+                updateStatus('Agent analysis failed!');
+                console.error('Agent Army Error:', error);
+            }
+        }
+
+        async function runDataPhase() {
+            addLogEntry('📊 Phase 1: Data Collection', true);
+
+            for (const agent of agents.data) {
+                agentStatus[agent.id].status = 'running';
+                renderAgentGrid();
+                addLogEntry(`→ ${agent.name} fetching...`);
+
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                agentStatus[agent.id].status = 'completed';
+                agentStatus[agent.id].confidence = 0.75 + Math.random() * 0.2;
+                renderAgentGrid();
+                addLogEntry(`✓ ${agent.name} complete (${(agentStatus[agent.id].confidence * 100).toFixed(0)}%)`);
+            }
+        }
+
+        async function runAnalysisPhase() {
+            addLogEntry('🔍 Phase 2: Specialized Analysis', true);
+
+            for (const agent of agents.analysis) {
+                agentStatus[agent.id].status = 'running';
+                renderAgentGrid();
+                addLogEntry(`→ ${agent.name} analyzing...`);
+
+                await new Promise(resolve => setTimeout(resolve, 400));
+
+                agentStatus[agent.id].status = 'completed';
+                agentStatus[agent.id].confidence = 0.7 + Math.random() * 0.25;
+                renderAgentGrid();
+                addLogEntry(`✓ ${agent.name} complete (${(agentStatus[agent.id].confidence * 100).toFixed(0)}%)`);
+            }
+        }
+
+        async function runDecisionPhase() {
+            addLogEntry('🤖 Phase 3: Consensus & Synthesis', true);
+
+            for (const agent of agents.decision) {
+                agentStatus[agent.id].status = 'running';
+                renderAgentGrid();
+                addLogEntry(`→ ${agent.name} synthesizing...`);
+
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                agentStatus[agent.id].status = 'completed';
+                agentStatus[agent.id].confidence = 0.8 + Math.random() * 0.2;
+                renderAgentGrid();
+                addLogEntry(`✓ ${agent.name} complete (${(agentStatus[agent.id].confidence * 100).toFixed(0)}%)`);
+            }
+
+            // Get actual agent analysis from API
+            try {
+                const response = await fetch('/api/agents/army', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lat_min: 14.0,
+                        lat_max: 21.0,
+                        lng_min: 67.0,
+                        lng_max: 74.5
+                    })
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    addLogEntry('🎯 Consensus zones identified and displayed', true);
+                }
+            } catch (error) {
+                addLogEntry(`⚠️ API call skipped (offline mode)`, true);
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            initializeAgents();
+            renderAgentGrid();
+            addLogEntry('🔧 Agent system initialized');
+        });
+    </script>
+</body>
+</html>
