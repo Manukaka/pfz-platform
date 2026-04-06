@@ -2061,17 +2061,6 @@ function _getAgentCacheAge() {
 async function runAgentAnalysis() {
     const btn = document.getElementById('agent-btn');
 
-    // Check 4-hour cache first
-    const cached = _getAgentCache();
-    if (cached) {
-        const age = _getAgentCacheAge();
-        displayClaudeZones(cached.zones || [], cached.source || 'cached');
-        showToast(`✅ ${cached.zones?.length||0} zones (cached ${age})`, 'info');
-        // Also load forecast from cache/API (lightweight)
-        if (!_forecastData) loadForecast();
-        return;
-    }
-
     if (btn) { btn.classList.add('loading'); btn.innerHTML = '⏳ Analyzing...'; }
     showToast('🤖 Running AI analysis + forecast...', 'info');
 
@@ -2100,7 +2089,6 @@ async function runAgentAnalysis() {
             if (claudeResult.status === 'success' && claudeResult.data) {
                 agentData = claudeResult.data;
                 const zones = agentData.zones || [];
-                _setAgentCache(agentData); // cache for 4 hours
                 displayClaudeZones(zones, agentData.source || 'claude');
                 if (btn) { btn.innerHTML = '✅ ' + zones.length + ' Zones!'; btn.classList.remove('loading'); setTimeout(function() { btn.innerHTML = '🤖 Agent Analysis'; }, 3000); }
                 loadForecast(); // also trigger 6-day forecast
@@ -3394,8 +3382,9 @@ function _addPDFHeader(doc, W, margin, now) {
 }
 
 function exportPDFReport() {
+    try {
     const JSPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-    if (!JSPDF) { showToast('PDF library loading... try again', 'warn'); return; }
+    if (!JSPDF) { alert('PDF library not loaded yet. Please wait a moment and try again.'); return; }
     const doc = new JSPDF({ orientation:'portrait', unit:'mm', format:'a4' });
     const now = new Date();
     const W = 210, margin = 14;
@@ -3577,11 +3566,45 @@ function exportPDFReport() {
 
     // ── Save / Share ─────────────────────────────────────────────────────────
     const filename = 'DaryaSagar-Report-' + now.toISOString().slice(0,10) + '.pdf';
-    const pdfBlob = doc.output('blob');
-    if (navigator.share && navigator.canShare && navigator.canShare({files:[new File([pdfBlob],'x.pdf',{type:'application/pdf'})]})) {
-        navigator.share({ title:'दर्यासागर PFZ Report', text:'Fishing Zone Analysis Report', files:[new File([pdfBlob], filename, {type:'application/pdf'})] });
-    } else {
-        doc.save(filename);
+    try {
+        const pdfBlob = doc.output('blob');
+        const file = new File([pdfBlob], filename, {type:'application/pdf'});
+        if (navigator.share && navigator.canShare && navigator.canShare({files:[file]})) {
+            navigator.share({title:'दर्यासागर PFZ Report', text:'Fishing Zone Analysis Report', files:[file]})
+                .catch(function(e) {
+                    if (e.name !== 'AbortError') _pdfFallbackSave(doc, filename);
+                });
+        } else {
+            _pdfFallbackSave(doc, filename);
+        }
+    } catch(saveErr) {
+        _pdfFallbackSave(doc, filename);
+    }
+    } catch(err) {
+        alert('PDF Generation Error:\n' + err.message + '\n\nLine: ' + (err.stack || '').split('\n')[1]);
+    }
+}
+
+function _pdfFallbackSave(doc, filename) {
+    try {
+        // Method 1: data URI link (works in most Android WebView)
+        const dataUri = doc.output('datauristring');
+        const a = document.createElement('a');
+        a.href = dataUri;
+        a.download = filename;
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    } catch(e) {
+        try {
+            // Method 2: open in new tab (user can long-press Save)
+            const dataUri = doc.output('datauristring');
+            window.open(dataUri, '_blank');
+        } catch(e2) {
+            // Method 3: jsPDF save (triggers download in desktop browsers)
+            doc.save(filename);
+        }
     }
 }
 
