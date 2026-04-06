@@ -2059,23 +2059,28 @@ async function runAgentAnalysis() {
         // Try Claude agent first (real AI with fish knowledge base)
         let agentData = null;
         try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 45000); // 45s timeout
             const claudeResp = await fetch('https://samudra-ai.onrender.com/api/agents/claude', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(body)
+                body: JSON.stringify(body),
+                signal: ctrl.signal
             });
+            clearTimeout(tid);
             const claudeResult = await claudeResp.json();
             if (claudeResult.status === 'success' && claudeResult.data) {
                 agentData = claudeResult.data;
                 const zones = agentData.zones || [];
                 displayClaudeZones(zones, agentData.source || 'claude');
-                btn.innerHTML = '✅ ' + zones.length + ' Zones!';
+                btn.innerHTML = '✅ ' + zones.length + ' Zones Found!';
+                btn.classList.remove('loading');
                 if (zones.length === 0) showToast('Analysis complete — no zones in current view', 'info');
-                setTimeout(function() { btn.innerHTML = '🤖 Run Agent Analysis'; btn.classList.remove('loading'); }, 3000);
+                setTimeout(function() { btn.innerHTML = '🤖 Run Agent Analysis'; }, 4000);
                 return;
             }
         } catch (claudeErr) {
-            console.warn('Claude endpoint failed, trying army:', claudeErr);
+            console.warn('Claude endpoint failed, trying army:', claudeErr.message);
         }
 
         // Fallback: original army endpoint
@@ -3182,9 +3187,11 @@ function loadForecast() {
             container.innerHTML = '<div style="color:var(--dim);font-size:9px;padding:8px;">Forecast unavailable</div>';
             return;
         }
+        const loc = data.location || {};
+        const locStr = loc.lat ? `📍 ${loc.name || 'Maharashtra Coast'} (${loc.lat}°N ${loc.lon}°E)` : '📍 Maharashtra Coast';
         const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
         const dayNamesMr = ['रवि','सोम','मंगळ','बुध','गुरु','शुक्र','शनि'];
-        let html = '';
+        let html = `<div style="font-size:9px;color:var(--accent2);padding:6px 8px 4px;border-bottom:1px solid var(--border);">${locStr}</div>`;
         data.days.forEach((d, i) => {
             const dt = new Date(d.date + 'T00:00:00');
             const dayName = lang === 'mr' ? dayNamesMr[dt.getDay()] : dayNames[dt.getDay()];
@@ -3193,12 +3200,14 @@ function loadForecast() {
             const fishing = (fishMap[fKey] || fishMap.moderate)[lang] || (fishMap[fKey] || fishMap.moderate).en;
             const weatherIcon = iconMap[d.icon] || '🌤️';
             const waveStr = d.wave_height_m ? d.wave_height_m + 'm' : '--';
+            const fishStr = (d.fish_species || []).slice(0, 3).join(', ') || '--';
             html += `<div class="fc-tile">
                 <div class="fc-tile-icon">${weatherIcon}</div>
                 <div class="fc-tile-info">
                     <div class="fc-tile-day">${i===0?(lang==='mr'?'आज':'Today'):dayName} ${dateStr}</div>
                     <div class="fc-tile-desc">${d.desc} ${d.temp_max}°/${d.temp_min}°</div>
                     <div class="fc-tile-detail">🌬️${d.wind_max_kmh}km/h ${d.wind_dir} 🌊${waveStr}</div>
+                    <div style="font-size:8px;color:var(--accent2);margin-top:2px;">🐟 ${fishStr}</div>
                 </div>
                 <div class="fc-tile-fish">${fishing}</div>
             </div>`;
@@ -3215,58 +3224,43 @@ setTimeout(loadForecast, 2000);
 setInterval(loadForecast, 3 * 60 * 60 * 1000);
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ANDROID BACK BUTTON — close open panels instead of exiting app
+// ANDROID BACK BUTTON — popstate approach (works in Capacitor WebView)
 // ══════════════════════════════════════════════════════════════════════════════
-document.addEventListener('backbutton', function(e) {
-    e.preventDefault();
-
+function _handleBackPress() {
     // Close panels in priority order (highest z-index first)
     const histModal = document.getElementById('history-modal');
     if (histModal && histModal.style.display !== 'none') {
         histModal.style.display = 'none'; return;
     }
-
-    // Close any dynamic overlay (access key modal, etc.)
-    const dynamicOverlay = document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]');
+    const dynamicOverlay = document.querySelector('div[style*="z-index: 9999"], div[style*="z-index:9999"]');
     if (dynamicOverlay) { dynamicOverlay.remove(); return; }
-
     const adminPanel = document.getElementById('admin-panel');
-    if (adminPanel && adminPanel.style.display === 'flex') {
-        closeAdmin(); return;
-    }
-
+    if (adminPanel && adminPanel.style.display === 'flex') { closeAdmin(); return; }
     const forecastPanel = document.getElementById('forecast-panel');
-    if (forecastPanel && forecastPanel.style.display === 'block') {
-        forecastPanel.style.display = 'none'; return;
-    }
-
+    if (forecastPanel && forecastPanel.style.display === 'block') { forecastPanel.style.display = 'none'; return; }
     const incoisPanel = document.getElementById('incois-panel');
-    if (incoisPanel && incoisPanel.style.display !== 'none' && incoisPanel.style.display !== '') {
-        incoisPanel.style.display = 'none'; return;
-    }
-
+    if (incoisPanel && incoisPanel.style.display && incoisPanel.style.display !== 'none') { incoisPanel.style.display = 'none'; return; }
     const infoPanel = document.getElementById('info-panel');
-    if (infoPanel && infoPanel.style.display === 'block') {
-        infoPanel.style.display = 'none'; return;
-    }
-
+    if (infoPanel && infoPanel.style.display === 'block') { infoPanel.style.display = 'none'; return; }
     const bottomDrawer = document.getElementById('bottom-drawer');
-    if (bottomDrawer && bottomDrawer.classList.contains('open')) {
-        closeDrawer(); return;
-    }
-
+    if (bottomDrawer && bottomDrawer.classList.contains('open')) { closeDrawer(); return; }
     const sideMenu = document.getElementById('side-menu');
-    if (sideMenu && sideMenu.classList.contains('open')) {
-        toggleMenu(); return;
-    }
-
-    // Nothing open — exit app
-    if (navigator.app && navigator.app.exitApp) {
+    if (sideMenu && sideMenu.classList.contains('open')) { toggleMenu(); return; }
+    // Nothing open — exit via Capacitor or minimize
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+        window.Capacitor.Plugins.App.exitApp();
+    } else if (navigator.app && navigator.app.exitApp) {
         navigator.app.exitApp();
-    } else {
-        window.history.back();
     }
-}, false);
+}
+// Push dummy state so back button triggers popstate instead of app exit
+if (window.history && window.history.pushState) {
+    window.history.pushState({ daryasagar: true }, '');
+}
+window.addEventListener('popstate', function() {
+    window.history.pushState({ daryasagar: true }, ''); // re-push so app never runs out of history
+    _handleBackPress();
+});
 
 // ── AUTHENTICATION & RBAC SYSTEM ─────────────────────────────────────────────
 let PFZ_GROUP;

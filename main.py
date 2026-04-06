@@ -1538,6 +1538,24 @@ def get_6day_forecast():
         else:
             fishing, fish_mr = "risky", "dhokadayak"
 
+        # Fish species by month (Arabian Sea, West Coast)
+        month = int(date_str[5:7]) if len(date_str) >= 7 else now.month
+        MONTHLY_FISH = {
+            1:  ["Surmai (King Mackerel)","Pomfret","Ghol","Rawas"],
+            2:  ["Surmai","Pomfret","Lobster","Rawas"],
+            3:  ["Surmai","Bombil (Bombay Duck)","Lobster","Prawn"],
+            4:  ["Bombil","Prawn","Bangda (Mackerel)","Paplet"],
+            5:  ["Bangda","Prawn","Halwa","Bombil"],
+            6:  ["Bangda","Prawn","Halwa","Surmai"],
+            7:  ["Bangda","Prawn","Halwa","Ghol"],
+            8:  ["Ghol","Bangda","Halwa","Prawn"],
+            9:  ["Ghol","Surmai","Pomfret","Prawn"],
+            10: ["Ghol","Surmai","Rawas","Pomfret"],
+            11: ["Surmai","Ghol","Pomfret","Rawas"],
+            12: ["Surmai","Pomfret","Ghol","Rawas"],
+        }
+        fish_species = MONTHLY_FISH.get(month, ["Surmai","Pomfret","Bangda"])
+
         days.append({
             "date": date_str,
             "icon": icon, "desc": desc,
@@ -1547,6 +1565,7 @@ def get_6day_forecast():
             "wave_height_m": round(wh, 1) if wave_h else None,
             "wave_period_s": round(wave_period, 1) if wave_period else None,
             "fishing_en": fishing, "fishing_mr": fish_mr,
+            "fish_species": fish_species,
         })
 
     return JSONResponse(content={
