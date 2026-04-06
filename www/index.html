@@ -192,15 +192,18 @@
         /* ── 6-Day Forecast Panel ───────────────────────────────────── */
         #forecast-panel {
             display:none;
-            position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
-            width:320px;
+            position:fixed;
+            top:50%; left:50%;
+            transform:translate(-50%, -50%);
+            width:min(320px, calc(100vw - 24px));
+            max-height:80vh;
+            overflow-y:auto;
             background:var(--panel);
             border:2px solid var(--border);
             border-radius:12px;
             z-index:1100;
             backdrop-filter:blur(24px);
             box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-            overflow:hidden;
             animation: fadeIn 0.3s ease;
         }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -3209,6 +3212,60 @@ function loadForecast() {
 // Load forecast on page start and refresh every 3 hours
 setTimeout(loadForecast, 2000);
 setInterval(loadForecast, 3 * 60 * 60 * 1000);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ANDROID BACK BUTTON — close open panels instead of exiting app
+// ══════════════════════════════════════════════════════════════════════════════
+document.addEventListener('backbutton', function(e) {
+    e.preventDefault();
+
+    // Close panels in priority order (highest z-index first)
+    const histModal = document.getElementById('history-modal');
+    if (histModal && histModal.style.display !== 'none') {
+        histModal.style.display = 'none'; return;
+    }
+
+    // Close any dynamic overlay (access key modal, etc.)
+    const dynamicOverlay = document.querySelector('div[style*="position:fixed"][style*="z-index:9999"]');
+    if (dynamicOverlay) { dynamicOverlay.remove(); return; }
+
+    const adminPanel = document.getElementById('admin-panel');
+    if (adminPanel && adminPanel.style.display === 'flex') {
+        closeAdmin(); return;
+    }
+
+    const forecastPanel = document.getElementById('forecast-panel');
+    if (forecastPanel && forecastPanel.style.display === 'block') {
+        forecastPanel.style.display = 'none'; return;
+    }
+
+    const incoisPanel = document.getElementById('incois-panel');
+    if (incoisPanel && incoisPanel.style.display !== 'none' && incoisPanel.style.display !== '') {
+        incoisPanel.style.display = 'none'; return;
+    }
+
+    const infoPanel = document.getElementById('info-panel');
+    if (infoPanel && infoPanel.style.display === 'block') {
+        infoPanel.style.display = 'none'; return;
+    }
+
+    const bottomDrawer = document.getElementById('bottom-drawer');
+    if (bottomDrawer && bottomDrawer.classList.contains('open')) {
+        closeDrawer(); return;
+    }
+
+    const sideMenu = document.getElementById('side-menu');
+    if (sideMenu && sideMenu.classList.contains('open')) {
+        toggleMenu(); return;
+    }
+
+    // Nothing open — exit app
+    if (navigator.app && navigator.app.exitApp) {
+        navigator.app.exitApp();
+    } else {
+        window.history.back();
+    }
+}, false);
 
 // ── AUTHENTICATION & RBAC SYSTEM ─────────────────────────────────────────────
 let PFZ_GROUP;
