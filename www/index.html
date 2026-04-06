@@ -3317,34 +3317,39 @@ setTimeout(loadForecast, 2000);
 // containing: today's PFZ, lunar data, confidence, 6-day forecast, fish species, moon phases
 
 function _getMoonPhase(dateStr) {
-    // Calculate moon phase from date using simple lunation algorithm
+    // Calculate moon phase using Julian Day Number (JDN) algorithm
     const d = new Date(dateStr || Date.now());
-    const year = d.getFullYear(), month = d.getMonth() + 1, day = d.getDate();
-    let c = 0, e = 0, jd = 0, b = 0;
-    if (month < 3) { year--; month += 12; }
-    c = Math.floor(365.25 * (year + 4716));
-    e = Math.floor(30.6001 * (month + 1));
-    jd = c + e + day - 1524.5;
-    const daysSinceNew = jd - 2451550.1;  // Known new moon: Jan 6, 2000
+    let yr = d.getFullYear(), mo = d.getMonth() + 1;
+    const dy = d.getDate();
+    if (mo < 3) { yr--; mo += 12; }
+    const C = Math.floor(365.25 * (yr + 4716));
+    const E = Math.floor(30.6001 * (mo + 1));
+    const jd = C + E + dy - 1524.5;
+    const daysSinceNew = jd - 2451550.1;  // ref: Jan 6, 2000 new moon
     const cycle = daysSinceNew / 29.530588853;
-    const phase = cycle - Math.floor(cycle);
-    if (phase < 0.0625) return { name: 'New Moon', icon: '🌑', mr: 'अमावस्या' };
-    if (phase < 0.1875) return { name: 'Waxing Crescent', icon: '🌒', mr: 'शुक्ल द्वितीया' };
-    if (phase < 0.3125) return { name: 'First Quarter', icon: '🌓', mr: 'शुक्ल अष्टमी' };
-    if (phase < 0.4375) return { name: 'Waxing Gibbous', icon: '🌔', mr: 'शुक्ल एकादशी' };
-    if (phase < 0.5625) return { name: 'Full Moon', icon: '🌕', mr: 'पौर्णिमा' };
-    if (phase < 0.6875) return { name: 'Waning Gibbous', icon: '🌖', mr: 'कृष्ण तृतीया' };
-    if (phase < 0.8125) return { name: 'Last Quarter', icon: '🌗', mr: 'कृष्ण अष्टमी' };
-    if (phase < 0.9375) return { name: 'Waning Crescent', icon: '🌘', mr: 'कृष्ण एकादशी' };
-    return { name: 'New Moon', icon: '🌑', mr: 'अमावस्या' };
+    const phase = cycle - Math.floor(cycle);  // 0.0 = new moon, 0.5 = full moon
+    const illum = Math.round(Math.abs(0.5 - phase) < 0.5 ? (1 - Math.abs(1 - 2 * phase)) * 100 : (1 - Math.abs(1 - 2 * phase)) * 100);
+    if (phase < 0.0625) return { name: 'New Moon',        sym: '(NEW)',  mr: 'Amavasya',   illum: 0   };
+    if (phase < 0.1875) return { name: 'Waxing Crescent', sym: '(WXC)',  mr: 'Shukla 3',   illum: 25  };
+    if (phase < 0.3125) return { name: 'First Quarter',   sym: '(1/4)',  mr: 'Shukla 8',   illum: 50  };
+    if (phase < 0.4375) return { name: 'Waxing Gibbous',  sym: '(WXG)',  mr: 'Shukla 11',  illum: 75  };
+    if (phase < 0.5625) return { name: 'Full Moon',        sym: '(FULL)', mr: 'Pournima',   illum: 100 };
+    if (phase < 0.6875) return { name: 'Waning Gibbous',  sym: '(WNG)',  mr: 'Krishna 3',  illum: 75  };
+    if (phase < 0.8125) return { name: 'Last Quarter',    sym: '(3/4)',  mr: 'Krishna 8',  illum: 50  };
+    if (phase < 0.9375) return { name: 'Waning Crescent', sym: '(WNC)',  mr: 'Krishna 11', illum: 25  };
+    return                      { name: 'New Moon',        sym: '(NEW)',  mr: 'Amavasya',   illum: 0   };
 }
 
 function _getLunarFishingAdvice(moonPhase) {
     const p = moonPhase.name;
-    if (p === 'New Moon') return { quality: 'EXCELLENT', color: [0,200,100], advice: 'Dark nights — ideal for light-attraction fishing. Fish surface-feed actively.', bestTime: '18:00–06:00 (Night)' };
-    if (p === 'Full Moon') return { quality: 'MODERATE', color: [255,170,0], advice: 'Bright moonlight spreads fish. Use deeper nets. Early morning best.', bestTime: '04:00–08:00 (Dawn)' };
-    if (p.includes('Waxing')) return { quality: 'GOOD', color: [0,180,255], advice: 'Increasing moonlight. Good for gill nets and trawling.', bestTime: '05:00–09:00 (Morning)' };
-    return { quality: 'GOOD', color: [0,180,255], advice: 'Decreasing moonlight. Fish feed more near surface.', bestTime: '05:00–09:00 (Morning)' };
+    if (p === 'New Moon')        return { quality: 'EXCELLENT', color: [0,180,90],  advice: 'Dark nights - ideal for light-attraction fishing. Fish surface-feed actively.', bestTime: '18:00-06:00 (Night)' };
+    if (p === 'Full Moon')       return { quality: 'MODERATE',  color: [200,130,0], advice: 'Bright moonlight spreads fish. Use deeper nets. Early morning is best.', bestTime: '04:00-08:00 (Dawn)' };
+    if (p === 'Waxing Crescent') return { quality: 'GOOD',      color: [0,150,200], advice: 'Increasing moonlight, fish starting to move deeper. Nets at 40-80m.', bestTime: '05:00-09:00 (Morning)' };
+    if (p === 'First Quarter')   return { quality: 'GOOD',      color: [0,150,200], advice: 'Half moon - moderate fishing. Gill nets and trawling work well.', bestTime: '05:00-09:00 (Morning)' };
+    if (p === 'Waxing Gibbous')  return { quality: 'MODERATE',  color: [200,130,0], advice: 'Moon brightening - fish go deeper. Deep trawling recommended.', bestTime: '04:00-07:00 (Pre-dawn)' };
+    if (p === 'Waning Gibbous')  return { quality: 'MODERATE',  color: [200,130,0], advice: 'Moonlight reducing - fish start surfacing. Night nets are effective.', bestTime: '04:00-08:00 (Dawn)' };
+    if (p === 'Last Quarter')    return { quality: 'GOOD',      color: [0,150,200], advice: 'Decreasing moonlight. Fish feed more near surface at night.', bestTime: '05:00-09:00 (Morning)' };
+    return                              { quality: 'GOOD',      color: [0,150,200], advice: 'Crescent moon - good for surface fishing. Use light-attraction methods.', bestTime: '18:00-22:00 (Evening)' };
 }
 
 function _addPDFFooter(doc, W, margin, pageNum) {
@@ -3412,7 +3417,7 @@ function exportPDFReport() {
     const sbDepth = document.getElementById('sb-depth')?.textContent || '--';
 
     doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(30, 30, 30);
-    doc.text('Current SST: ' + sbSst + '  |  CHL: ' + sbChl + '  |  Depth: ' + sbDepth + '  |  Region: 14°N-21°N, 67°E-74.5°E', margin, y); y += 7;
+    doc.text('SST: ' + sbSst + '   CHL: ' + sbChl + '   Depth: ' + sbDepth + '   Region: 14N-21N, 67E-74.5E (Maharashtra Coast)', margin, y); y += 7;
 
     // Agent-detected zones (today's coordinates)
     if (agentZonesData && agentZonesData.length > 0) {
@@ -3427,11 +3432,12 @@ function exportPDFReport() {
             doc.setTextColor(20, 20, 20); doc.setFont('helvetica','normal'); doc.setFontSize(8);
             const coords = z.center ? z.center.lat.toFixed(4) + '°N, ' + z.center.lng.toFixed(4) + '°E' : '--';
             doc.text('Coordinates: ' + coords + '  |  Best Time: ' + (z.best_fishing_time || '05:00-09:00'), margin + 3, y + 6);
-            const fishNames = (z.fish_species || []).map(f => f.name_en || f.name || '').filter(Boolean).join(', ');
+            const fishNames = (z.fish_species || []).map(f => (f.name_en || f.name || '').replace(/[^\x00-\x7E]/g, '')).filter(Boolean).join(', ');
             doc.text('Fish: ' + (fishNames || 'Various pelagic species'), margin + 3, y + 11);
             if (z.reasoning) {
                 doc.setTextColor(80, 80, 80); doc.setFontSize(7);
-                doc.text('AI: ' + z.reasoning.substring(0, 100), margin + 3, y + 15);
+                const safeReason = z.reasoning.replace(/[^\x00-\x7E]/g, '').substring(0, 120);
+                doc.text('AI Note: ' + safeReason, margin + 3, y + 15, {maxWidth: cw - 6});
             }
             y += 24;
         });
@@ -3454,13 +3460,13 @@ function exportPDFReport() {
     doc.setDrawColor(180, 200, 220); doc.rect(margin, y - 3, cw, 28, 'S');
     doc.setFont('helvetica','bold'); doc.setFontSize(12);
     doc.setTextColor(...lunarAdvice.color);
-    doc.text(todayMoon.name + '  (' + todayMoon.mr + ')  —  ' + lunarAdvice.quality, margin + 3, y + 2);
+    doc.text(todayMoon.name + ' ' + todayMoon.sym + '  (' + todayMoon.mr + ')   Illumination: ' + todayMoon.illum + '%   Rating: ' + lunarAdvice.quality, margin + 3, y + 2);
     doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(30, 30, 30);
     doc.text(lunarAdvice.advice, margin + 3, y + 9);
     doc.text('Suggested Catch Time: ' + lunarAdvice.bestTime, margin + 3, y + 15);
     doc.setFontSize(8); doc.setTextColor(80, 80, 80);
-    doc.text('Moon Phase Cycle: 🌑 New → 🌒 Waxing Crescent → 🌓 First Quarter → 🌔 Waxing Gibbous → 🌕 Full → 🌖 → 🌗 → 🌘 → 🌑', margin + 3, y + 21);
-    y += 34;
+    doc.text('Cycle: (NEW) New Moon > (WXC) Waxing Crescent > (1/4) First Quarter > (WXG) Waxing Gibbous > (FULL) Full Moon > (WNG) Waning Gibbous > (3/4) Last Quarter > (WNC) Waning Crescent', margin + 3, y + 21, {maxWidth: cw - 6});
+    y += 38;
 
     _addPDFFooter(doc, W, margin, pageNum);
 
@@ -3488,7 +3494,7 @@ function exportPDFReport() {
             const topSpot = (d.hotspots || [])[0];
             const conf = topSpot ? Math.round(topSpot.confidence * 100) + '%' : '--';
             const coords = topSpot ? topSpot.lat.toFixed(2) + '°N,' + topSpot.lon.toFixed(2) + '°E' : '--';
-            const fish = (d.fish_species || []).slice(0, 2).join(', ');
+            const fish = (d.fish_species || []).slice(0, 2).map(f => f.replace(/[^\x00-\x7E]/g,'')).join(', ');
             const cond = d.fishing_en || 'moderate';
             const condCol = cond === 'good' ? [0,150,80] : cond === 'risky' ? [200,50,50] : [180,130,0];
             const moon = _getMoonPhase(d.date);
@@ -3504,9 +3510,9 @@ function exportPDFReport() {
             doc.text(coords, margin + 78, y + 1);
             doc.setFontSize(6.5);
             doc.text(fish.substring(0, 22), margin + 110, y + 1);
-            doc.text(moon.name.substring(0, 10), margin + 155, y + 1);
+            doc.text(moon.sym + ' ' + moon.name.substring(0, 8), margin + 148, y + 1);
             doc.setFontSize(7);
-            doc.text(d.wind_max_kmh + 'km/h ' + (d.wave_height_m||'--') + 'm', margin + 168, y + 1);
+            doc.text(d.wind_max_kmh + 'km ' + (d.wave_height_m||'-') + 'm', margin + 176, y + 1);
             y += 9;
         });
         y += 8;
@@ -3536,12 +3542,13 @@ function exportPDFReport() {
             doc.text('Wind: ' + d.wind_max_kmh + 'km/h ' + (d.wind_dir||'') + '  |  Wave: ' + (d.wave_height_m||'--') + 'm  |  Temp: ' + d.temp_max + '°/' + d.temp_min + '°C  |  SST: ' + d.pred_sst + '°C  |  CHL: ' + d.pred_chl + ' mg/m3', margin + 2, y);
             y += 5;
             doc.setTextColor(...moonAdv.color); doc.setFont('helvetica','bold');
-            doc.text('Moon: ' + moon.name + ' (' + moon.mr + ')  |  Lunar Rating: ' + moonAdv.quality + '  |  Best Catch: ' + moonAdv.bestTime, margin + 2, y);
+            doc.text('Moon: ' + moon.name + ' ' + moon.sym + ' (' + moon.mr + ')  Illum: ' + moon.illum + '%  Rating: ' + moonAdv.quality + '  Best Catch: ' + moonAdv.bestTime, margin + 2, y);
             y += 6;
 
             // Fish species
             doc.setTextColor(60, 60, 60); doc.setFont('helvetica','normal'); doc.setFontSize(8);
-            doc.text('Possible Fish (suggested): ' + (d.fish_species || []).join(', '), margin + 2, y);
+            const dayFish = (d.fish_species || []).map(s => s.replace(/[^\x00-\x7E]/g, '')).join(', ');
+            doc.text('Possible Fish (suggested): ' + dayFish, margin + 2, y);
             y += 6;
 
             // Hotspot coordinates
@@ -3557,7 +3564,8 @@ function exportPDFReport() {
                     doc.setTextColor(...sConfCol); doc.setFont('helvetica','bold'); doc.setFontSize(8);
                     doc.text('Spot ' + (si+1) + ': ' + s.zone_name + '  [' + sConf + '% confidence]', margin + 6, y);
                     doc.setTextColor(20, 20, 20); doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-                    doc.text(s.lat + '°N, ' + s.lon + '°E  |  Depth: ' + s.depth_m + 'm  |  SST: ' + s.pred_sst + '°C  |  CHL: ' + s.pred_chl + ' mg/m3  |  Fish: ' + (s.fish_species||[]).join(', '), margin + 6, y + 5);
+                    const sFish = (s.fish_species||[]).map(f => f.replace(/[^\x00-\x7E]/g,'')).join(', ');
+                    doc.text(s.lat + 'N, ' + s.lon + 'E  Depth: ' + s.depth_m + 'm  SST: ' + s.pred_sst + 'C  CHL: ' + s.pred_chl + ' mg/m3  Fish: ' + sFish, margin + 6, y + 5, {maxWidth: cw - 12});
                     y += 15;
                 });
             }
