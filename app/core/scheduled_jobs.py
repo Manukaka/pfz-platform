@@ -42,17 +42,29 @@ async def job_pfz_afternoon() -> None:
 async def job_incois_evening() -> None:
     logger.info("Scheduled INCOIS fetch starting")
     date_str = datetime.now(IST).strftime("%Y-%m-%d")
-    try:
-        result = await fetch_incois_advisory()
-        if result:
-            history_manager.save_incois(date_str, {"available": True, **result})
-            logger.info(f"INCOIS cached — {result.get('zones_count', 0)} zones")
-        else:
-            history_manager.save_incois(date_str, get_not_available_response(date_str))
-            logger.warning("INCOIS not available — cached not-available marker")
-    except Exception as e:
-        logger.error(f"INCOIS job failed: {e}")
-        history_manager.save_incois(date_str, get_not_available_response(date_str))
+    max_retries = 3
+    retry_delay = 300  # 5 minutes
+    for attempt in range(1, max_retries + 1):
+        try:
+            result = await fetch_incois_advisory()
+            if result and result.get("zones_count", 0) > 0:
+                history_manager.save_incois(date_str, {"available": True, **result})
+                logger.info(f"INCOIS cached — {result.get('zones_count', 0)} zones (attempt {attempt})")
+                return
+            elif attempt < max_retries:
+                logger.warning(f"INCOIS returned empty/None (attempt {attempt}/{max_retries}), retrying in {retry_delay}s")
+                await asyncio.sleep(retry_delay)
+                continue
+            else:
+                logger.warning(f"INCOIS empty after {max_retries} attempts — caching not-available")
+                history_manager.save_incois(date_str, get_not_available_response(date_str))
+        except Exception as e:
+            if attempt < max_retries:
+                logger.warning(f"INCOIS attempt {attempt} failed: {e}, retrying in {retry_delay}s")
+                await asyncio.sleep(retry_delay)
+            else:
+                logger.error(f"INCOIS job failed after {max_retries} attempts: {e}")
+                history_manager.save_incois(date_str, get_not_available_response(date_str))
 
 
 async def job_prune_history() -> None:

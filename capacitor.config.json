@@ -6,5 +6,21 @@
   "server": {
     "cleartext": true,
     "androidScheme": "http"
+  },
+  "android": {
+    "backgroundColor": "#0a0f1a",
+    "allowMixedContent": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "launchShowDuration": 2000,
+      "backgroundColor": "#0a0f1a",
+      "showSpinner": false,
+      "androidSplashResourceName": "splash",
+      "splashFullScreen": true,
+      "splashImmersive": true
+    }
   }
 }

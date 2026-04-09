@@ -29,6 +29,22 @@
             --glow-accent: 0 0 15px rgba(0,200,255,0.4);
             --glow-accent2: 0 0 15px rgba(0,255,136,0.4);
         }
+        /* Native-feel: smooth transitions for all interactive elements */
+        *, *::before, *::after { -webkit-tap-highlight-color: transparent; }
+        button, .quick-btn, .side-item, .pfz-popup-btn {
+            transition: transform 0.12s ease, opacity 0.12s ease, box-shadow 0.2s ease;
+            -webkit-user-select: none; user-select: none;
+        }
+        button:active, .quick-btn:active, .side-item:active, .pfz-popup-btn:active {
+            transform: scale(0.95) !important;
+            opacity: 0.85;
+        }
+        /* Smooth page-like transitions for panels */
+        .panel-transition { transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease; }
+        /* Pull-to-refresh indicator */
+        @keyframes pulseGlow { 0%,100%{box-shadow:0 0 8px rgba(0,200,255,0.3);} 50%{box-shadow:0 0 20px rgba(0,200,255,0.6);} }
+        @keyframes lpSpin { 0%{transform:rotate(0deg);border-color:transparent;border-top-color:#00c8ff;opacity:0.9;} 100%{transform:rotate(900deg);border-color:#00c8ff;opacity:0;} }
+        .loading-pulse { animation: pulseGlow 1.5s infinite; }
         body { background:var(--bg); color:var(--text); font-family:'Space Mono',monospace; height:100vh; overflow:hidden; }
         #topbar {
             position:fixed; top:0; left:0; right:0; height:37px;
@@ -124,7 +140,7 @@
         .lang-switch { margin-left:auto; display:flex; gap:4px; }
         .lang-btn { background:transparent; border:1px solid var(--border); color:var(--dim); padding:3px 9px; border-radius:4px; font-size:10px; cursor:pointer; font-family:'Space Mono',monospace; }
         .lang-btn.active { background:var(--accent); color:#000; border-color:var(--accent); }
-        #map { position:fixed; top:37px; left:0; right:0; bottom:21px; z-index:1; }
+        #map { position:fixed; top:57px; left:0; right:0; bottom:21px; z-index:1; }
         #layers-btn { display:none; }
         #layer-panel {
             display:none;
@@ -233,19 +249,7 @@
         .fc-tile-detail { color:var(--dim); font-size:7px; margin-top:1px; }
         .fc-tile-fish { font-size:8px; font-weight:600; text-align:right; }
         #agent-btn {
-            position:fixed; top:58px; left:50%; transform:translateX(-50%);
-            z-index:600;
-            background:linear-gradient(135deg, var(--accent2), var(--accent));
-            border:2px solid var(--accent2);
-            color:#000;
-            padding:10px 24px;
-            border-radius:10px;
-            font-size:13px;
-            font-weight:700;
-            cursor:pointer;
-            font-family:'Space Mono',monospace;
-            box-shadow:0 6px 20px rgba(0,255,136,0.5);
-            transition:all 0.3s ease;
+            display:none; /* relocated to #agent-fab */
         }
         #agent-btn:hover {
             transform:translateX(-50%) scale(1.08) translateY(-2px);
@@ -364,9 +368,9 @@
         .flc-item:hover { background:rgba(0,200,255,0.1); }
         .flc-name { color:var(--text); }
         .flc-state { color:var(--dim); font-size:9px; }
-        #ham-btn { position:fixed; top:58px; right:10px; z-index:600; background:var(--panel); border:1px solid var(--border); width:36px; height:36px; border-radius:6px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
+        #ham-btn { position:fixed; top:60px; right:10px; z-index:600; background:var(--panel); border:1px solid var(--border); width:36px; height:36px; border-radius:6px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
         #ham-btn span { width:16px; height:2px; background:var(--accent); border-radius:2px; }
-        #side-menu { position:fixed; top:37px; right:-270px; width:255px; bottom:21px; background:var(--panel); border-left:1px solid var(--border); z-index:700; backdrop-filter:blur(16px); transition:right 0.3s; overflow-y:auto; padding:12px; }
+        #side-menu { position:fixed; top:57px; right:-270px; width:255px; bottom:21px; background:var(--panel); border-left:1px solid var(--border); z-index:700; backdrop-filter:blur(16px); transition:right 0.3s; overflow-y:auto; padding:12px; }
         #side-menu.open { right:0; }
         .ms-title { font-size:9px; letter-spacing:2px; color:var(--accent); text-transform:uppercase; margin:14px 0 8px; padding-bottom:5px; border-bottom:1px solid var(--border); }
         .ms-title:first-child { margin-top:0; }
@@ -379,18 +383,61 @@
         .menu-btn.green { border-color:var(--accent2); color:var(--accent2); background:rgba(0,255,136,0.08); }
         .menu-btn.warn { border-color:var(--warn); color:var(--warn); background:rgba(255,170,0,0.08); }
         textarea { width:100%; height:70px; background:rgba(0,200,255,0.05); border:1px solid var(--border); border-radius:5px; color:var(--text); padding:7px; font-size:10px; font-family:'Space Mono',monospace; resize:none; }
-        #legend { position:fixed; bottom:42px; left:10px; background:var(--panel); border:1px solid var(--border); border-radius:7px; padding:8px 12px; z-index:500; }
+        #legend { position:fixed; bottom:116px; left:10px; background:var(--panel); border:1px solid var(--border); border-radius:7px; padding:6px 10px; z-index:500; }
         .leg-title { font-size:9px; letter-spacing:2px; color:var(--accent); margin-bottom:6px; }
         .leg-row { display:flex; align-items:center; gap:7px; font-size:10px; color:var(--dim); margin-bottom:3px; }
         .leg-line { width:24px; border-top:3px dashed; }
+        .sync-dot-ind { width:8px; height:8px; border-radius:50%; background:#ff4444; flex-shrink:0; }
+        .sync-dot-ind.ok { background:#00ff88; box-shadow:0 0 4px #00ff88; }
+        .sync-dot-ind.warn { background:#ffaa00; }
         #anchor-panel { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:280px; background:var(--panel); border:2px solid var(--warn); border-radius:10px; padding:16px; z-index:1000; text-align:center; }
         @keyframes anchor-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,68,68,0.4)}50%{box-shadow:0 0 0 15px rgba(255,68,68,0)} }
         .anchor-active { border-color:#ff4444!important; animation:anchor-pulse 1s infinite; }
-        #quick-btns { position:fixed; bottom:24px; right:10px; z-index:500; display:flex; gap:6px; align-items:center; }
-        #gps-btn { background:var(--panel); border:1px solid var(--accent); color:var(--accent); width:32px; height:32px; border-radius:8px; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
-        #sos-btn { background:#cc0000; color:#fff; border:2px solid #ff4444; padding:3px 8px; border-radius:6px; font-size:10px; font-weight:700; cursor:pointer; letter-spacing:1px; font-family:'Space Mono',monospace; box-shadow:0 0 8px rgba(255,0,0,0.4); }
-        #statusbar { position:fixed; bottom:0; left:0; right:0; height:21px; background:var(--panel); border-top:1px solid var(--border); display:flex; align-items:center; padding:0 12px; gap:16px; z-index:500; font-size:10px; color:var(--dim); }
-        .sb-item { display:flex; gap:5px; }
+        #quick-btns { position:fixed; bottom:28px; right:10px; z-index:500; display:flex; flex-direction:column; gap:7px; align-items:flex-end; }
+        #gps-btn { background:var(--panel); border:1px solid var(--accent); color:var(--accent); width:36px; height:36px; border-radius:8px; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+        #sos-btn { background:#cc0000; color:#fff; border:2px solid #ff4444; padding:5px 10px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; letter-spacing:1px; font-family:'Space Mono',monospace; box-shadow:0 0 8px rgba(255,0,0,0.4); }
+        /* ── Sync Timestamp Strip (always visible) ──────────── */
+        #sync-strip {
+            position:fixed; top:37px; left:0; right:0; height:20px;
+            background:rgba(5,15,30,0.95); border-bottom:1px solid rgba(0,200,255,0.15);
+            display:flex; align-items:center; justify-content:center; gap:12px;
+            z-index:999; font-size:9px; color:var(--dim); font-family:'Space Mono',monospace;
+            padding:0 8px; overflow:hidden;
+        }
+        #sync-strip .sync-item { display:flex; align-items:center; gap:3px; white-space:nowrap; }
+        #sync-strip .sync-lbl { color:var(--accent); font-weight:600; }
+        #sync-strip .sync-val { color:var(--accent2); }
+        #sync-strip .sync-dot { width:5px; height:5px; border-radius:50%; background:var(--accent2); animation:pulse-dot 2s infinite; }
+        /* ── Agent FAB button (persistent on screen) ──────── */
+        #agent-fab {
+            position:fixed; bottom:28px; left:12px; z-index:600;
+            width:46px; height:46px; border-radius:50%;
+            background:linear-gradient(135deg, var(--accent2), var(--accent));
+            border:2px solid var(--accent2);
+            color:#000; font-size:22px; font-weight:700;
+            cursor:pointer; display:flex; align-items:center; justify-content:center;
+            box-shadow:0 4px 16px rgba(0,255,136,0.5);
+            transition:all 0.3s ease;
+        }
+        #agent-fab:hover { transform:scale(1.12); box-shadow:0 6px 24px rgba(0,255,136,0.7); }
+        #agent-fab.loading { opacity:0.7; pointer-events:none; animation:pulse-btn 1.5s ease-in-out infinite; }
+        /* ── Settings Panel ──────────────────────────────────── */
+        #settings-panel {
+            display:none; position:fixed; top:57px; left:10px; right:10px; bottom:60px;
+            background:var(--panel); border:2px solid var(--border); border-radius:12px;
+            z-index:1200; backdrop-filter:blur(20px); overflow-y:auto; padding:0;
+            box-shadow:0 10px 40px rgba(0,0,0,0.6); animation:fadeIn 0.3s ease;
+        }
+        .settings-header { padding:12px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+        .settings-header h3 { color:var(--accent); font-size:14px; margin:0; letter-spacing:1px; }
+        .settings-section { padding:12px 16px; border-bottom:1px solid rgba(0,200,255,0.08); }
+        .settings-section-title { font-size:10px; color:var(--accent); text-transform:uppercase; letter-spacing:2px; margin-bottom:8px; }
+        .settings-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; font-size:11px; color:var(--text); }
+        .settings-select { background:rgba(0,200,255,0.08); border:1px solid var(--border); color:var(--text); padding:5px 8px; border-radius:5px; font-size:10px; font-family:'Space Mono',monospace; }
+        .settings-note { font-size:9px; color:var(--dim); margin-top:4px; line-height:1.4; }
+        #statusbar { position:fixed; bottom:0; left:0; right:0; height:26px; background:var(--panel); border-top:1px solid var(--border); display:flex; align-items:center; padding:0 10px; gap:10px; z-index:500; font-size:10px; color:var(--dim); overflow:hidden; }
+        .sb-item { display:flex; gap:4px; align-items:center; min-width:0; white-space:nowrap; }
+        .sb-lbl { color:var(--accent); font-size:9px; letter-spacing:0.5px; }
         .sb-lbl { color:var(--accent); }
         @keyframes dash { to { stroke-dashoffset:-20; } }
         .pfz-line {
@@ -463,7 +510,7 @@
         /* ── PFZ DETAIL RIGHT PANEL ─────────────────────────── */
         #pfz-detail-panel {
             position: fixed;
-            top: 37px;
+            top: 57px;
             right: -380px;
             width: 360px;
             bottom: 21px;
@@ -576,67 +623,11 @@
         .pfz-popup-btn.primary { background: var(--accent); color: #000; }
         .pfz-popup-btn.secondary { background: rgba(0,200,255,0.1); color: var(--accent); border: 1px solid var(--border); }
 
-        /* ── INCOIS ADVISORY PANEL ──────────────────────────── */
-        #incois-panel {
-            position: fixed;
-            top: 37px;
-            left: -420px;
-            width: 400px;
-            bottom: 21px;
-            background: rgba(8,18,38,0.98);
-            border-right: 2px solid var(--border);
-            z-index: 650;
-            backdrop-filter: blur(20px);
-            overflow-y: auto;
-            transition: left 0.35s cubic-bezier(0.4,0,0.2,1);
-            box-shadow: 4px 0 24px rgba(0,200,255,0.15);
-        }
-        #incois-panel.open { left: 0; }
-        #incois-panel::-webkit-scrollbar { width: 4px; }
-        #incois-panel::-webkit-scrollbar-track { background: transparent; }
-        #incois-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-        .incois-header {
-            position: sticky; top: 0; z-index: 10;
-            background: rgba(8,18,38,0.98);
-            padding: 12px 16px;
-            border-bottom: 2px solid var(--border);
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .incois-header-title {
-            font-size: 11px; font-weight: 700; color: var(--accent);
-            letter-spacing: 1px;
-        }
-        .incois-header-sub { font-size: 9px; color: var(--dim); margin-top: 2px; }
-        .incois-sector {
-            padding: 10px 16px;
-            border-bottom: 1px solid rgba(0,200,255,0.1);
-        }
-        .incois-sector-title {
-            font-size: 10px; font-weight: 700; letter-spacing: 1px;
-            color: var(--warn); margin-bottom: 8px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .incois-sector-count {
-            font-size: 9px; background: rgba(255,170,0,0.15);
-            padding: 2px 8px; border-radius: 10px; color: var(--warn);
-        }
-        .incois-zone {
-            background: rgba(0,200,255,0.04);
-            border: 1px solid rgba(0,200,255,0.08);
-            border-radius: 8px;
-            padding: 8px 10px;
-            margin-bottom: 6px;
-            font-size: 10px;
-        }
-        .incois-zone-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
-        .incois-zone-label { color: var(--dim); }
-        .incois-zone-val { color: var(--accent2); font-weight: 600; }
-        .incois-meta {
-            padding: 10px 16px; font-size: 9px; color: var(--dim); line-height: 1.6;
-            border-top: 1px solid var(--border);
-        }
-        .incois-loading {
-            padding: 40px; text-align: center; color: var(--dim); font-size: 11px;
+        /* ── INCOIS MAP LINES (yellow like SAMUDRA) ──────────── */
+        .incois-line {
+            animation: dash 1.4s linear infinite;
+            stroke-dasharray: 12 4 !important;
+            filter: drop-shadow(0 0 4px #ffcc00);
         }
 
         /* Live indicator on status bar */
@@ -725,7 +716,7 @@
             /* Anchor panel */
             #anchor-panel { width: calc(100% - 32px); }
             /* Legend */
-            #legend { bottom: 46px; padding: 6px 10px; }
+            #legend { bottom: 80px; padding: 5px 8px; }
             .leg-title { font-size: 8px; }
             .leg-row { font-size: 9px; }
             /* GPS + SOS buttons */
@@ -966,14 +957,19 @@
     <div class="live-dot"></div>
     <div id="update-time">--:--</div>
     <div class="lang-switch">
-        <button id="fleet-view-btn" title="Toggle Fleet View" onclick="toggleFleetShortcut(this)" style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);color:#00ff88;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-family:'Space Mono',monospace;margin-right:8px;display:none;">🚢 FLEET</button>
-        <button class="lang-btn active" onclick="setLang('mr',this)">मराठी</button>
-        <button class="lang-btn" onclick="setLang('hi',this)">हिंदी</button>
-        <button class="lang-btn" onclick="setLang('en',this)">EN</button>
+        <button id="fleet-view-btn" title="Toggle Fleet View" onclick="toggleFleetShortcut(this)" style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);color:#00ff88;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-family:'Space Mono',monospace;display:none;">🚢 FLEET</button>
     </div>
 </div>
 
 <div id="map"></div>
+<div id="sync-strip">
+    <div class="sync-item"><span class="sync-dot"></span><span class="sync-lbl">LIVE</span></div>
+    <div class="sync-item"><span class="sync-lbl">PFZ:</span><span class="sync-val" id="sync-pfz">--</span></div>
+    <div class="sync-item"><span class="sync-lbl">SST:</span><span class="sync-val" id="sync-sst">--</span></div>
+    <div class="sync-item"><span class="sync-lbl">CHL:</span><span class="sync-val" id="sync-chl">--</span></div>
+    <div class="sync-item"><span class="sync-lbl">INCOIS:</span><span class="sync-val" id="sync-incois">--</span></div>
+</div>
+<div id="agent-fab" onclick="runAgentAnalysis()" title="AI Agent Analysis">🤖</div>
 <div id="vel-status"></div>
 
 <!-- data-layers-panel removed as requested -->
@@ -1050,6 +1046,98 @@
 
 <div id="ham-btn" onclick="toggleMenu()"><span></span><span></span><span></span></div>
 
+<!-- Settings Panel -->
+<div id="settings-panel">
+    <div class="settings-header">
+        <h3>⚙️ Settings</h3>
+        <button class="pfz-panel-close-btn" onclick="toggleSettings()">✕</button>
+    </div>
+    <div class="settings-section">
+        <div class="settings-section-title">📍 Coordinate Format</div>
+        <div class="settings-row"><span>Display Format</span>
+            <select class="settings-select" id="setting-coord-format" onchange="saveSetting('coordFormat',this.value)">
+                <option value="dd">Decimal Degrees (DD)</option>
+                <option value="dms">Degrees Minutes Seconds (DMS)</option>
+                <option value="ddm">Degrees Decimal Minutes (DDM)</option>
+            </select>
+        </div>
+        <div class="settings-note">Controls how coordinates appear in popups, reports, and status bar.</div>
+    </div>
+    <div class="settings-section">
+        <div class="settings-section-title">🗺️ Default Map Layer</div>
+        <div class="settings-row"><span>Base Map</span>
+            <select class="settings-select" id="setting-map-layer" onchange="saveSetting('mapLayer',this.value);switchLayer(this.value,this);">
+                <option value="esri-img">ESRI Imagery</option>
+                <option value="osm">OSM Topographic</option>
+                <option value="carto-dark">Carto Dark</option>
+                <option value="carto-light">Carto Light</option>
+                <option value="esri-street">ESRI Street</option>
+                <option value="osm-bright">OSM Voyager</option>
+            </select>
+        </div>
+    </div>
+    <div class="settings-section">
+        <div class="settings-section-title">🌐 Language</div>
+        <div class="settings-row"><span>Default Language</span>
+            <select class="settings-select" id="setting-language" onchange="saveSetting('language',this.value);setLang(this.value);">
+                <option value=\"mr\">मराठी (Marathi)</option>\n                <option value=\"hi\">हिंदी (Hindi)</option>\n                <option value=\"en\">English</option>\n                <option value=\"kok\">कोंकणी (Konkani)</option>", "oldString": "                <option value=\"mr\">मराठी (Marathi)</option>\n                <option value=\"hi\">हिंदी (Hindi)</option>\n                <option value=\"en\">English</option>"
+            </select>
+        </div>
+    </div>
+    <div class="settings-section">
+        <div class="settings-section-title">📡 Data & Sync</div>
+        <div class="settings-row"><span>Auto-refresh PFZ</span>
+            <select class="settings-select" id="setting-refresh-interval" onchange="saveSetting('refreshInterval',this.value);updateRefreshInterval();">
+                <option value="15">Every 15 min</option>
+                <option value="30" selected>Every 30 min</option>
+                <option value="60">Every 60 min</option>
+                <option value="0">Manual only</option>
+            </select>
+        </div>
+        <div class="settings-row"><span>Agent Cache Duration</span>
+            <select class="settings-select" id="setting-cache-ttl" onchange="saveSetting('cacheTTL',this.value);">
+                <option value="1">1 hour</option>
+                <option value="2">2 hours</option>
+                <option value="4" selected>4 hours (default)</option>
+                <option value="8">8 hours</option>
+            </select>
+        </div>
+        <div class="settings-row"><span>Show sync timestamps</span>
+            <div class="tog on" id="tog-sync-strip" onclick="toggleSettingToggle(this,'showSyncStrip')"></div>
+        </div>
+    </div>
+    <div class="settings-section">
+        <div class="settings-section-title">🎨 Display</div>
+        <div class="settings-row"><span>Show EEZ on startup</span>
+            <div class="tog on" id="tog-eez-default" onclick="toggleSettingToggle(this,'showEEZ')"></div>
+        </div>
+        <div class="settings-row"><span>Show FLC ports on startup</span>
+            <div class="tog on" id="tog-flc-default" onclick="toggleSettingToggle(this,'showFLC')"></div>
+        </div>
+        <div class="settings-row"><span>Auto-load wind layer</span>
+            <div class="tog on" id="tog-wind-default" onclick="toggleSettingToggle(this,'autoWind')"></div>
+        </div>
+        <div class="settings-row"><span>Units: Temperature</span>
+            <select class="settings-select" id="setting-temp-unit" onchange="saveSetting('tempUnit',this.value);">
+                <option value="C">°C (Celsius)</option>
+                <option value="F">°F (Fahrenheit)</option>
+            </select>
+        </div>
+        <div class="settings-row"><span>Units: Distance</span>
+            <select class="settings-select" id="setting-dist-unit" onchange="saveSetting('distUnit',this.value);">
+                <option value="km">Kilometers</option>
+                <option value="nm">Nautical Miles</option>
+                <option value="mi">Miles</option>
+            </select>
+        </div>
+    </div>
+    <div class="settings-section">
+        <div class="settings-section-title">🗑️ Cache Management</div>
+        <button class="menu-btn warn" onclick="clearAllCaches()" style="margin-top:4px;">Clear All Cached Data</button>
+        <div class="settings-note" style="margin-top:8px;">Version 2.1 · Data: INCOIS · CMEMS · Open-Meteo · NASA · ETOPO1</div>
+    </div>
+</div>
+
 <div id="side-menu">
     <div class="ms-title">🗺️ Map</div>
     <select class="menu-btn" onchange="switchLayer(this.value, this)" style="background:var(--panel);color:var(--accent);width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);">
@@ -1066,7 +1154,7 @@
     <div class="ms-title" style="margin-top:8px;">🐟 PFZ & Data</div>
     <div class="tog-row"><span>🐟 PFZ Zones</span><div class="tog on" id="tog-pfz" onclick="togglePFZ(this)"></div></div>
     <div class="tog-row"><span>🤖 AI Agent Zones</span><div class="tog" id="tog-agent-layer" onclick="toggleAgentLayer(this)"></div></div>
-    <div class="tog-row"><span>🏛️ INCOIS Layer</span><div class="tog" id="tog-incois-map" onclick="toggleINCOISMapLayer(this)"></div></div>
+    <div class="tog-row"><span>🏛️ INCOIS Advisory</span><div class="tog on" id="tog-incois-map" onclick="toggleINCOISMapLayer(this)"></div></div>
     <div class="tog-row"><span>🌡️ SST Heatmap</span><div class="tog" id="tog-sst" onclick="toggleSST(this)"></div></div>
     <div class="tog-row"><span>🌿 Chlorophyll</span><div class="tog" id="tog-chl" onclick="toggleCHLLayer(this)"></div></div>
     <div class="tog-row"><span>🌊 Bathymetry</span><div class="tog" id="tog-bathy" onclick="toggleBathymetry(this)"></div></div>
@@ -1077,13 +1165,14 @@
 
     <div class="ms-title">🧭 Tools</div>
     <button class="menu-btn" onclick="toggleForecast();toggleMenu();">⛅ 6-Day AI Forecast</button>
-    <button id="agent-btn" class="menu-btn green" onclick="runAgentAnalysis();toggleMenu();">🤖 Agent Analysis</button>
+    <button class="menu-btn green" onclick="runAgentAnalysis();toggleMenu();">🤖 Agent Analysis</button>
     <button class="menu-btn" onclick="exportPDFReport();toggleMenu();" style="background:rgba(255,100,0,0.1);border-color:rgba(255,100,0,0.4);color:#ff8844;">📄 Export Full Report</button>
-    <button class="menu-btn" onclick="toggleINCOIS();toggleMenu();">🏛️ INCOIS Advisory</button>
+    <button class="menu-btn" onclick="toggleINCOISFromMenu();toggleMenu();">🏛️ Refresh INCOIS Data</button>
     <button class="menu-btn" onclick="showHistoryCalendar();toggleMenu();">📅 PFZ History</button>
     <button class="menu-btn" onclick="toggleBearing();toggleMenu();">📐 Bearing Calculator</button>
     <button class="menu-btn" onclick="toggleFLCSearch();toggleMenu();">🔍 FLC Search</button>
     <button class="menu-btn warn" onclick="document.getElementById('anchor-panel').style.display='block';toggleMenu();">⚓ Anchor Alarm</button>
+    <button class="menu-btn" onclick="toggleSettings();toggleMenu();" style="margin-top:8px;background:rgba(0,200,255,0.08);border-color:var(--accent);">⚙️ Settings</button>
 
     <div class="ms-title">📓 Fishing Log</div>
     <div id="log-date" style="font-size:10px;color:var(--dim);margin-bottom:6px;"></div>
@@ -1098,27 +1187,15 @@
     </div>
 </div>
 
-<div id="incois-panel">
-    <div class="incois-header">
-        <div>
-            <div class="incois-header-title">🏛️ INCOIS PFZ Advisory</div>
-            <div class="incois-header-sub">Sector-wise Potential Fishing Zone Analysis</div>
-        </div>
-        <button class="pfz-panel-close-btn" onclick="toggleINCOIS()" title="Close">✕</button>
-    </div>
-    <div id="incois-content">
-        <div class="incois-loading">Click to load INCOIS advisory...</div>
-    </div>
-</div>
+<!-- INCOIS panel removed — data shown directly on map as yellow lines -->
 
 <div id="legend">
-    <div class="leg-title">MAP LEGEND</div>
-    <div class="leg-row"><div style="width:24px;height:8px;background:linear-gradient(to right,#00f,#0f0,#ff0,#f00);border-radius:2px;opacity:0.6;"></div><span>🌿 Chlorophyll</span></div>
-    <div class="leg-row"><div class="leg-line" style="border-color:#ff4444;"></div><span>उच्च PFZ</span></div>
-    <div class="leg-row"><div class="leg-line" style="border-color:#ffaa00;"></div><span>मध्यम PFZ</span></div>
-    <div class="leg-row"><div class="leg-line" style="border-color:#00ff88;"></div><span>कमी PFZ</span></div>
-    <div class="leg-row"><div style="width:24px;height:2px;background:#ff3333;"></div><span>EEZ</span></div>
-    <div class="leg-row"><div style="width:8px;height:8px;border-radius:50%;background:#00aaff;border:2px solid #fff;"></div><span>FLC Port</span></div>
+    <div class="leg-title">SYNC STATUS</div>
+    <div class="leg-row"><span class="sync-dot-ind" id="ind-pfz"></span><span>PFZ Data</span></div>
+    <div class="leg-row"><span class="sync-dot-ind" id="ind-sst"></span><span>SST / CHL</span></div>
+    <div class="leg-row"><span class="sync-dot-ind" id="ind-incois"></span><span>INCOIS</span></div>
+    <div class="leg-row"><span class="sync-dot-ind" id="ind-wind"></span><span>Wind/Wave</span></div>
+    <div class="leg-row"><span class="sync-dot-ind" id="ind-ai"></span><span>AI Agent</span></div>
 </div>
 
 <div id="quick-btns">
@@ -1167,8 +1244,200 @@
 
 <script src="leaflet.js"></script>
 <script src="leaflet-velocity.min.js"></script>
+<script src="js/html2canvas.min.js"></script>
 <script src="js/jspdf.umd.min.js"></script>
 <script>
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SETTINGS & PREFERENCES — load from localStorage
+// ══════════════════════════════════════════════════════════════════════════════
+const _SETTINGS_KEY = 'ds_settings_v1';
+const _PFZ_HISTORY_KEY = 'ds_pfz_history_v1';
+const _LAST_ZONES_KEY = 'ds_last_zones_v1';
+const _SYNC_TIMES_KEY = 'ds_sync_times_v1';
+
+function getSettings() {
+    try { return JSON.parse(localStorage.getItem(_SETTINGS_KEY) || '{}'); } catch(e) { return {}; }
+}
+function saveSetting(key, val) {
+    const s = getSettings();
+    s[key] = val;
+    try { localStorage.setItem(_SETTINGS_KEY, JSON.stringify(s)); } catch(e) {}
+}
+function getSetting(key, fallback) {
+    return getSettings()[key] || fallback;
+}
+function toggleSettingToggle(el, key) {
+    el.classList.toggle('on');
+    saveSetting(key, el.classList.contains('on'));
+    if (key === 'showSyncStrip') {
+        document.getElementById('sync-strip').style.display = el.classList.contains('on') ? 'flex' : 'none';
+        document.getElementById('map').style.top = el.classList.contains('on') ? '57px' : '37px';
+    }
+}
+function toggleSettings() {
+    const p = document.getElementById('settings-panel');
+    p.style.display = p.style.display === 'block' ? 'none' : 'block';
+    if (p.style.display === 'block') loadSettings();
+}
+function loadSettings() {
+    const s = getSettings();
+    const setVal = (id, key, fallback) => { const el = document.getElementById(id); if (el) el.value = s[key] || fallback; };
+    setVal('setting-coord-format', 'coordFormat', 'dd');
+    setVal('setting-map-layer', 'mapLayer', 'esri-img');
+    setVal('setting-language', 'language', 'mr');
+    setVal('setting-refresh-interval', 'refreshInterval', '30');
+    setVal('setting-cache-ttl', 'cacheTTL', '4');
+    setVal('setting-temp-unit', 'tempUnit', 'C');
+    setVal('setting-dist-unit', 'distUnit', 'km');
+    // Toggles
+    ['showSyncStrip','showEEZ','showFLC','autoWind'].forEach(k => {
+        const el = document.getElementById('tog-' + k.replace(/([A-Z])/g,'-$1').toLowerCase().replace(/^-/,''));
+        if (!el) return;
+        const v = s[k] !== undefined ? s[k] : true;
+        el.classList.toggle('on', v);
+    });
+}
+function applySettings() {
+    const s = getSettings();
+    if (s.mapLayer && baseLayers && baseLayers[s.mapLayer]) {
+        try { map.removeLayer(currentBaseLayer); currentBaseLayer = baseLayers[s.mapLayer].addTo(map); } catch(e) {}
+    }
+    if (s.language) { try { setLang(s.language); } catch(e) {} }
+    if (s.showSyncStrip === false) {
+        document.getElementById('sync-strip').style.display = 'none';
+        document.getElementById('map').style.top = '37px';
+    }
+}
+function updateRefreshInterval() {
+    const mins = parseInt(getSetting('refreshInterval', '30'));
+    if (pfzRefreshTimer) clearInterval(pfzRefreshTimer);
+    if (mins > 0) pfzRefreshTimer = setInterval(loadPFZLive, mins * 60 * 1000);
+}
+function clearAllCaches() {
+    [_SETTINGS_KEY, _AGENT_CACHE_KEY, _LAST_ZONES_KEY, _SYNC_TIMES_KEY].forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+    showToast('✅ All caches cleared', 'info');
+}
+
+// ── Coordinate formatting ────────────────────────────────────────────────────
+function formatCoord(val, isLat) {
+    const fmt = getSetting('coordFormat', 'dd');
+    const dir = isLat ? (val >= 0 ? 'N' : 'S') : (val >= 0 ? 'E' : 'W');
+    const abs = Math.abs(val);
+    if (fmt === 'dms') {
+        const d = Math.floor(abs); const mf = (abs - d) * 60; const m = Math.floor(mf); const s = ((mf - m) * 60).toFixed(1);
+        return d + '°' + m + "'" + s + '"' + dir;
+    }
+    if (fmt === 'ddm') {
+        const d = Math.floor(abs); const m = ((abs - d) * 60).toFixed(3);
+        return d + '°' + m + "'" + dir;
+    }
+    return abs.toFixed(4) + '°' + dir;
+}
+
+// ── Sync timestamp tracking ──────────────────────────────────────────────────
+function updateSyncTime(source, time) {
+    const el = document.getElementById('sync-' + source);
+    if (el) el.textContent = time || new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+    // Also persist
+    try {
+        const ts = JSON.parse(localStorage.getItem(_SYNC_TIMES_KEY) || '{}');
+        ts[source] = { time: time || new Date().toISOString(), display: el ? el.textContent : '' };
+        localStorage.setItem(_SYNC_TIMES_KEY, JSON.stringify(ts));
+    } catch(e) {}
+}
+function restoreSyncTimes() {
+    try {
+        const ts = JSON.parse(localStorage.getItem(_SYNC_TIMES_KEY) || '{}');
+        Object.entries(ts).forEach(([k, v]) => {
+            const el = document.getElementById('sync-' + k);
+            if (el && v.display) el.textContent = v.display;
+        });
+    } catch(e) {}
+}
+// Update sync status indicator dots — local + backend real check
+function updateSyncIndicators() {
+    function setInd(id, state, title) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        // state: 'ok' (green), 'warn' (orange), '' (red)
+        el.className = 'sync-dot-ind' + (state ? ' ' + state : '');
+        if (title) el.title = title;
+    }
+    // Local fast checks first
+    setInd('ind-pfz', pfzGroup && pfzGroup.getLayers().length > 0 ? 'ok' : '',
+        pfzGroup && pfzGroup.getLayers().length > 0 ? 'PFZ: loaded' : 'PFZ: not loaded');
+    var sstEl = document.getElementById('sb-sst');
+    setInd('ind-sst', sstEl && sstEl.textContent !== '--\u00b0C' ? 'ok' : '', 'SST/CHL');
+    setInd('ind-incois', incoisMapLoaded && incoisMapGroup.getLayers().length > 0 ? 'ok' : '',
+        incoisMapLoaded ? 'INCOIS: loaded' : 'INCOIS: not loaded');
+    setInd('ind-wind', typeof windLayer !== 'undefined' && windLayer && map.hasLayer(windLayer) ? 'warn' : '',
+        'Wind/Wave: synthetic data');
+    var ac = localStorage.getItem('ds_agent_v1');
+    setInd('ind-ai', ac && ac.length > 10 ? 'ok' : '', ac ? 'AI: cached' : 'AI: no analysis yet');
+
+    // Backend real data status check (every 5 min)
+    var _lastStatusFetch = window._lastStatusFetch || 0;
+    if (Date.now() - _lastStatusFetch > 300000) {
+        window._lastStatusFetch = Date.now();
+        fetch('/api/data/status').then(function(r){ return r.json(); }).then(function(d) {
+            var s = d.sources || {};
+            if (s.pfz) {
+                var pfzState = s.pfz.status === 'live' || s.pfz.status === 'cached' ? 'ok' : (s.pfz.status === 'stale' ? 'warn' : '');
+                setInd('ind-pfz', pfzState, 'PFZ: ' + s.pfz.status + (s.pfz.last_fetch ? ' @ ' + s.pfz.last_fetch : ''));
+            }
+            if (s.sst) {
+                var sstState = s.sst.status === 'cached' ? 'ok' : (s.sst.status === 'stale' ? 'warn' : '');
+                setInd('ind-sst', sstState, 'SST: ' + s.sst.status + (s.sst.last_fetch ? ' @ ' + s.sst.last_fetch : ''));
+            }
+            if (s.incois) {
+                var incState = s.incois.status === 'cached' ? 'ok' : (s.incois.status === 'stale' ? 'warn' : '');
+                setInd('ind-incois', incState, 'INCOIS: ' + s.incois.status + (s.incois.last_fetch ? ' @ ' + s.incois.last_fetch : ''));
+            }
+            if (s.openmeteo) {
+                setInd('ind-wind', s.openmeteo.status === 'live' ? 'warn' : '', 'Wind/Wave: ' + s.openmeteo.status + ' (synthetic grid)');
+            }
+            if (s.cmems && !s.cmems.authenticated) {
+                var curEl = document.getElementById('ind-sst');
+                if (curEl) curEl.title = (curEl.title || '') + ' | CMEMS: no credentials';
+            }
+        }).catch(function(){});
+    }
+}
+// Run indicator check every 30 seconds
+setInterval(updateSyncIndicators, 30000);
+// Also run shortly after page load
+setTimeout(updateSyncIndicators, 3000);
+
+// ── Last Agent Zones persistence ─────────────────────────────────────────────
+function saveLastZones(zones, source) {
+    try {
+        localStorage.setItem(_LAST_ZONES_KEY, JSON.stringify({
+            ts: Date.now(), zones: zones, source: source,
+            date: new Date().toISOString().slice(0,10)
+        }));
+    } catch(e) {}
+}
+function getLastZones() {
+    try {
+        const d = JSON.parse(localStorage.getItem(_LAST_ZONES_KEY) || 'null');
+        if (d && d.date === new Date().toISOString().slice(0,10)) return d;
+    } catch(e) {}
+    return null;
+}
+
+// ── PFZ History saving ──────────────────────────────────────────────────────
+function savePFZHistory(geojson) {
+    try {
+        const today = new Date().toISOString().slice(0,10);
+        const hist = JSON.parse(localStorage.getItem(_PFZ_HISTORY_KEY) || '{}');
+        hist[today] = { ts: Date.now(), zones: (geojson.features || []).length, data: geojson };
+        // Keep only last 10 days
+        const keys = Object.keys(hist).sort().reverse();
+        if (keys.length > 10) keys.slice(10).forEach(k => delete hist[k]);
+        localStorage.setItem(_PFZ_HISTORY_KEY, JSON.stringify(hist));
+    } catch(e) {}
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // MAP INIT
@@ -1187,8 +1456,30 @@ function fixCanvasTransparency() {
     });
 }
 // Run on every map interaction
-map.on('movestart zoom zoomend moveend layeradd', fixCanvasTransparency);
-setInterval(fixCanvasTransparency, 1000); // Check every second
+map.on('moveend layeradd', fixCanvasTransparency);
+setInterval(fixCanvasTransparency, 2000);
+
+// ── Pause velocity animations during zoom to prevent stutter ──
+let _zoomAnimPaused = false;
+map.on('zoomstart', function() {
+    if (_zoomAnimPaused) return;
+    _zoomAnimPaused = true;
+    // Hide velocity canvases during zoom for smooth experience
+    document.querySelectorAll('.leaflet-overlay-pane canvas').forEach(c => {
+        c.style.visibility = 'hidden';
+    });
+});
+map.on('zoomend', function() {
+    // Delay re-show so tiles settle first
+    setTimeout(function() {
+        document.querySelectorAll('.leaflet-overlay-pane canvas').forEach(c => {
+            c.style.visibility = 'visible';
+            c.style.background = 'transparent';
+            c.style.backgroundColor = 'transparent';
+        });
+        _zoomAnimPaused = false;
+    }, 300);
+});
 
 const baseLayers = {
     'esri-img':   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'),
@@ -1427,9 +1718,10 @@ function maskLandFromVelocityData(data) {
     return data;
 }
 
-function makeVelocityLayer(data, colorScale, velScale, name, maxVel) {
+function makeVelocityLayer(data, colorScale, velScale, name, maxVel, opts) {
+    opts = opts || {};
     const layer = L.velocityLayer({
-        displayValues    : false,       // Hide display to avoid clutter
+        displayValues    : false,
         displayOptions   : {
             velocityType       : name,
             displayPosition    : 'bottomleft',
@@ -1440,11 +1732,11 @@ function makeVelocityLayer(data, colorScale, velScale, name, maxVel) {
         maxVelocity      : maxVel,
         velocityScale    : velScale,
         colorScale       : colorScale,
-        opacity          : 1.0,          // Set to full, control transparency via canvas
-        lineWidth        : 2.5,
-        particleAge      : 75,
-        particleMultiplier: 0.008,       // More particles for better visibility
-        frameRate        : 30            // Smooth 30 FPS animation
+        opacity          : 1.0,
+        lineWidth        : opts.lineWidth  || 1.8,
+        particleAge      : opts.particleAge || 90,
+        particleMultiplier: opts.particleMul || 0.012,
+        frameRate        : 35
     });
 
     // Fix canvas transparency after layer is added to map
@@ -1466,7 +1758,7 @@ function makeVelocityLayer(data, colorScale, velScale, name, maxVel) {
     return layer;
 }
 
-function loadVelocity(url, colorScale, velScale, name, maxVel, toggleId, cb) {
+function loadVelocity(url, colorScale, velScale, name, maxVel, toggleId, cb, opts) {
     // Add cache-busting timestamp for fresh data
     const bustUrl = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
     fetch(bustUrl)
@@ -1480,7 +1772,7 @@ function loadVelocity(url, colorScale, velScale, name, maxVel, toggleId, cb) {
             }
             // Zero out land grid points so particles only appear on ocean
             maskLandFromVelocityData(data);
-            const vel = makeVelocityLayer(data, colorScale, velScale, name, maxVel);
+            const vel = makeVelocityLayer(data, colorScale, velScale, name, maxVel, opts);
             cb(vel);
         })
         .catch(e => {
@@ -1508,8 +1800,8 @@ function toggleWind(el) {
         windLoading = true;
         setVelStatus('🌬️ Wind लोड होत आहे…');
         loadVelocity('https://samudra-ai.onrender.com/api/wind/live',
-            ['#d4e6f1','#85c1e9','#3498db','#1a5276','#0d47a1'],
-            0.012, 'Wind', 15, 'tog-wind',
+            ['rgba(180,220,255,0.3)','#85c1e9','#5dade2','#2e86c1','#1a5276','#0d47a1','#ffffff'],
+            0.010, 'Wind', 18, 'tog-wind',
             function(vel) {
                 windLoading = false;
                 if (!vel) { setVelStatus('⚠️ Wind data error'); return; }
@@ -1518,7 +1810,8 @@ function toggleWind(el) {
                     map.addLayer(windLayer);
                     setVelStatus('🌬️ Wind Active — Live');
                 } else { setVelStatus(null); }
-            }
+            },
+            {lineWidth:1.2, particleAge:100, particleMul:0.015}
         );
     } else {
         if (windLayer) map.removeLayer(windLayer);
@@ -1540,8 +1833,8 @@ function toggleWave(el) {
         waveLoading = true;
         setVelStatus('🌊 Waves लोड होत आहे…');
         loadVelocity('https://samudra-ai.onrender.com/api/wave/live?_t='+Date.now(),
-            ['#1a9850','#91cf60','#d9ef8b','#fee08b','#fc8d59','#d73027'],
-            0.025, 'Waves', 5, 'tog-wave',
+            ['rgba(26,152,80,0.3)','#66bd63','#a6d96a','#d9ef8b','#fee08b','#fdae61','#f46d43','#d73027'],
+            0.020, 'Waves', 6, 'tog-wave',
             function(vel) {
                 waveLoading = false;
                 if (!vel) { setVelStatus('⚠️ Wave data error'); return; }
@@ -1550,7 +1843,8 @@ function toggleWave(el) {
                     map.addLayer(waveLayer);
                     setVelStatus('🌊 Waves Active — Live');
                 } else { setVelStatus(null); }
-            }
+            },
+            {lineWidth:2.5, particleAge:60, particleMul:0.010}
         );
     } else {
         if (waveLayer) map.removeLayer(waveLayer);
@@ -1571,8 +1865,8 @@ function toggleCurrent(el) {
         currentLoading = true;
         setVelStatus('🔄 Currents लोड होत आहे…');
         loadVelocity('https://samudra-ai.onrender.com/api/current/live?_t='+Date.now(),
-            ['#00ff88','#00cc66','#009944','#006622','#003311'],
-            0.035, 'Currents', 3, 'tog-current',
+            ['rgba(0,255,136,0.2)','#00ff88','#00e67a','#00cc66','#00b359','#009944','#007733'],
+            0.030, 'Currents', 3.5, 'tog-current',
             function(vel) {
                 currentLoading = false;
                 if (!vel) { setVelStatus('⚠️ Current data error'); return; }
@@ -1581,7 +1875,8 @@ function toggleCurrent(el) {
                     map.addLayer(currentLayer);
                     setVelStatus('🔄 Currents Active — Live');
                 } else { setVelStatus(null); }
-            }
+            },
+            {lineWidth:2.0, particleAge:120, particleMul:0.008}
         );
     } else {
         if (currentLayer) map.removeLayer(currentLayer);
@@ -1779,6 +2074,37 @@ function buildPFZPopup(props, coords) {
     const midLat = (start[0] + end[0]) / 2;
     const midLon = (start[1] + end[1]) / 2;
 
+    const cur = props.current || {};
+
+    // Current direction HTML
+    let currentHTML = '';
+    if (cur.speed_knots != null) {
+        const speedCol = cur.speed_knots > 1.5 ? '#ff6666' : (cur.speed_knots > 0.8 ? '#ffaa00' : '#00ff88');
+        currentHTML = `
+        <div class="pfz-popup-section">
+            <div class="pfz-section-title">🧭 ${lang==='mr'?'प्रवाह व मासेमारी दिशा':'Current & Fishing Direction'}</div>
+            <div class="pfz-data-grid">
+                <div class="pfz-data-item">
+                    <div class="pfz-data-label">🌊 ${lang==='mr'?'प्रवाह दिशा':'Current Flow'}</div>
+                    <div class="pfz-data-value" style="color:var(--accent);font-size:13px;font-weight:800;">
+                        ${cur.flow_to_compass || '--'} <span style="font-size:10px;opacity:0.6">(${cur.flow_to || 0}°)</span>
+                    </div>
+                </div>
+                <div class="pfz-data-item">
+                    <div class="pfz-data-label">💨 ${lang==='mr'?'प्रवाह वेग':'Speed'}</div>
+                    <div class="pfz-data-value" style="color:${speedCol};font-size:13px;font-weight:800;">${cur.speed_knots || 0} kn</div>
+                </div>
+            </div>
+            <div style="margin-top:6px;padding:6px 8px;background:rgba(0,255,136,0.06);border-radius:6px;border:1px solid rgba(0,255,136,0.15);">
+                <div style="font-size:10px;color:#00ff88;font-weight:700;">🎯 ${lang==='mr'?'शिफारस केलेली दिशा':'Recommended Approach'}</div>
+                <div style="font-size:12px;color:#fff;font-weight:600;margin-top:3px;">
+                    ${cur.approach_1 || '--'} or ${cur.approach_2 || '--'}
+                    <span style="font-size:9px;color:var(--dim);margin-left:4px;">(${lang==='mr'?'प्रवाहाला लंब':'perpendicular to current'})</span>
+                </div>
+            </div>
+        </div>`;
+    }
+
     return `
     <div class="pfz-popup">
         <div class="pfz-popup-header">
@@ -1814,6 +2140,8 @@ function buildPFZPopup(props, coords) {
         </div>
 
         ${lunarHTML}
+
+        ${currentHTML}
 
         <div class="pfz-popup-section">
             <div class="pfz-section-title">📍 ${lang==='mr'?'स्थान':'Location'}</div>
@@ -1968,6 +2296,13 @@ function loadPFZLive() {
             ' <span class="pfz-live-badge"><span class="pfz-live-dot"></span>LIVE ' + zoneCount + ' zones</span>';
         updateRefreshBar();
 
+        // Update sync strip & save history
+        const syncTime = new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+        updateSyncTime('pfz', syncTime);
+        if (metadata.sst_source) updateSyncTime('sst', syncTime + ' (' + (metadata.sst_source || 'est') + ')');
+        if (metadata.chl_source) updateSyncTime('chl', syncTime + ' (' + (metadata.chl_source || 'est') + ')');
+        savePFZHistory(geojson);
+
         // Hide loading bar
         loadBar.style.display = 'none';
 
@@ -2017,8 +2352,26 @@ function loadPFZStatic() {
 // Initial PFZ load from live endpoint
 loadPFZLive();
 
-// Auto-refresh PFZ every 30 minutes for real-time updates
-pfzRefreshTimer = setInterval(loadPFZLive, 30 * 60 * 1000);
+// Auto-refresh PFZ (interval from settings)
+let pfzRefreshMins = parseInt(getSetting('refreshInterval', '30'));
+pfzRefreshTimer = pfzRefreshMins > 0 ? setInterval(loadPFZLive, pfzRefreshMins * 60 * 1000) : null;
+
+// Restore last agent zones on startup (so user sees them immediately)
+(function restoreLastAgentZones() {
+    const lastZones = getLastZones();
+    if (lastZones && lastZones.zones && lastZones.zones.length > 0) {
+        try { displayClaudeZones(lastZones.zones, lastZones.source || 'restored'); } catch(e) {}
+        console.log('♻️ Restored ' + lastZones.zones.length + ' agent zones from last session');
+    }
+})();
+// Restore sync timestamps
+restoreSyncTimes();
+// Apply saved settings (map layer, language, etc.)
+setTimeout(applySettings, 500);
+// Auto-load INCOIS advisory data on startup (yellow lines on map)
+setTimeout(function() {
+    loadINCOISMapLayer();
+}, 2000);
 
 function togglePFZ(el){
     el.classList.toggle('on');
@@ -2039,16 +2392,20 @@ let agentZonesData = [];
 
 // ── 4-hour agent analysis cache ───────────────────────────────────────────────
 const _AGENT_CACHE_KEY = 'ds_agent_v1';
-const _AGENT_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
+function _getAgentCacheTTL() {
+    const hrs = parseInt(getSetting('cacheTTL', '4'));
+    return (hrs || 4) * 60 * 60 * 1000;
+}
 function _getAgentCache() {
     try {
         const c = JSON.parse(localStorage.getItem(_AGENT_CACHE_KEY) || 'null');
-        if (c && (Date.now() - c.ts) < _AGENT_CACHE_TTL) return c.data;
+        if (c && (Date.now() - c.ts) < _getAgentCacheTTL()) return c.data;
     } catch(e) {}
     return null;
 }
 function _setAgentCache(data) {
     try { localStorage.setItem(_AGENT_CACHE_KEY, JSON.stringify({ts: Date.now(), data})); } catch(e) {}
+    saveLastZones(data.zones || [], data.source || 'agent');
 }
 function _getAgentCacheAge() {
     try {
@@ -2124,6 +2481,7 @@ async function runAgentAnalysis() {
 
         if (agentData.error_type === 'no_backend_support') {
             if (btn) { btn.innerHTML = '❌ No Backend'; btn.classList.remove('loading'); }
+            if (fab) { fab.innerHTML = '❌'; fab.style.opacity = '1'; setTimeout(()=>{fab.innerHTML='🤖';},3000); }
             showToast('⚠️ Backend APIs not configured', 'warn');
             loadForecast(); // still load forecast
             return;
@@ -2142,10 +2500,12 @@ async function runAgentAnalysis() {
             throw new Error(result.message || agentData.message || 'Analysis failed');
         }
         if (btn) setTimeout(function() { btn.innerHTML = '🤖 Agent Analysis'; btn.classList.remove('loading'); }, 3000);
+        if (fab) { fab.innerHTML = '✅'; fab.style.opacity = '1'; setTimeout(()=>{fab.innerHTML='🤖';},3000); }
         loadForecast();
     } catch (error) {
         console.error('Agent analysis error:', error);
         if (btn) { btn.innerHTML = '❌ Error'; setTimeout(function() { btn.innerHTML = '🤖 Agent Analysis'; btn.classList.remove('loading'); }, 3000); }
+        if (fab) { fab.innerHTML = '❌'; fab.style.opacity = '1'; setTimeout(()=>{fab.innerHTML='🤖';},3000); }
         loadForecast(); // load forecast even if agent fails
     }
 }
@@ -2489,32 +2849,54 @@ function displayClaudeZones(zones, source) {
 }
 
 function showClaudeZonePopup(zone) {
+    // Build rich fish HTML same as agent popup
     var fishHTML = (zone.fish_species || []).map(function(f) {
         var prob = Math.round((f.probability || 0.5) * 100);
         var probColor = prob >= 65 ? 'var(--accent2)' : (prob >= 40 ? 'var(--warn)' : '#ff6666');
-        var nameDisplay = lang === 'mr' ? (f.name_mr || f.name_en || '') : (f.name_en || '');
-        var reasoning = f.reasoning ? '<div style="font-size:7px;color:rgba(255,255,255,0.4);margin-top:1px;">' + f.reasoning + '</div>' : '';
+        var nameDisplay = lang === 'mr' ? (f.name_mr || f.name_en || f.name || '') : lang === 'hi' ? (f.name_hi || f.name_en || f.name || '') : (f.name_en || f.name || '');
+        var nameSub = lang === 'mr' ? (f.name_en || '') : (f.name_mr || '');
+        var bestTime = f.best_time || '';
         return '<div style="display:flex;align-items:center;gap:6px;padding:4px 2px;border-bottom:1px solid rgba(0,200,255,0.08);">' +
-            '<span style="font-size:14px;">' + (f.icon || '🐟') + '</span>' +
-            '<div style="flex:1;"><div style="font-size:11px;font-weight:600;">' + nameDisplay + '</div>' + reasoning + '</div>' +
-            '<div style="width:50px;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;"><div style="height:100%;width:' + prob + '%;background:' + probColor + ';border-radius:2px;"></div></div>' +
-            '<span style="color:' + probColor + ';font-size:10px;font-weight:700;min-width:28px;">' + prob + '%</span></div>';
+            '<span style="font-size:15px;">' + (f.icon || '🐟') + '</span>' +
+            '<div style="flex:1;min-width:0;">' +
+                '<div style="font-size:11px;font-weight:600;color:var(--text);">' + nameDisplay + '</div>' +
+                (nameSub ? '<div style="font-size:8px;color:var(--dim);">' + nameSub + '</div>' : '') +
+                (bestTime ? '<div style="font-size:8px;color:#ff88ff;">⏰ ' + bestTime + '</div>' : '') +
+                (f.reasoning ? '<div style="font-size:7px;color:rgba(255,255,255,0.35);">' + f.reasoning + '</div>' : '') +
+            '</div>' +
+            '<div style="width:50px;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;flex-shrink:0;">' +
+                '<div style="height:100%;width:' + prob + '%;background:' + probColor + ';border-radius:3px;"></div></div>' +
+            '<span style="color:' + probColor + ';font-size:11px;font-weight:700;min-width:30px;text-align:right;">' + prob + '%</span></div>';
     }).join('');
+
     var confPct = Math.round((zone.confidence || 0.7) * 100);
-    var confColor = confPct >= 70 ? 'var(--accent2)' : (confPct >= 50 ? 'var(--warn)' : '#ff6666');
-    var srcLabel = (zone.source === 'claude-sonnet-4-6') ? '🤖 Claude AI' : '📊 Knowledge Base';
-    document.getElementById('ip-title').innerHTML = '🤖 <span style="color:#ffff00;">Agent Analysis</span>';
+    var confColor = confPct >= 70 ? 'var(--accent2)' : confPct >= 50 ? 'var(--warn)' : '#ff6666';
+    var qualStars = confPct >= 80 ? '⭐⭐⭐' : confPct >= 60 ? '⭐⭐' : '⭐';
+    var srcLabel = (zone.source === 'claude-sonnet-4-6' || zone.source === 'claude') ? '🤖 Claude AI' : (zone.source === 'cached' ? '💾 Cached (4h)' : '📊 Knowledge Base');
+    var coordStr = (zone.center && zone.center.lat) ?
+        toDMS(zone.center.lat, true) + '<br>' + toDMS(zone.center.lng, false) : '--';
+
+    document.getElementById('ip-title').innerHTML = '🤖 <span style="color:#ffff00;">AI Agent Zone</span>';
     document.getElementById('ip-body').innerHTML =
-        '<div style="font-size:8px;color:var(--dim);margin-bottom:6px;">' + srcLabel + ' | ' + (zone.parameters_used || []).join(', ') + '</div>' +
+        '<div style="font-size:8px;color:var(--dim);margin-bottom:6px;display:flex;justify-content:space-between;">' +
+            '<span>' + srcLabel + '</span>' +
+            '<span style="color:var(--accent2);">' + qualStars + '</span>' +
+        '</div>' +
         (zone.reasoning ? '<div style="font-size:10px;color:var(--text);background:rgba(0,200,255,0.05);border-left:2px solid var(--accent);padding:6px;border-radius:4px;margin-bottom:8px;line-height:1.5;">' + zone.reasoning + '</div>' : '') +
-        '<div class="ip-row"><span class="ip-lbl">Confidence</span><span class="ip-val" style="color:' + confColor + ';font-size:13px;font-weight:800;">' + confPct + '%</span></div>' +
-        '<div class="ip-row"><span class="ip-lbl">Zone Type</span><span class="ip-val" style="color:#ffff00;">' + zone.quality.toUpperCase() + '</span></div>' +
-        '<div class="ip-row"><span class="ip-lbl">⏰ Best Time</span><span class="ip-val" style="color:#ff88ff;">' + zone.best_fishing_time + '</span></div>' +
-        '<div style="border-top:1px solid var(--border);padding-top:8px;margin-top:6px;">' +
-        '<div style="font-size:9px;color:var(--dim);text-transform:uppercase;margin-bottom:6px;">🐟 Fish Species & Probability</div>' +
-        (fishHTML || '<div style="color:var(--dim);font-size:10px;">No species data</div>') + '</div>';
+        '<div class="ip-row"><span class="ip-lbl">Confidence</span><span class="ip-val" style="color:' + confColor + ';font-size:14px;font-weight:800;">' + confPct + '%</span></div>' +
+        '<div class="ip-row"><span class="ip-lbl">Zone Type</span><span class="ip-val" style="color:#ffff00;">' + (zone.quality || zone.type || 'medium').toUpperCase() + '</span></div>' +
+        '<div class="ip-row"><span class="ip-lbl">⏰ Best Time</span><span class="ip-val" style="color:#ff88ff;">' + (zone.best_fishing_time || 'Dawn 4-7 AM') + '</span></div>' +
+        (zone.sst ? '<div class="ip-row"><span class="ip-lbl">🌡️ SST</span><span class="ip-val" style="color:var(--warn);">' + zone.sst + '°C</span></div>' : '') +
+        (zone.chl || zone.chlorophyll ? '<div class="ip-row"><span class="ip-lbl">🌿 CHL</span><span class="ip-val" style="color:var(--accent2);">' + (zone.chl || zone.chlorophyll) + ' mg/m³</span></div>' : '') +
+        (zone.depth_m ? '<div class="ip-row"><span class="ip-lbl">📏 Depth</span><span class="ip-val" style="color:var(--accent);">' + zone.depth_m + 'm</span></div>' : '') +
+        '<div class="ip-row"><span class="ip-lbl">📍 Center</span><span class="ip-val" style="color:var(--accent);font-size:9px;">' + coordStr + '</span></div>' +
+        (zone.parameters_used && zone.parameters_used.length ? '<div style="font-size:8px;color:var(--dim);margin-top:4px;">Params: ' + zone.parameters_used.join(', ') + '</div>' : '') +
+        '<div style="border-top:1px solid var(--border);padding-top:8px;margin-top:8px;">' +
+            '<div style="font-size:9px;color:var(--dim);text-transform:uppercase;margin-bottom:6px;">🐟 ' + (lang==='mr'?'मासे':'Fish Species') + '</div>' +
+            (fishHTML || '<div style="color:var(--dim);font-size:10px;">Species data not available</div>') +
+        '</div>';
     document.getElementById('info-panel').style.display = 'block';
-    if (zone.center) {
+    if (zone.center && zone.center.lat) {
         document.getElementById('to-lat').value = zone.center.lat.toFixed(4);
         document.getElementById('to-lng').value = zone.center.lng.toFixed(4);
     }
@@ -2559,10 +2941,12 @@ function toggleSST(el) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// INCOIS MAP LAYER — blue dashed lines (independent from Our PFZ + Agent)
+// INCOIS MAP LAYER — yellow lines on map (like SAMUDRA 2.0 app)
+// Loads on startup, caches in localStorage, daily sync at 5PM IST
 // ══════════════════════════════════════════════════════════════════════════════
 let incoisMapGroup = L.featureGroup();
 let incoisMapLoaded = false;
+const INCOIS_CACHE_KEY = 'ds_incois_data_v1';
 
 function toggleINCOISMapLayer(el) {
     el.classList.toggle('on');
@@ -2577,45 +2961,110 @@ function toggleINCOISMapLayer(el) {
     }
 }
 
-function loadINCOISMapLayer() {
+function toggleINCOISFromMenu() {
+    // Force refresh from server
+    incoisMapLoaded = false;
+    localStorage.removeItem(INCOIS_CACHE_KEY);
+    showToast('🔄 Refreshing INCOIS data...', 'info');
+    loadINCOISMapLayer(true);
+    const tog = document.getElementById('tog-incois-map');
+    if (tog && !tog.classList.contains('on')) tog.classList.add('on');
+}
+
+function _renderINCOISFeatures(features, source) {
+    incoisMapGroup.clearLayers();
+    features.forEach(function(feature) {
+        var coords = feature.geometry.coordinates.map(function(c) { return [c[1], c[0]]; });
+        if (coords.length < 2) return;
+        var props = feature.properties || {};
+        var zoneType = props.zone_type || props.type || 'medium';
+        var lineColor = zoneType === 'high' ? '#ffcc00' : (zoneType === 'low' ? '#88cc44' : '#ffdd44');
+        var line = L.polyline(coords, {
+            color: lineColor, weight: 4, opacity: 0.95,
+            dashArray: '12 4', lineCap: 'round'
+        });
+        line.on('add', function() {
+            if (this._path) this._path.classList.add('incois-line');
+        });
+        // Build a full popup using buildPFZPopup (same as PFZ zones)
+        var popupProps = {
+            type: zoneType,
+            score: props.confidence || props.score || 0.6,
+            sst: props.sst,
+            chl: props.chl,
+            depth_m: props.depth_m,
+            fish_en: props.fish_en || '',
+            fish_mr: props.fish_mr || '',
+            fish_hi: props.fish_hi || props.fish_en || '',
+            fish_species: props.fish_species || [],
+            best_fishing_time: props.best_fishing_time || 'Dawn 4-7 AM',
+            timestamp: props.fetched_at || props.timestamp || '--',
+            center_lat: props.center_lat,
+            center_lon: props.center_lon,
+            lunar: props.lunar || {},
+            source: source || 'INCOIS'
+        };
+        var popupContent = buildPFZPopup(popupProps, coords);
+        line.bindPopup(popupContent, {maxWidth: 360, minWidth: 300, className: 'pfz-custom-popup', closeButton: true, autoPan: true});
+        line.bindTooltip('🏛️ INCOIS ' + zoneType.toUpperCase(), {sticky: true});
+        // Invisible wider hit area for easy tap
+        var hit = L.polyline(coords, {color: lineColor, weight: 16, opacity: 0});
+        hit.bindPopup(popupContent, {maxWidth: 360, minWidth: 300, className: 'pfz-custom-popup', closeButton: true, autoPan: true});
+        incoisMapGroup.addLayer(line);
+        incoisMapGroup.addLayer(hit);
+    });
+    incoisMapGroup.addTo(map);
+    incoisMapLoaded = true;
+}
+
+function loadINCOISMapLayer(forceRefresh) {
+    // 1. Try localStorage cache first (unless force refresh)
+    if (!forceRefresh) {
+        try {
+            var cached = JSON.parse(localStorage.getItem(INCOIS_CACHE_KEY) || 'null');
+            if (cached && cached.features && cached.features.length > 0) {
+                var cacheDate = cached._date || '';
+                var today = new Date().toISOString().slice(0,10);
+                if (cacheDate === today) {
+                    _renderINCOISFeatures(cached.features, cached._source || 'cache');
+                    updateSyncTime('incois', (cached._time || '--') + ' (cache)');
+                    return;
+                }
+            }
+        } catch(e) {}
+    }
+    // 2. Fetch from server
     fetch('https://samudra-ai.onrender.com/api/incois/live?_t=' + Date.now())
-        .then(r => r.json())
-        .then(data => {
-            incoisMapGroup.clearLayers();
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
             if (data.available === false) {
-                showToast('🏛️ INCOIS data not available for today', 'warn');
-                const tog = document.getElementById('tog-incois-map');
-                if (tog) tog.classList.remove('on');
+                showToast('🏛️ INCOIS data not available today', 'warn');
                 return;
             }
-            const features = (data.geojson || {}).features || [];
+            var features = (data.geojson || {}).features || [];
             if (features.length === 0) {
                 showToast('🏛️ INCOIS: No zones today', 'warn');
                 return;
             }
-            features.forEach(feature => {
-                const coords = feature.geometry.coordinates.map(c => [c[1], c[0]]);
-                if (coords.length < 2) return;
-                const line = L.polyline(coords, {
-                    color: '#4488ff', weight: 3, opacity: 0.9,
-                    dashArray: '8 5', lineCap: 'round'
-                });
-                const props = feature.properties;
-                line.bindTooltip(
-                    '🏛️ INCOIS Advisory<br>Type: ' + (props.type || 'medium') + '<br>Source: INCOIS',
-                    {sticky: true}
-                );
-                incoisMapGroup.addLayer(line);
-            });
-            incoisMapGroup.addTo(map);
-            incoisMapLoaded = true;
-            showToast('🏛️ INCOIS: ' + features.length + ' zones loaded', 'info');
+            _renderINCOISFeatures(features, data.source || data._source || 'INCOIS');
+            var timeStr = new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+            updateSyncTime('incois', timeStr);
+            showToast('🏛️ INCOIS: ' + features.length + ' advisory zones loaded', 'info');
+            // Cache in localStorage
+            try {
+                localStorage.setItem(INCOIS_CACHE_KEY, JSON.stringify({
+                    features: features,
+                    _date: new Date().toISOString().slice(0,10),
+                    _time: timeStr,
+                    _source: data._source || 'server'
+                }));
+            } catch(e) {}
         })
-        .catch(e => {
-            showToast('🏛️ INCOIS fetch failed', 'warn');
-            console.warn('INCOIS map layer error:', e);
-            const tog = document.getElementById('tog-incois-map');
-            if (tog) tog.classList.remove('on');
+        .catch(function(e) {
+            showToast('🏛️ INCOIS fetch failed — retrying in 5m', 'warn');
+            console.warn('INCOIS fetch error:', e);
+            // Schedule retry in 5 minutes
+            setTimeout(function() { loadINCOISMapLayer(true); }, 5 * 60 * 1000);
         });
 }
 
@@ -2981,17 +3430,54 @@ setInterval(updateRefreshBar, 60000);
 
 // ══════════════════════════════════════════════════════════════════════════════
 // MAP CLICK — Real depth + SST + CHL from grids
+// Long-press (2.5s hold) required to avoid accidental touches
 // ══════════════════════════════════════════════════════════════════════════════
 let clickMarker=null;
 const pinIcon=L.divIcon({className:'',html:'<div style="width:12px;height:12px;background:#00c8ff;border:2px solid #fff;border-radius:50%;box-shadow:0 0 6px #00c8ff;margin:-6px 0 0 -6px;"></div>',iconSize:[12,12]});
 
-map.on('click', async function(e){
-    closePFZDetail();
-    const lat=e.latlng.lat, lng=e.latlng.lng;
-    document.getElementById('sb-lat').textContent=lat.toFixed(4)+'°N';
-    document.getElementById('sb-lng').textContent=lng.toFixed(4)+'°E';
+// ── Long-press detection (2.5s) ─────────────────────────────────────────────
+let _lpTimer = null, _lpLatLng = null, _lpProgress = null;
+function _clearLongPress() {
+    if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+    if (_lpProgress) { _lpProgress.remove(); _lpProgress = null; }
+    _lpLatLng = null;
+}
 
-    if(routeMode){
+// Touch / mouse down — start the 2.5s timer
+map.getContainer().addEventListener('touchstart', function(e) {
+    if (e.touches.length !== 1) { _clearLongPress(); return; }
+    const touch = e.touches[0];
+    const pt = map.containerPointToLatLng([touch.clientX - map.getContainer().getBoundingClientRect().left, touch.clientY - map.getContainer().getBoundingClientRect().top]);
+    _lpLatLng = pt;
+    // Show progress ring
+    _lpProgress = document.createElement('div');
+    _lpProgress.className = 'lp-ring';
+    _lpProgress.style.cssText = 'position:fixed;left:'+(touch.clientX-22)+'px;top:'+(touch.clientY-22)+'px;width:44px;height:44px;border-radius:50%;border:3px solid transparent;border-top-color:#00c8ff;pointer-events:none;z-index:9999;animation:lpSpin 2.5s linear;';
+    document.body.appendChild(_lpProgress);
+    _lpTimer = setTimeout(function() {
+        if (_lpLatLng) {
+            _handleMapLongPress(_lpLatLng);
+        }
+        _clearLongPress();
+    }, 2500);
+}, {passive: true});
+map.getContainer().addEventListener('touchmove', function(e) {
+    // If finger moves more than 15px, cancel
+    if (_lpTimer && e.touches.length === 1 && _lpLatLng) {
+        const touch = e.touches[0];
+        const pt = map.containerPointToLatLng([touch.clientX - map.getContainer().getBoundingClientRect().left, touch.clientY - map.getContainer().getBoundingClientRect().top]);
+        const dist = Math.sqrt(Math.pow(pt.lat - _lpLatLng.lat, 2) + Math.pow(pt.lng - _lpLatLng.lng, 2));
+        if (dist > 0.05) _clearLongPress(); // ~5km moved, cancel
+    }
+}, {passive: true});
+map.getContainer().addEventListener('touchend', _clearLongPress, {passive: true});
+map.getContainer().addEventListener('touchcancel', _clearLongPress, {passive: true});
+
+// Remove old click handler — coordinate window no longer fires on tap
+// (map.on('click') is now only for route mode)
+map.on('click', function(e) {
+    if (routeMode) {
+        const lat=e.latlng.lat, lng=e.latlng.lng;
         routePoints.push([lat,lng]);
         const wm=L.marker([lat,lng],{icon:L.divIcon({html:'<div style="background:#ffaa00;width:10px;height:10px;border-radius:50%;border:2px solid #fff;margin:-5px 0 0 -5px;"></div>',className:'',iconSize:[10,10]})}).addTo(map);
         routeMarkers.push(wm);
@@ -3001,8 +3487,14 @@ map.on('click', async function(e){
             routeLines.push(rl);
             rl.bindTooltip(haversine(p1[0],p1[1],p2[0],p2[1]).toFixed(1)+' km',{permanent:true,opacity:0.8});
         }
-        return;
     }
+});
+
+async function _handleMapLongPress(latlng){
+    closePFZDetail();
+    const lat=latlng.lat, lng=latlng.lng;
+    document.getElementById('sb-lat').textContent=lat.toFixed(4)+'°N';
+    document.getElementById('sb-lng').textContent=lng.toFixed(4)+'°E';
 
     if(clickMarker) map.removeLayer(clickMarker);
     clickMarker=L.marker([lat,lng],{icon:pinIcon}).addTo(map);
@@ -3035,8 +3527,6 @@ map.on('click', async function(e){
     document.getElementById('sb-chl').textContent = chlVal !== '--' ? chlVal+' mg/m³' : '--';
     document.getElementById('sb-depth').textContent = '…';
 
-    // No Leaflet popup — only info panel (prevents double-popup)
-
     showPanel('📍 समुद्र माहिती', [
         ['DMS',       toDMS(lat,true),                          'var(--accent2)'],
         ['',          toDMS(lng,false),                         'var(--accent2)'],
@@ -3049,16 +3539,12 @@ map.on('click', async function(e){
     document.getElementById('to-lng').value=lng.toFixed(4);
     document.getElementById('side-menu').classList.remove('open');
 
-    // Async: fetch real depth, then update panel and popup
+    // Async: fetch real depth, then update panel
     const depth = await fetchDepth(lat, lng);
     document.getElementById('sb-depth').textContent = depth;
-
-    // Update depth row in info panel (row index 2)
     const rows = document.getElementById('ip-body').querySelectorAll('.ip-row');
     if(rows[2]) rows[2].querySelector('.ip-val').textContent = depth;
-
-    // Depth updated in info panel only (no Leaflet popup)
-});
+}
 
 map.on('dblclick',function(){
     if(routeMode&&routePoints.length>1){
@@ -3084,61 +3570,7 @@ function showPFZDetail(content) {
 function closePFZDetail() {
     document.getElementById('pfz-detail-panel').classList.remove('open');
 }
-function toggleINCOIS() {
-    const panel = document.getElementById('incois-panel');
-    panel.classList.toggle('open');
-    if (panel.classList.contains('open')) {
-        loadINCOISAdvisory();
-    }
-    document.getElementById('side-menu').classList.remove('open');
-}
-function loadINCOISAdvisory() {
-    const container = document.getElementById('incois-content');
-    container.innerHTML = '<div class="incois-loading">⟳ Loading INCOIS advisory...</div>';
-    fetch('https://samudra-ai.onrender.com/api/incois/advisory?_t=' + Date.now()).then(r => r.json()).then(data => {
-        let html = '';
-        // Metadata bar
-        html += '<div style="padding:8px 16px;font-size:9px;color:var(--dim);border-bottom:1px solid var(--border);">';
-        html += '<div style="color:var(--accent2);font-weight:700;margin-bottom:3px;">📡 ' + (data.source || 'दर्यासागर') + '</div>';
-        html += '<div>Issued: ' + (data.issued || '--').substring(0, 19) + '</div>';
-        html += '<div>Season: ' + (data.season?.name || '--') + ' | Activity: ' + ((data.season?.activity || 0) * 100).toFixed(0) + '%</div>';
-        html += '<div>Methodology: ' + (data.methodology || '--') + '</div>';
-        html += '<div style="margin-top:3px;color:var(--accent);">Total Zones: ' + (data.total_zones || 0) + ' across ' + (data.sectors_covered || []).length + ' sectors</div>';
-        html += '</div>';
-        // Sectors
-        const sectors = data.sectors || {};
-        Object.keys(sectors).forEach(sectorName => {
-            const sector = sectors[sectorName];
-            html += '<div class="incois-sector">';
-            html += '<div class="incois-sector-title"><span>📌 ' + sectorName + '</span><span class="incois-sector-count">' + sector.zone_count + ' zones</span></div>';
-            (sector.zones || []).forEach((z, i) => {
-                const confColor = z.confidence === 'high' ? '#ff4444' : (z.confidence === 'medium' ? '#ffaa00' : '#00ff88');
-                html += '<div class="incois-zone">';
-                html += '<div class="incois-zone-row"><span class="incois-zone-label">Zone ' + (i+1) + '</span><span style="color:' + confColor + ';font-weight:700;text-transform:uppercase;">' + (z.confidence || 'medium') + ' (' + ((z.score || 0) * 100).toFixed(0) + '%)</span></div>';
-                html += '<div class="incois-zone-row"><span class="incois-zone-label">📍 Location</span><span class="incois-zone-val">' + (z.lat||0).toFixed(3) + '°N, ' + (z.lon||0).toFixed(3) + '°E</span></div>';
-                html += '<div class="incois-zone-row"><span class="incois-zone-label">🌡️ SST</span><span class="incois-zone-val" style="color:var(--warn)">' + (z.sst||'--') + '°C</span></div>';
-                if (z.chl) html += '<div class="incois-zone-row"><span class="incois-zone-label">🌿 CHL</span><span class="incois-zone-val" style="color:var(--accent2)">' + z.chl + ' mg/m³</span></div>';
-                html += '<div class="incois-zone-row"><span class="incois-zone-label">📏 Depth</span><span class="incois-zone-val">' + (z.depth_m||'--') + ' m</span></div>';
-                if (z.distance_from_coast_km) html += '<div class="incois-zone-row"><span class="incois-zone-label">🏖️ From coast</span><span class="incois-zone-val">' + z.distance_from_coast_km.toFixed(0) + ' km ' + (z.direction_from_landmark||'') + '</span></div>';
-                if (z.nearest_landmark) html += '<div class="incois-zone-row"><span class="incois-zone-label">⚓ Landmark</span><span class="incois-zone-val">' + z.nearest_landmark + '</span></div>';
-                if (z.fish_species) html += '<div class="incois-zone-row"><span class="incois-zone-label">🐟 Species</span><span class="incois-zone-val" style="font-size:9px">' + z.fish_species + '</span></div>';
-                if (z.best_fishing_time) html += '<div class="incois-zone-row"><span class="incois-zone-label">⏰ Best Time</span><span class="incois-zone-val" style="color:#ff88ff">' + z.best_fishing_time + '</span></div>';
-                html += '<div style="margin-top:4px;"><button class="pfz-popup-btn secondary" style="width:100%;font-size:9px;padding:5px;" onclick="map.setView([' + z.lat + ',' + z.lon + '],10);toggleINCOIS();">🎯 View on Map</button></div>';
-                html += '</div>';
-            });
-            html += '</div>';
-        });
-        // Disclaimer
-        html += '<div class="incois-meta">';
-        html += '<div style="color:var(--warn);margin-bottom:4px;">⚠️ Disclaimer</div>';
-        html += data.disclaimer || '';
-        html += '<div style="margin-top:4px;">Reference: ' + (data.reference || '') + '</div>';
-        html += '</div>';
-        container.innerHTML = html;
-    }).catch(e => {
-        container.innerHTML = '<div class="incois-loading" style="color:#ff6666;">❌ Failed to load INCOIS advisory<br><span style="font-size:9px;color:var(--dim);">' + e.message + '</span></div>';
-    });
-}
+// toggleINCOIS removed — INCOIS data shown directly on map as yellow lines
 function toggleMenu(){ document.getElementById('side-menu').classList.toggle('open'); }
 function toggleForecast() {
     const el = document.getElementById('forecast-panel');
@@ -3354,49 +3786,66 @@ function _getLunarFishingAdvice(moonPhase) {
     return                              { quality: 'GOOD',      color: [0,150,200], advice: 'Crescent moon - good for surface fishing. Use light-attraction methods.', bestTime: '18:00-22:00 (Evening)' };
 }
 
-function _addPDFFooter(doc, W, margin, pageNum) {
-    doc.setFillColor(0, 20, 40);
-    doc.rect(0, 282, W, 15, 'F');
-    doc.setFillColor(0, 200, 255);
-    doc.rect(0, 281, W, 1, 'F');
-    doc.setTextColor(150, 220, 255);
-    doc.setFontSize(7);
-    doc.setFont('helvetica','normal');
-    doc.text('Prepared by: Manoj Dhamdhere  |  DARYASAGAR Intelligent Fisheries Advisory', margin, 287);
-    doc.setTextColor(100, 160, 200);
-    doc.text('For informational use only. Always verify with official INCOIS advisories.', margin, 292);
-    doc.text('daryasagar.in  |  Page ' + pageNum, W - margin, 287, {align:'right'});
-}
-
-function _addPDFHeader(doc, W, margin, now) {
-    const dateStr = now.toLocaleDateString('en-IN', {day:'2-digit',month:'long',year:'numeric'});
-    const timeStr = now.toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'});
-    doc.setFillColor(0, 20, 40);
-    doc.rect(0, 0, W, 38, 'F');
-    doc.setFillColor(0, 200, 255);
-    doc.rect(0, 36, W, 1.5, 'F');
-    doc.setTextColor(0, 200, 255);
-    doc.setFontSize(22); doc.setFont('helvetica','bold');
-    doc.text('DARYASAGAR', margin, 16);
-    doc.setFontSize(9); doc.setFont('helvetica','normal');
-    doc.setTextColor(150, 220, 255);
-    doc.text('Intelligent Marine Fishing Advisory', margin, 22);
-    doc.text('Maharashtra Coast — Arabian Sea', margin, 27);
-    doc.setTextColor(255, 255, 255); doc.setFontSize(8);
-    doc.text('COMPREHENSIVE PFZ REPORT', W - margin, 14, {align:'right'});
-    doc.text(dateStr, W - margin, 20, {align:'right'});
-    doc.text(timeStr + ' IST', W - margin, 26, {align:'right'});
-    // Sub-header
-    doc.setFillColor(5, 30, 55);
-    doc.rect(0, 37.5, W, 10, 'F');
-    doc.setTextColor(0, 255, 136); doc.setFontSize(8); doc.setFont('helvetica','bold');
-    doc.text('DATA:', margin, 43);
-    doc.setFont('helvetica','normal'); doc.setTextColor(200, 230, 255);
-    doc.text('INCOIS  |  Open-Meteo  |  NASA SST/CHL  |  ETOPO1 Bathymetry  |  AI Prediction Model', margin + 14, 43);
-}
+// Old _addPDFFooter and _addPDFHeader removed — replaced by _pdfFooter and _pdfMiniHeader above
 
 // ── Canvas map builder — draws offline PFZ map (no network needed) ───────────
 function _buildMapCanvas() {
+    // Try to capture real Leaflet map tiles first
+    try {
+        const mapEl = document.getElementById('map');
+        if (mapEl) {
+            const realCanvas = document.createElement('canvas');
+            const mapRect = mapEl.getBoundingClientRect();
+            realCanvas.width = 700; realCanvas.height = 460;
+            const rCtx = realCanvas.getContext('2d');
+            // Find all tile images and canvas layers in the map
+            const tiles = mapEl.querySelectorAll('.leaflet-tile-pane img');
+            const overlayCanvases = mapEl.querySelectorAll('.leaflet-overlay-pane canvas');
+            if (tiles.length > 0) {
+                // Draw dark background first
+                rCtx.fillStyle = '#001830';
+                rCtx.fillRect(0, 0, 700, 460);
+                // Try to draw loaded tile images
+                let drawn = 0;
+                tiles.forEach(img => {
+                    try {
+                        if (img.complete && img.naturalWidth > 0) {
+                            const style = window.getComputedStyle(img);
+                            const transform = style.transform || 'none';
+                            const parent = img.parentElement;
+                            const pRect = parent ? parent.getBoundingClientRect() : {left:0,top:0};
+                            const sx = 700 / mapRect.width;
+                            const sy = 460 / mapRect.height;
+                            const dx = (pRect.left + img.offsetLeft - mapRect.left) * sx;
+                            const dy = (pRect.top + img.offsetTop - mapRect.top) * sy;
+                            const dw = img.clientWidth * sx;
+                            const dh = img.clientHeight * sy;
+                            rCtx.drawImage(img, dx, dy, dw, dh);
+                            drawn++;
+                        }
+                    } catch(e) { /* cross-origin tile, skip */ }
+                });
+                if (drawn > 4) {
+                    // Draw overlay canvases (velocity layers, SVG)
+                    overlayCanvases.forEach(oc => {
+                        try {
+                            const ocRect = oc.getBoundingClientRect();
+                            const sx = 700 / mapRect.width;
+                            const sy = 460 / mapRect.height;
+                            rCtx.drawImage(oc, (ocRect.left - mapRect.left)*sx, (ocRect.top - mapRect.top)*sy, oc.width*sx, oc.height*sy);
+                        } catch(e) {}
+                    });
+                    // Add title bar
+                    rCtx.fillStyle='rgba(0,0,0,0.6)'; rCtx.fillRect(0,0,700,24);
+                    rCtx.fillStyle='#00c8ff'; rCtx.font='bold 13px Arial'; rCtx.textAlign='left';
+                    rCtx.fillText('DARYASAGAR PFZ MAP — LIVE CAPTURE', 10, 16);
+                    return realCanvas.toDataURL('image/jpeg', 0.92);
+                }
+            }
+        }
+    } catch(e) { console.warn('Real map capture failed, using drawn map:', e); }
+
+    // Fallback: draw synthetic map
     const CW = 700, CH = 460;
     const c = document.createElement('canvas');
     c.width = CW; c.height = CH;
@@ -3538,298 +3987,471 @@ function _buildMapCanvas() {
 }
 
 function exportPDFReport() {
-    try {
-    const JSPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-    if (!JSPDF) { alert('PDF library not loaded yet. Please wait a moment and try again.'); return; }
-    const doc = new JSPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    // Ask for language before exporting
+    _showPDFLanguagePrompt(function(pdfLang) {
+        _generatePDFReport(pdfLang);
+    });
+}
+
+function _showPDFLanguagePrompt(callback) {
+    if (document.getElementById('pdf-lang-overlay')) return;
+    var ov = document.createElement('div');
+    ov.id = 'pdf-lang-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    ov.innerHTML = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:24px;width:280px;text-align:center;">' +
+        '<div style="font-size:16px;margin-bottom:8px;">📄</div>' +
+        '<div style="color:var(--text);font-size:13px;font-weight:700;margin-bottom:4px;">Export PDF Report</div>' +
+        '<div style="color:var(--dim);font-size:10px;margin-bottom:16px;">Select report language:</div>' +
+        '<div style="display:flex;flex-direction:column;gap:8px;">' +
+        '<button class="pdf-lang-opt" data-lang="en" style="padding:10px;background:rgba(0,200,255,0.08);border:1px solid var(--border);border-radius:8px;color:var(--accent);font-size:12px;cursor:pointer;font-family:Space Mono,monospace;">English</button>' +
+        '<button class="pdf-lang-opt" data-lang="hi" style="padding:10px;background:rgba(0,200,255,0.08);border:1px solid var(--border);border-radius:8px;color:var(--accent);font-size:12px;cursor:pointer;font-family:Space Mono,monospace;">हिंदी (Hindi)</button>' +
+        '<button class="pdf-lang-opt" data-lang="mr" style="padding:10px;background:rgba(0,200,255,0.08);border:1px solid var(--border);border-radius:8px;color:var(--accent);font-size:12px;cursor:pointer;font-family:Space Mono,monospace;">मराठी (Marathi)</button>' +
+        '<button class="pdf-lang-opt" data-lang="kok" style="padding:10px;background:rgba(0,200,255,0.08);border:1px solid var(--border);border-radius:8px;color:var(--accent);font-size:12px;cursor:pointer;font-family:Space Mono,monospace;">कोंकणी (Konkani)</button>' +
+        '</div>' +
+        '<button onclick="document.getElementById(\'pdf-lang-overlay\').remove();" style="margin-top:12px;padding:8px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--dim);font-size:11px;cursor:pointer;width:100%;">Cancel</button>' +
+        '</div>';
+    document.body.appendChild(ov);
+    ov.querySelectorAll('.pdf-lang-opt').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var selectedLang = this.getAttribute('data-lang');
+            ov.remove();
+            callback(selectedLang);
+        });
+    });
+}
+
+async function _generatePDFReport(pdfLang) {
+    var _origLang = lang;
+    lang = pdfLang || 'en';
+
+    // ── Language strings (romanized for jsPDF helvetica compatibility) ────────
+    const L = {
+        en: {
+            title:'DARYASAGAR', sub:'Intelligent Marine Fishing Advisory',
+            region:'Maharashtra Coast - Arabian Sea', report:'PFZ FISHING REPORT',
+            zones:'FISHING ZONES', zone:'Zone', fish:'Fish Species', confidence:'Confidence',
+            bestTime:'Best Time', coord:'Location', depth:'Depth', sst:'Sea Temp', chl:'Chlorophyll',
+            moon:'MOON PHASE & FISHING', moonPhase:'Moon Phase', illum:'Illumination',
+            fishQuality:'Fishing Quality', bestCatch:'Best Catch Time',
+            forecast:'WEATHER FORECAST', day:'Day', wind:'Wind', wave:'Wave',
+            condition:'Condition', good:'GOOD', moderate:'MODERATE', risky:'RISKY',
+            safety:'SAFETY ADVISORY', current:'CURRENT & DIRECTION', approach:'Best Approach',
+            perpendicular:'Go perpendicular to current',
+            disclaimer:'AI generated report. Verify with INCOIS.',
+            prepared:'Prepared by: Manoj Dhamdhere | DARYASAGAR',
+            safeItems:['Check weather before departure','Carry GPS, life jackets, radio','Do not go if wind > 40 km/h or wave > 3m','Inform coast guard of your route','Always verify with INCOIS advisory']
+        },
+        mr: {
+            title:'DARYASAGAR', sub:'Samudri Matsyavyavsay Sallaagar',
+            region:'Maharashtra Kinara - Arabi Samudra', report:'PFZ MAASE ZONE REPORT',
+            zones:'MAASEMARI ZONES', zone:'Zone', fish:'Maase Prakar', confidence:'Vishwaas',
+            bestTime:'Uttam Vel', coord:'Sthaan', depth:'Kholi', sst:'Samudra Tapmaan', chl:'Haritdravya',
+            moon:'CHANDRA STHITI & MAASEMARI', moonPhase:'Chandra Sthiti', illum:'Prakaash',
+            fishQuality:'Maasemari Darjaa', bestCatch:'Uttam Pakad Vel',
+            forecast:'HAVAMAAAN ANDAAJ', day:'Divas', wind:'Vaaraa', wave:'Laata',
+            condition:'Sthiti', good:'CHANGALE', moderate:'MADHYAM', risky:'DHOKADAAYAK',
+            safety:'SURAKSHA SUCHANA', current:'PRAVAAH & DISHA', approach:'Uttam Disha',
+            perpendicular:'Pravaahala lamb jaa',
+            disclaimer:'AI report. INCOIS shi khaatri karaa.',
+            prepared:'Tayyar: Manoj Dhamdhere | DARYASAGAR',
+            safeItems:['Samudrat janyapurvi havamaan tapasa','GPS, life jacket, radio gheun jaa','Vaaraa > 40 km/h kinva laata > 3m tar jau naka','Coast guard la tumcha maarg sanga','INCOIS advisory shi khaatri karaa']
+        },
+        hi: {
+            title:'DARYASAGAR', sub:'Samudri Matsya Palan Salahkaar',
+            region:'Maharashtra Tat - Arab Sagar', report:'PFZ MACHLI ZONE REPORT',
+            zones:'MACHLIPALAN ZONE', zone:'Zone', fish:'Machli Prakar', confidence:'Vishwas',
+            bestTime:'Sarvashreshth Samay', coord:'Sthaan', depth:'Gehraai', sst:'Sagar Tapmaan', chl:'Haritdravya',
+            moon:'CHANDRAMA & MACHLIPALAN', moonPhase:'Chandrama Sthiti', illum:'Prakaash',
+            fishQuality:'Machlipalan Darjaa', bestCatch:'Sarvashreshth Pakad Samay',
+            forecast:'MAUSAM POORVAANUMAAN', day:'Din', wind:'Havaa', wave:'Lahar',
+            condition:'Sthiti', good:'ACHHA', moderate:'MADHYAM', risky:'KHATARNAAK',
+            safety:'SURAKSHA SUCHNA', current:'DHAARAA & DISHA', approach:'Sarvashreshth Disha',
+            perpendicular:'Dhaaraa ke lamb jaayein',
+            disclaimer:'AI report. INCOIS se jaanch jaruri.',
+            prepared:'Tayyaar: Manoj Dhamdhere | DARYASAGAR',
+            safeItems:['Samudra jaane se pehle mausam dekhein','GPS, life jacket, radio le jaayein','Havaa > 40 km/h ya lahar > 3m ho to mat jaayein','Coast guard ko apna raasta bataayein','INCOIS advisory se jaanch karein']
+        },
+        kok: {
+            title:'DARYASAGAR', sub:'Daryaachi Nustemari Sallaagar',
+            region:'Maharashtra Kinaar - Arabi Daryaa', report:'PFZ NUSTEM ZONE REPORT',
+            zones:'NUSTEMARI ZONES', zone:'Zone', fish:'Nustem Prakar', confidence:'Bharvasaa',
+            bestTime:'Boro Vel', coord:'Jago', depth:'Khol', sst:'Daryaa Taap', chl:'Paachvi',
+            moon:'CHONDRO & NUSTEMARI', moonPhase:'Chondro', illum:'Ujvaad',
+            fishQuality:'Nustemari Darjo', bestCatch:'Boro Dharlo Vel',
+            forecast:'HAVAAMAAN', day:'Dis', wind:'Vaaro', wave:'Laato',
+            condition:'Sthiti', good:'BORO', moderate:'MADHYAM', risky:'DHOKO',
+            safety:'SURAKSHA', current:'PRAVAAH & DISHA', approach:'Boro Disha',
+            perpendicular:'Pravaahak lamb vochaa',
+            disclaimer:'AI report. INCOIS bhanddun polleiya.',
+            prepared:'Tayyar: Manoj Dhamdhere | DARYASAGAR',
+            safeItems:['Daryaat vetam adhi havamaan polleiya','GPS, life jacket, radio gheun vochaa','Vaaro > 40 km/h kinva laato > 3m tor vochnaka','Coast guard k tumcho maarg saangaa','INCOIS advisory bhanddun polleiya']
+        }
+    };
+    const t = L[lang] || L.en;
     const now = new Date();
-    const W = 210, margin = 14;
-    const cw = W - margin * 2; // content width
-    let pageNum = 1;
-
-    // ── PAGE 1: Header + Map Image + Zone Cards ──────────────────────────────
-    _addPDFHeader(doc, W, margin, now);
-    let y = 50;
-
-    // ── MAP IMAGE ────────────────────────────────────────────────────────────
-    doc.setTextColor(0, 200, 255); doc.setFontSize(10); doc.setFont('helvetica','bold');
-    doc.text('A. PFZ MAP — Maharashtra Coast, Arabian Sea', margin, y); y += 4;
-    doc.setFillColor(0, 200, 255); doc.rect(margin, y, cw, 0.4, 'F'); y += 3;
-    try {
-        const mapImg = _buildMapCanvas();
-        const mapH = cw * 460 / 700; // preserve aspect ratio
-        doc.addImage(mapImg, 'JPEG', margin, y, cw, mapH);
-        y += mapH + 3;
-    } catch(imgErr) { y += 2; }
-
-    // ── Conditions strip below map ───────────────────────────────────────────
+    const dateStr = now.toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+    const timeStr = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
     const sbSst = document.getElementById('sb-sst')?.textContent || '--';
     const sbChl = document.getElementById('sb-chl')?.textContent || '--';
     const sbDepth = document.getElementById('sb-depth')?.textContent || '--';
-    doc.setFillColor(5, 30, 55); doc.rect(margin, y, cw, 8, 'F');
-    doc.setTextColor(0, 200, 255); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
-    doc.text('SST:', margin+3, y+5);
-    doc.setTextColor(255,180,50); doc.setFont('helvetica','normal');
-    doc.text(sbSst, margin+12, y+5);
-    doc.setTextColor(0,200,255); doc.setFont('helvetica','bold');
-    doc.text('CHL:', margin+42, y+5);
-    doc.setTextColor(0,255,136); doc.setFont('helvetica','normal');
-    doc.text(sbChl, margin+52, y+5);
-    doc.setTextColor(0,200,255); doc.setFont('helvetica','bold');
-    doc.text('DEPTH:', margin+85, y+5);
-    doc.setTextColor(150,220,255); doc.setFont('helvetica','normal');
-    doc.text(sbDepth, margin+102, y+5);
-    doc.setTextColor(0,200,255); doc.setFont('helvetica','bold');
-    doc.text('REGION:', margin+125, y+5);
-    doc.setTextColor(150,220,255); doc.setFont('helvetica','normal');
-    doc.text('14N-21N, 67E-74.5E  Maharashtra', margin+143, y+5);
-    y += 11;
 
-    // Zone legend key
-    const zCount = (agentZonesData||[]).length;
-    const hCount = _forecastData && _forecastData.days && _forecastData.days[0] ? (_forecastData.days[0].hotspots||[]).length : 0;
-    doc.setFillColor(0, 200, 255); doc.setFont('helvetica','bold'); doc.setFontSize(7);
-    doc.setTextColor(255,255,255);
-    doc.setFillColor(40,40,80); doc.rect(margin, y, cw, 6, 'F');
-    doc.text('MAP KEY:   Z1-Z' + Math.max(zCount,1) + ' = Agent AI Zones (yellow dashed)     H1-H' + Math.max(hCount,1) + ' = Today Hotspots (green)     Blue dashed = INCOIS', margin+3, y+4);
-    y += 9;
+    // Show loading indicator
+    const loadDiv = document.createElement('div');
+    loadDiv.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;';
+    loadDiv.innerHTML = '<div style="color:#00c8ff;font-size:18px;font-family:Space Mono,monospace;">Generating Report...</div><div style="color:#00ff88;font-size:12px;margin-top:8px;">Building professional pages</div>';
+    document.body.appendChild(loadDiv);
 
-    _addPDFFooter(doc, W, margin, pageNum);
+    try {
+    const JSPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+    if (!JSPDF) { alert('PDF library not loaded'); loadDiv.remove(); return; }
 
-    // ── PAGE 2: Zone Details + Lunar ─────────────────────────────────────────
-    doc.addPage(); pageNum++; y = 16;
+    // Shared CSS for all pages — white/light theme for print quality
+    const pageCSS = `
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{width:794px;min-height:1123px;background:#f5f8fc;
+             font-family:'Segoe UI','Noto Sans Devanagari',Arial,sans-serif;color:#1a2a3a;overflow:hidden;}
+        .hdr{background:linear-gradient(135deg,#0a2a55 0%,#003a7a 100%);padding:18px 28px;
+             border-bottom:4px solid #0077cc;display:flex;justify-content:space-between;align-items:center;}
+        .hdr h1{font-size:38px;color:#ffffff;letter-spacing:3px;text-shadow:0 2px 8px rgba(0,0,0,0.4);}
+        .hdr .sub{font-size:14px;color:#88ddff;margin-top:3px;}
+        .hdr .date{text-align:right;color:#cce4ff;}
+        .hdr .date b{color:#ffffff;font-size:17px;display:block;}
+        .hdr .date .time{color:#ffdd66;font-size:15px;}
+        .section{padding:10px 28px;}
+        .stitle{font-size:17px;font-weight:700;color:#004488;border-bottom:2px solid #0077cc;
+                padding-bottom:5px;margin:14px 0 10px;letter-spacing:1px;text-transform:uppercase;}
+        .card{background:#ffffff;border:1px solid #ccd8e8;border-radius:10px;padding:16px;margin:8px 0;
+              box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+        .strip{display:flex;gap:0;margin:10px 0;}
+        .strip>div{flex:1;padding:10px 12px;background:#e8f0f8;
+                   border:1px solid #b0c4d8;text-align:center;}
+        .strip .lbl{font-size:11px;color:#4466aa;display:block;font-weight:600;}
+        .strip .val{font-size:22px;font-weight:700;color:#1a2a3a;}
+        .ftr{position:absolute;bottom:0;left:0;right:0;padding:8px 28px;
+             background:#e0e8f0;border-top:1px solid #aabbcc;
+             display:flex;justify-content:space-between;font-size:10px;color:#446688;}
+        .badge{display:inline-block;padding:5px 14px;border-radius:6px;font-weight:700;font-size:13px;color:#fff;}
+        .good{background:linear-gradient(135deg,#00aa55,#008844);}
+        .moderate{background:linear-gradient(135deg,#cc8800,#aa6600);}
+        .risky{background:linear-gradient(135deg,#cc3333,#aa2222);}
+        .conf-ring{width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+                   font-size:24px;font-weight:700;color:#fff;border:4px solid;background:#1a3a6a;}
+        .bar{height:10px;border-radius:5px;background:#dde4ee;}
+        .bar-fill{height:100%;border-radius:5px;}
+        .moon-circle{width:100px;height:100px;border-radius:50%;border:3px solid #aab;
+                     background:radial-gradient(circle,#2a3555,#0e1528);position:relative;overflow:hidden;}
+        .moon-lit{position:absolute;top:0;height:100%;background:radial-gradient(circle,#f0ecca,#d8d0a0);border-radius:50%;}
+        .fish-card{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#edf5ff;
+                   border-radius:8px;margin:4px 0;border-left:4px solid #00aa55;}
+        .fish-icon{font-size:30px;}
+        .fish-name{font-size:14px;font-weight:600;color:#1a2a3a;}
+        .fish-prob{font-size:12px;color:#446688;}
+        .safe-item{display:flex;align-items:center;gap:12px;padding:12px;background:#fff4f4;
+                   border-radius:8px;margin:6px 0;border-left:4px solid #dd3333;}
+        .safe-num{width:32px;height:32px;border-radius:50%;background:#dd3333;color:#fff;
+                  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0;}
+        .safe-text{font-size:13px;color:#2a1a1a;line-height:1.4;}
+        p, li, td, th{font-size:12px;}
+        h3{font-size:15px;}
+        h4{font-size:13px;}
+    `;
 
-    // Section header
-    doc.setFillColor(0, 20, 40); doc.rect(0, 0, W, 14, 'F');
-    doc.setFillColor(0,200,255); doc.rect(0,13,W,1,'F');
-    doc.setTextColor(0,200,255); doc.setFont('helvetica','bold'); doc.setFontSize(11);
-    doc.text('DARYASAGAR  —  Zone Details & Lunar Advisory', margin, 10);
-    doc.setTextColor(200,220,255); doc.setFont('helvetica','normal'); doc.setFontSize(7);
-    doc.text(now.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}), W-margin, 10, {align:'right'});
-    y = 20;
+    // ── Helper: render an HTML string to a jsPDF page ────────────────────────
+    async function htmlToPage(html) {
+        const frame = document.createElement('div');
+        frame.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;height:1123px;overflow:hidden;z-index:-1;';
+        frame.innerHTML = '<style>'+pageCSS+'</style>' + html;
+        document.body.appendChild(frame);
+        await new Promise(r => setTimeout(r, 50)); // let browser render
+        const canvas = await html2canvas(frame, {
+            width: 794, height: 1123, scale: 2,
+            backgroundColor: '#f5f8fc', useCORS: true, logging: false
+        });
+        document.body.removeChild(frame);
+        return canvas.toDataURL('image/jpeg', 0.92);
+    }
 
-    // ── Section B: Agent zone cards ─────────────────────────────────────────
-    doc.setTextColor(0, 200, 255); doc.setFontSize(10); doc.setFont('helvetica','bold');
-    doc.text('B. AI-DETECTED PFZ ZONES & COORDINATES', margin, y); y += 4;
-    doc.setFillColor(0, 200, 255); doc.rect(margin, y, cw, 0.4, 'F'); y += 5;
+    // ── Moon phase data ──────────────────────────────────────────────────────
+    const todayMoon = _getMoonPhase(now.toISOString().slice(0,10));
+    const lunarAdv = _getLunarFishingAdvice(todayMoon);
+    const moonIllumPct = todayMoon.illum;
+    const isWaxing = todayMoon.name.includes('Waxing') || todayMoon.name === 'Full Moon';
 
-    if (agentZonesData && agentZonesData.length > 0) {
-        agentZonesData.forEach((z, zi) => {
-            if (y > 245) { _addPDFFooter(doc, W, margin, pageNum); doc.addPage(); pageNum++; y = 20; }
+    // ══════════════════════════════════════════════════════════════════════════
+    // PAGE 1: COVER — Title + Map + Conditions
+    // ══════════════════════════════════════════════════════════════════════════
+    let mapImgTag = '';
+    try {
+        const mapImg = _buildMapCanvas();
+        mapImgTag = '<img src="'+mapImg+'" style="width:100%;border-radius:8px;border:2px solid #0066bb;margin:6px 0;">';
+    } catch(e) { mapImgTag = '<div style="height:300px;background:#dde8f4;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#446688;font-size:16px;">Map rendering...</div>'; }
+
+    const page1 = `
+        <div class="hdr">
+            <div><h1>${t.title}</h1><div class="sub">${t.sub}</div><div style="color:#99ccee;font-size:12px;margin-top:3px;">${t.region}</div></div>
+            <div class="date"><b>${t.report}</b>${dateStr}<br><span class="time">${timeStr} IST</span></div>
+        </div>
+        <div class="section">
+            <div class="stitle">${t.coord}</div>
+            ${mapImgTag}
+            <div class="strip">
+                <div><span class="lbl">${t.sst}</span><span class="val" style="color:#cc6600;">${sbSst}</span></div>
+                <div><span class="lbl">${t.chl}</span><span class="val" style="color:#006633;">${sbChl}</span></div>
+                <div><span class="lbl">${t.depth}</span><span class="val" style="color:#004488;">${sbDepth}</span></div>
+            </div>
+        </div>
+        <div class="ftr"><span>${t.prepared}</span><span>Page 1</span></div>
+    `;
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // PAGE 2+: ZONE CARDS — 2 zones per page max
+    // ══════════════════════════════════════════════════════════════════════════
+    const zoneList = agentZonesData || [];
+    const zonePages = [];
+    for (let i = 0; i < zoneList.length; i += 2) {
+        const chunk = zoneList.slice(i, i+2);
+        let zonesHTML = '';
+        chunk.forEach((z, ci) => {
+            const zi = i + ci;
             const conf = Math.round((z.confidence || 0.7) * 100);
-            const confCol = conf >= 70 ? [0,150,70] : conf >= 50 ? [180,120,0] : [200,50,50];
-            const rowH = z.reasoning ? 28 : 22;
-            doc.setFillColor(5, 25, 50); doc.rect(margin, y - 3, cw, rowH, 'F');
-            doc.setDrawColor(...confCol); doc.setLineWidth(0.8); doc.rect(margin, y-3, cw, rowH, 'S');
-            // Confidence bar on left edge
-            const barH = Math.round(conf / 100 * rowH);
-            doc.setFillColor(...confCol); doc.rect(margin, y-3+rowH-barH, 3, barH, 'F');
-            // Text
-            doc.setTextColor(...confCol); doc.setFont('helvetica','bold'); doc.setFontSize(10);
-            doc.text('ZONE ' + (zi+1) + '  ' + (z.quality||'medium').toUpperCase(), margin+6, y+1);
-            doc.setTextColor(255,255,255); doc.setFontSize(11); doc.setFont('helvetica','bold');
-            doc.text(conf + '%', W-margin-3, y+1, {align:'right'});
-            doc.setTextColor(180, 220, 255); doc.setFont('helvetica','normal'); doc.setFontSize(8);
-            const coords = (z.center && z.center.lat) ? z.center.lat.toFixed(4) + 'N,  ' + z.center.lng.toFixed(4) + 'E' : '--';
-            doc.text('Coord: ' + coords, margin+6, y+7);
-            doc.text('Best Time: ' + (z.best_fishing_time||'05:00-09:00'), margin+90, y+7);
-            const fishNames = (z.fish_species||[]).map(f=>(f.name_en||f.name||'').replace(/[^\x00-\x7E]/g,'')).filter(Boolean).join(', ');
-            doc.setTextColor(0,220,150);
-            doc.text('Fish: ' + (fishNames||'Pelagic species'), margin+6, y+13);
-            if (z.reasoning) {
-                doc.setTextColor(140,170,200); doc.setFontSize(7);
-                doc.text('AI: ' + z.reasoning.replace(/[^\x00-\x7E]/g,'').substring(0,140), margin+6, y+20, {maxWidth: cw-10});
-            }
-            y += rowH + 5;
+            const confCls = conf >= 70 ? 'good' : conf >= 50 ? 'moderate' : 'risky';
+            const coords = (z.center && z.center.lat) ? z.center.lat.toFixed(4)+'°N, '+z.center.lng.toFixed(4)+'°E' : '--';
+            const fishList = (z.fish_species||[]).slice(0,5);
+            const fishIcons = ['🐟','🦈','🐠','🦐','🐡'];
+            let fishHTML = fishList.map((f,fi) => {
+                const prob = Math.round((f.probability||0.5)*100);
+                const pCol = prob>=65?'#00cc66':prob>=40?'#ddaa00':'#dd5555';
+                const fname = (f.name_en||f.name||'Fish').replace(/[^\x00-\x7E]/g,'');
+                return `<div class="fish-card">
+                    <span class="fish-icon">${fishIcons[fi%5]}</span>
+                    <div style="flex:1;">
+                        <div class="fish-name">${fname}</div>
+                        <div class="bar" style="margin-top:4px;"><div class="bar-fill" style="width:${prob}%;background:${pCol};"></div></div>
+                    </div>
+                    <div style="font-size:18px;font-weight:700;color:${pCol};">${prob}%</div>
+                </div>`;
+            }).join('');
+
+            zonesHTML += `
+                <div class="card" style="border-left:5px solid ${confCls==='good'?'#00aa55':confCls==='moderate'?'#cc8800':'#cc3333'};">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                        <div>
+                            <div style="font-size:22px;font-weight:700;color:#003a7a;">${t.zone} ${zi+1}</div>
+                            <div style="font-size:12px;color:#446688;margin-top:2px;">${coords}</div>
+                        </div>
+                        <div class="conf-ring" style="border-color:${confCls==='good'?'#00aa55':confCls==='moderate'?'#cc8800':'#cc3333'};">
+                            ${conf}%
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:12px;margin-bottom:10px;align-items:center;">
+                        <span class="badge ${confCls}">${(z.quality||'medium').toUpperCase()}</span>
+                        <span style="color:#cc6600;font-size:13px;font-weight:700;">${t.bestTime}: ${z.best_fishing_time||'05:00-09:00'}</span>
+                    </div>
+                    <div style="font-size:13px;font-weight:700;color:#003a7a;margin-bottom:6px;">${t.fish}</div>
+                    ${fishHTML}
+                </div>`;
         });
-    } else {
-        doc.setFillColor(10,30,60); doc.rect(margin, y-2, cw, 12, 'F');
-        doc.setTextColor(120,160,200); doc.setFontSize(9);
-        doc.text('No agent zones in current session. Run Agent Analysis from the app to generate zones.', margin+4, y+5);
-        y += 16;
+
+        zonePages.push(`
+            <div class="hdr" style="padding:10px 28px;">
+                <div><h1 style="font-size:22px;">${t.title}</h1><div class="sub" style="font-size:10px;">${t.zones}</div></div>
+                <div class="date" style="font-size:10px;"><b style="font-size:12px;">${dateStr}</b></div>
+            </div>
+            <div class="section">${zonesHTML}</div>
+            <div class="ftr"><span>${t.prepared}</span><span>Page ${2 + Math.floor(i/2)}</span></div>
+        `);
     }
-    y += 4;
+    if (zonePages.length === 0) {
+        zonePages.push(`
+            <div class="hdr" style="padding:10px 28px;">
+                <div><h1 style="font-size:22px;">${t.title}</h1><div class="sub" style="font-size:10px;">${t.zones}</div></div>
+                <div class="date" style="font-size:10px;"><b style="font-size:12px;">${dateStr}</b></div>
+            </div>
+            <div class="section"><div class="card" style="text-align:center;padding:40px;"><div style="font-size:16px;color:#446688;">No zones available. Run Agent Analysis first.</div></div></div>
+            <div class="ftr"><span>${t.prepared}</span><span>Page 2</span></div>
+        `);
+    }
 
-    // ── Section C: Lunar & Fishing Conditions ────────────────────────────────
-    if (y > 200) { _addPDFFooter(doc, W, margin, pageNum); doc.addPage(); pageNum++; y = 20; }
-    const todayMoon = _getMoonPhase(now.toISOString().slice(0, 10));
-    const lunarAdvice = _getLunarFishingAdvice(todayMoon);
+    // ══════════════════════════════════════════════════════════════════════════
+    // MOON PHASE PAGE — Big visual moon
+    // ══════════════════════════════════════════════════════════════════════════
+    const qCls = lunarAdv.quality==='EXCELLENT'?'good':lunarAdv.quality==='MODERATE'?'moderate':'good';
+    const moonLitLeft = isWaxing ? 0 : (100 - moonIllumPct);
+    const moonPageNum = 2 + zonePages.length;
+    const phases = ['New','WxC','1/4','WxG','Full','WnG','3/4','WnC'];
+    const phaseNames = ['New Moon','Waxing Crescent','First Quarter','Waxing Gibbous','Full Moon','Waning Gibbous','Last Quarter','Waning Crescent'];
+    const phIdx = phaseNames.indexOf(todayMoon.name);
+    let phaseBar = phases.map((ph, pi) => {
+        const active = pi === phIdx;
+        return `<div style="flex:1;text-align:center;padding:6px 2px;background:${active?'#ddeeff':'#f0f4f8'};
+                border:${active?'2px solid #0066cc':'1px solid #ccd8e8'};border-radius:6px;margin:0 2px;">
+                <div style="font-size:${active?'12px':'9px'};font-weight:${active?'700':'400'};color:${active?'#003a7a':'#5a7a9a'};">${ph}</div>
+            </div>`;
+    }).join('');
 
-    doc.setTextColor(0, 200, 255); doc.setFontSize(10); doc.setFont('helvetica','bold');
-    doc.text('C. LUNAR CONDITIONS & FISHING ADVISORY', margin, y); y += 4;
-    doc.setFillColor(0, 200, 255); doc.rect(margin, y, cw, 0.4, 'F'); y += 4;
+    const moonPage = `
+        <div class="hdr" style="padding:10px 28px;">
+            <div><h1 style="font-size:22px;">${t.title}</h1><div class="sub" style="font-size:10px;">${t.moon}</div></div>
+            <div class="date" style="font-size:10px;"><b style="font-size:12px;">${dateStr}</b></div>
+        </div>
+        <div class="section">
+            <div class="stitle">${t.moon}</div>
+            <div class="card" style="text-align:center;padding:30px;">
+                <div style="display:inline-block;position:relative;">
+                    <div class="moon-circle">
+                        <div class="moon-lit" style="left:${moonLitLeft}%;width:${moonIllumPct}%;"></div>
+                    </div>
+                </div>
+                <div style="margin-top:12px;font-size:24px;font-weight:700;color:#1a2a3a;">${todayMoon.name}</div>
+                <div style="font-size:14px;color:#446688;margin-top:4px;">${todayMoon.mr} &middot; ${t.illum}: ${moonIllumPct}%</div>
+            </div>
+            <div class="card" style="border-left:4px solid rgba(${lunarAdv.color.join(',')},1);">
+                <div style="display:flex;align-items:center;gap:16px;">
+                    <div><span class="badge ${qCls}" style="font-size:18px;padding:8px 20px;">${lunarAdv.quality}</span>
+                         <div style="font-size:11px;color:#446688;margin-top:4px;text-align:center;">${t.fishQuality}</div></div>
+                    <div style="flex:1;">
+                        <div style="font-size:14px;color:#2a3a4a;line-height:1.6;">${lunarAdv.advice}</div>
+                        <div style="font-size:16px;color:#006633;font-weight:700;margin-top:8px;">${t.bestCatch}: ${lunarAdv.bestTime}</div>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;margin-top:12px;">${phaseBar}</div>
+        </div>
+        <div class="ftr"><span>${t.prepared}</span><span>Page ${moonPageNum}</span></div>
+    `;
 
-    // Moon phase visual bar
-    const moonPhases = ['New Moon','Waxing Crescent','First Quarter','Waxing Gibbous','Full Moon','Waning Gibbous','Last Quarter','Waning Crescent'];
-    const moonSyms  = ['(NEW)','(WXC)','(1/4)','(WXG)','(FULL)','(WNG)','(3/4)','(WNC)'];
-    const curPhIdx  = moonPhases.indexOf(todayMoon.name);
-    const barW = cw / 8;
-    moonPhases.forEach((ph, pi) => {
-        const bx = margin + pi * barW;
-        const active = pi === curPhIdx;
-        doc.setFillColor(active ? 0 : 5, active ? 40 : 20, active ? 80 : 45);
-        doc.rect(bx, y, barW - 1, 9, 'F');
-        if (active) { doc.setDrawColor(0,200,255); doc.setLineWidth(0.8); doc.rect(bx, y, barW-1, 9, 'S'); }
-        doc.setFont('helvetica', active?'bold':'normal'); doc.setFontSize(5.5);
-        doc.setTextColor(active ? 0 : 150, active ? 200 : 180, active ? 255 : 200);
-        doc.text(moonSyms[pi], bx + barW/2 - 1, y+4, {align:'center'});
-        doc.setFontSize(4.5); doc.setTextColor(active?200:100, active?230:140, active?255:180);
-        doc.text(ph.replace(' ','\\n').split('\\n')[0], bx + barW/2 - 1, y+8, {align:'center'});
-    });
-    y += 12;
-
-    // Lunar info card
-    doc.setFillColor(5, 25, 55); doc.rect(margin, y, cw, 22, 'F');
-    doc.setDrawColor(...lunarAdvice.color); doc.setLineWidth(0.8); doc.rect(margin, y, cw, 22, 'S');
-    // Illumination bar
-    doc.setFillColor(30,30,80); doc.rect(margin+3, y+3, 50, 5, 'F');
-    doc.setFillColor(...lunarAdvice.color); doc.rect(margin+3, y+3, todayMoon.illum/2, 5, 'F');
-    doc.setTextColor(...lunarAdvice.color); doc.setFont('helvetica','bold'); doc.setFontSize(9);
-    doc.text(todayMoon.name + ' ' + todayMoon.sym + '  Illum: ' + todayMoon.illum + '%  (' + todayMoon.mr + ')', margin+58, y+7);
-    doc.setTextColor(255,255,255); doc.setFontSize(13); doc.text(lunarAdvice.quality, W-margin-3, y+8, {align:'right'});
-    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(180,210,255);
-    doc.text(lunarAdvice.advice, margin+3, y+14);
-    doc.setTextColor(0,220,150); doc.setFont('helvetica','bold'); doc.setFontSize(8);
-    doc.text('Best Catch: ' + lunarAdvice.bestTime, margin+3, y+20);
-    y += 26;
-
-    _addPDFFooter(doc, W, margin, pageNum);
-
-    // ── PAGE 3: 6-Day Forecast ───────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════════
+    // FORECAST PAGE(S) — Visual cards
+    // ══════════════════════════════════════════════════════════════════════════
+    const forecastPages = [];
     if (_forecastData && _forecastData.days && _forecastData.days.length > 0) {
-        doc.addPage(); pageNum++;
-        // Mini header
-        doc.setFillColor(0, 20, 40); doc.rect(0, 0, W, 14, 'F');
-        doc.setFillColor(0,200,255); doc.rect(0,13,W,1,'F');
-        doc.setTextColor(0,200,255); doc.setFont('helvetica','bold'); doc.setFontSize(11);
-        doc.text('DARYASAGAR  —  6-Day Forecast', margin, 10);
-        y = 20;
+        let fcCards = '';
+        let cardsOnPage = 0;
+        const fcPageStart = moonPageNum + 1;
+        let fcPageIdx = 0;
 
-        doc.setTextColor(0, 200, 255); doc.setFontSize(10); doc.setFont('helvetica','bold');
-        doc.text('D. 6-DAY AI PREDICTION INDEX', margin, y); y += 4;
-        doc.setFillColor(0, 200, 255); doc.rect(margin, y, cw, 0.4, 'F'); y += 4;
-
-        // Table header
-        doc.setFillColor(0, 15, 35); doc.rect(margin, y - 2, cw, 8, 'F');
-        doc.setTextColor(0, 200, 255); doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
-        const cols = [0,22,42,60,92,128,160,176];
-        const hdrs = ['DATE','COND','CONF%','BEST COORDINATES','FISH EXPECTED','MOON','WIND','WAVE'];
-        hdrs.forEach((h,hi) => doc.text(h, margin+cols[hi]+1, y+3));
-        y += 9;
-
-        _forecastData.days.forEach((d, i) => {
-            const topSpot = (d.hotspots || [])[0];
-            const conf = topSpot ? Math.round(topSpot.confidence * 100) : 0;
-            const coords = topSpot ? topSpot.lat.toFixed(2) + 'N, ' + topSpot.lon.toFixed(2) + 'E' : '--';
-            const fish = (d.fish_species||[]).slice(0,3).map(f=>f.replace(/[^\x00-\x7E]/g,'')).join(', ');
-            const cond = d.fishing_en || 'moderate';
-            const condCol = cond==='good'?[0,160,80]:cond==='risky'?[220,50,50]:[190,130,0];
-            const moon = _getMoonPhase(d.date);
-            const rowBg = i%2===0 ? [5,20,45] : [8,28,55];
-            doc.setFillColor(...rowBg); doc.rect(margin, y-2, cw, 9, 'F');
-            // Condition color stripe
-            doc.setFillColor(...condCol); doc.rect(margin, y-2, 2, 9, 'F');
-            doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(220,230,255);
-            doc.text(i===0?'TODAY':d.date, margin+cols[0]+3, y+3);
-            doc.setTextColor(...condCol);
-            doc.text(cond.toUpperCase().substring(0,4), margin+cols[1]+1, y+3);
-            // Confidence mini-bar
-            doc.setFillColor(20,40,70); doc.rect(margin+cols[2]+1, y, 16, 4, 'F');
-            const cCol = conf>=70?[0,180,80]:conf>=50?[200,140,0]:[220,60,60];
-            doc.setFillColor(...cCol); doc.rect(margin+cols[2]+1, y, conf/100*16, 4, 'F');
-            doc.setTextColor(...cCol); doc.setFontSize(6.5); doc.text(conf+'%', margin+cols[2]+18, y+4);
-            doc.setTextColor(180,220,255); doc.setFont('helvetica','normal'); doc.setFontSize(6.5);
-            doc.text(coords, margin+cols[3]+1, y+3);
-            doc.setTextColor(0,200,150);
-            doc.text(fish.substring(0,30), margin+cols[4]+1, y+3);
-            doc.setTextColor(200,180,255);
-            doc.text(moon.sym, margin+cols[5]+1, y+3);
-            doc.setTextColor(150,200,255);
-            doc.text(d.wind_max_kmh+'km', margin+cols[6]+1, y+3);
-            doc.text((d.wave_height_m||'-')+'m', margin+cols[7]+1, y+3);
-            y += 10;
-        });
-        y += 6;
-
-        // ── Section E: Detailed per-day ──────────────────────────────────────
-        doc.setTextColor(0, 200, 255); doc.setFontSize(10); doc.setFont('helvetica','bold');
-        doc.text('E. DETAILED 6-DAY PREDICTIONS WITH HOTSPOT COORDINATES', margin, y); y += 4;
-        doc.setFillColor(0, 200, 255); doc.rect(margin, y, cw, 0.4, 'F'); y += 5;
-
-        _forecastData.days.forEach((d, i) => {
-            if (y > 225) { _addPDFFooter(doc, W, margin, pageNum); doc.addPage(); pageNum++; y = 20; }
-            const moon = _getMoonPhase(d.date);
-            const moonAdv = _getLunarFishingAdvice(moon);
-            const cond = d.fishing_en || 'moderate';
-            const condCol = cond==='good'?[0,160,80]:cond==='risky'?[220,50,50]:[190,130,0];
-
-            // Day header bar
-            doc.setFillColor(0, 25, 55); doc.rect(margin, y-2, cw, 10, 'F');
-            doc.setFillColor(...condCol); doc.rect(margin, y-2, 3, 10, 'F');
-            doc.setTextColor(0,200,255); doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
-            doc.text((i===0?'TODAY':'DAY '+(i+1))+':  '+d.date+'  —  '+(d.desc||''), margin+6, y+4);
-            doc.setTextColor(...condCol); doc.setFontSize(8.5);
-            doc.text(cond.toUpperCase(), W-margin-2, y+4, {align:'right'});
-            y += 12;
-
-            // Two-column info row
-            doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(160,200,240);
-            doc.text('Wind: '+d.wind_max_kmh+'km/h '+(d.wind_dir||'')+'   Wave: '+(d.wave_height_m||'-')+'m   Temp: '+d.temp_max+'/'+d.temp_min+'C   SST: '+d.pred_sst+'C   CHL: '+d.pred_chl, margin+2, y);
-            y += 5;
-            doc.setTextColor(...moonAdv.color); doc.setFont('helvetica','bold'); doc.setFontSize(7.5);
-            doc.text('Moon: '+moon.name+' '+moon.sym+'  Illum: '+moon.illum+'%  Fishing: '+moonAdv.quality+'  Catch: '+moonAdv.bestTime, margin+2, y);
-            y += 5;
-            doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-            doc.setTextColor(0,210,140);
-            const dayFish = (d.fish_species||[]).map(s=>s.replace(/[^\x00-\x7E]/g,'')).join(', ');
-            doc.text('Fish Expected: '+dayFish, margin+2, y);
-            y += 6;
-
-            // Hotspot table
-            const hotspots = d.hotspots || [];
-            if (hotspots.length > 0) {
-                doc.setFillColor(0,15,35); doc.rect(margin+2, y-2, cw-4, 7, 'F');
-                doc.setTextColor(0,180,255); doc.setFont('helvetica','bold'); doc.setFontSize(6.5);
-                doc.text('SPOT', margin+4, y+2); doc.text('ZONE NAME', margin+16, y+2);
-                doc.text('COORDINATES', margin+65, y+2); doc.text('CONF', margin+108, y+2);
-                doc.text('DEPTH', margin+120, y+2); doc.text('SST', margin+135, y+2);
-                doc.text('FISH SPECIES', margin+148, y+2);
-                y += 8;
-                hotspots.forEach((s, si) => {
-                    if (y > 265) { _addPDFFooter(doc, W, margin, pageNum); doc.addPage(); pageNum++; y = 20; }
-                    const sConf = Math.round(s.confidence*100);
-                    const sCol = sConf>=70?[0,170,80]:sConf>=50?[190,130,0]:[210,60,60];
-                    doc.setFillColor(si%2===0?8:12, si%2===0?25:32, si%2===0?50:60);
-                    doc.rect(margin+2, y-2, cw-4, 8, 'F');
-                    doc.setFillColor(...sCol); doc.rect(margin+2, y-2, 2, 8, 'F');
-                    doc.setTextColor(220,230,255); doc.setFont('helvetica','bold'); doc.setFontSize(7);
-                    doc.text('H'+(si+1), margin+4, y+3);
-                    doc.setFont('helvetica','normal'); doc.setFontSize(6.8);
-                    doc.text((s.zone_name||'').substring(0,20), margin+16, y+3);
-                    doc.text(s.lat+'N, '+s.lon+'E', margin+65, y+3);
-                    doc.setTextColor(...sCol); doc.setFont('helvetica','bold');
-                    doc.text(sConf+'%', margin+108, y+3);
-                    doc.setTextColor(180,210,255); doc.setFont('helvetica','normal');
-                    doc.text((s.depth_m||'-')+'m', margin+120, y+3);
-                    doc.text((s.pred_sst||'-')+'C', margin+135, y+3);
-                    const sFish = (s.fish_species||[]).map(f=>f.replace(/[^\x00-\x7E]/g,'')).join(', ');
-                    doc.setTextColor(0,200,140);
-                    doc.text(sFish.substring(0,28), margin+148, y+3);
-                    y += 9;
-                });
+        _forecastData.days.forEach((d, di) => {
+            if (cardsOnPage >= 3) {
+                forecastPages.push(`
+                    <div class="hdr" style="padding:10px 28px;">
+                        <div><h1 style="font-size:22px;">${t.title}</h1><div class="sub" style="font-size:10px;">${t.forecast}</div></div>
+                        <div class="date" style="font-size:10px;"><b style="font-size:12px;">${dateStr}</b></div>
+                    </div>
+                    <div class="section">${fcCards}</div>
+                    <div class="ftr"><span>${t.prepared}</span><span>Page ${fcPageStart + fcPageIdx}</span></div>
+                `);
+                fcCards = ''; cardsOnPage = 0; fcPageIdx++;
             }
-            y += 5;
+
+            const cond = d.fishing_en || 'moderate';
+            const condCls = cond==='good'?'good':cond==='risky'?'risky':'moderate';
+            const condLabel = cond==='good'?t.good:cond==='risky'?t.risky:t.moderate;
+            const moon = _getMoonPhase(d.date);
+            const topSpot = (d.hotspots||[])[0];
+            const conf = topSpot ? Math.round(topSpot.confidence*100) : 0;
+            const windIcon = d.wind_max_kmh > 30 ? '💨' : d.wind_max_kmh > 15 ? '🌬️' : '🍃';
+            const waveIcon = (d.wave_height_m||0) > 2.5 ? '🌊' : (d.wave_height_m||0) > 1 ? '〰️' : '~';
+
+            fcCards += `
+            <div class="card" style="border-left:5px solid ${condCls==='good'?'#00aa55':condCls==='risky'?'#cc3333':'#cc8800'};">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <div>
+                        <div style="font-size:18px;font-weight:700;color:#003a7a;">${di===0?'TODAY':t.day+' '+(di+1)}</div>
+                        <div style="font-size:12px;color:#446688;margin-top:2px;">${d.date} &middot; ${d.desc||''}</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <span class="badge ${condCls}" style="font-size:14px;">${condLabel}</span>
+                        <div style="font-size:20px;font-weight:700;color:${conf>=70?'#006633':conf>=50?'#886600':'#cc2222'};margin-top:4px;">${conf}%</div>
+                    </div>
+                </div>
+                <div class="strip" style="margin:8px 0;">
+                    <div><span class="lbl">${windIcon} ${t.wind}</span><span class="val" style="font-size:16px;">${d.wind_max_kmh} km/h</span></div>
+                    <div><span class="lbl">${waveIcon} ${t.wave}</span><span class="val" style="font-size:16px;">${d.wave_height_m||'--'} m</span></div>
+                    <div><span class="lbl">${moon.sym} ${t.moonPhase}</span><span class="val" style="font-size:14px;">${moon.name}</span></div>
+                </div>
+                ${topSpot ? '<div style="font-size:12px;color:#004488;margin-top:4px;font-weight:600;">📍 '+topSpot.lat.toFixed(2)+'°N, '+topSpot.lon.toFixed(2)+'°E</div>' : ''}
+            </div>`;
+            cardsOnPage++;
         });
 
-        _addPDFFooter(doc, W, margin, pageNum);
+        if (fcCards) {
+            forecastPages.push(`
+                <div class="hdr" style="padding:10px 28px;">
+                    <div><h1 style="font-size:22px;">${t.title}</h1><div class="sub" style="font-size:10px;">${t.forecast}</div></div>
+                    <div class="date" style="font-size:10px;"><b style="font-size:12px;">${dateStr}</b></div>
+                </div>
+                <div class="section">${fcCards}</div>
+                <div class="ftr"><span>${t.prepared}</span><span>Page ${fcPageStart + fcPageIdx}</span></div>
+            `);
+        }
     }
 
-    // ── Save / Share ─────────────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════════
+    // SAFETY PAGE
+    // ══════════════════════════════════════════════════════════════════════════
+    const curMonth = now.getMonth()+1;
+    const monsoon = curMonth>=6&&curMonth<=9?'SW Monsoon':(curMonth>=11||curMonth<=2?'NE Monsoon':'Inter-monsoon');
+    const safetyPageNum = moonPageNum + 1 + forecastPages.length;
+
+    let safeItemsHTML = t.safeItems.map((item, si) => `
+        <div class="safe-item">
+            <div class="safe-num">${si+1}</div>
+            <div class="safe-text">${item}</div>
+        </div>
+    `).join('');
+
+    const safetyPage = `
+        <div class="hdr" style="padding:10px 28px;">
+            <div><h1 style="font-size:22px;">${t.title}</h1><div class="sub" style="font-size:10px;">${t.safety}</div></div>
+            <div class="date" style="font-size:10px;"><b style="font-size:12px;">${dateStr}</b></div>
+        </div>
+        <div class="section">
+            <div class="stitle">${t.current}</div>
+            <div class="card">
+                <div style="font-size:18px;font-weight:700;color:#003a7a;">${monsoon}</div>
+                <div style="font-size:14px;color:#2a3a4a;margin-top:6px;">${t.approach}: ${t.perpendicular}</div>
+            </div>
+            <div class="stitle" style="color:#cc2222;border-color:#cc3333;">${t.safety}</div>
+            ${safeItemsHTML}
+            <div style="margin-top:16px;padding:12px;background:#eef2f8;border:1px solid #b0c0d0;border-radius:8px;">
+                <div style="font-size:11px;color:#446688;font-style:italic;">${t.disclaimer}</div>
+                <div style="font-size:11px;color:#446688;margin-top:3px;">${t.prepared}</div>
+            </div>
+        </div>
+        <div class="ftr"><span>${t.prepared}</span><span>Page ${safetyPageNum}</span></div>
+    `;
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // RENDER ALL PAGES
+    // ══════════════════════════════════════════════════════════════════════════
+    const allPages = [page1, ...zonePages, moonPage, ...forecastPages, safetyPage];
+    const doc = new JSPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const W = 210, H = 297;
+
+    for (let pi = 0; pi < allPages.length; pi++) {
+        if (pi > 0) doc.addPage();
+        loadDiv.querySelector('div:last-child').textContent = 'Rendering page '+(pi+1)+' of '+allPages.length+'...';
+        try {
+            const imgData = await htmlToPage(allPages[pi]);
+            doc.addImage(imgData, 'JPEG', 0, 0, W, H);
+        } catch(renderErr) {
+            console.error('Page '+(pi+1)+' render error:', renderErr);
+            doc.setFillColor(8,14,28); doc.rect(0,0,W,H,'F');
+            doc.setTextColor(255,100,100); doc.setFontSize(14);
+            doc.text('Page '+(pi+1)+' render failed', 20, 30);
+        }
+    }
+
+    loadDiv.remove();
     const filename = 'DaryaSagar-Report-' + now.toISOString().slice(0,10) + '.pdf';
     _savePDF(doc, filename);
+
     } catch(err) {
+        loadDiv.remove();
         alert('PDF Error: ' + err.message);
+        console.error('PDF generation error:', err);
     }
+    lang = _origLang;
 }
 
 async function _savePDF(doc, filename) {
@@ -3914,12 +4536,13 @@ function _handleBackPress() {
     if (dynamicOverlay) { dynamicOverlay.remove(); return; }
     const adminPanel = document.getElementById('admin-panel');
     if (adminPanel && adminPanel.style.display === 'flex') { closeAdmin(); return; }
+    const settingsPanel = document.getElementById('settings-panel');
+    if (settingsPanel && settingsPanel.style.display === 'block') { settingsPanel.style.display = 'none'; return; }
     const forecastPanel = document.getElementById('forecast-panel');
     if (forecastPanel && forecastPanel.style.display === 'block') { forecastPanel.style.display = 'none'; return; }
     const pfzPanel = document.getElementById('pfz-detail-panel');
     if (pfzPanel && pfzPanel.classList.contains('open')) { pfzPanel.classList.remove('open'); return; }
-    const incoisPanel = document.getElementById('incois-panel');
-    if (incoisPanel && incoisPanel.classList.contains('open')) { incoisPanel.classList.remove('open'); return; }
+    // incois-panel removed — no panel to close
     const infoPanel = document.getElementById('info-panel');
     if (infoPanel && infoPanel.style.display === 'block') { infoPanel.style.display = 'none'; return; }
     const bearingPanel = document.getElementById('bearing-panel');
@@ -3956,24 +4579,37 @@ function _doExit() {
         navigator.app.exitApp();
     } else { window.close(); }
 }
-// ── Back button: all 3 methods together ──────────────────────────────────────
-// Method 1: Capacitor App plugin (register on load, not deviceready)
-window.addEventListener('load', function() {
-    try {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-            window.Capacitor.Plugins.App.addListener('backButton', _handleBackPress);
-        }
-    } catch(e) {}
-});
-// Method 2: Cordova-style backbutton event (some Capacitor versions)
-document.addEventListener('backbutton', function(e) { e.preventDefault(); _handleBackPress(); }, false);
-// Method 3: History API popstate (WebView back navigation)
-window.history.replaceState({ daryasagar: 0 }, '');
-window.history.pushState({ daryasagar: 1 }, '');
-window.addEventListener('popstate', function() {
+// ── Back button: Capacitor App plugin (primary) + fallbacks ─────────────────
+(function _initBackButton() {
+    // Method 1: Capacitor App plugin — handles hardware back button natively
+    function _registerCapacitorBack() {
+        try {
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+                window.Capacitor.Plugins.App.addListener('backButton', function(ev) {
+                    // ev.canGoBack is true if WebView has history — we always intercept
+                    _handleBackPress();
+                });
+                console.log('[DaryaSagar] Capacitor App backButton registered');
+                return true;
+            }
+        } catch(e) { console.warn('[DaryaSagar] Capacitor back button registration failed:', e); }
+        return false;
+    }
+    // Try immediately, retry after DOMContentLoaded and load
+    if (!_registerCapacitorBack()) {
+        document.addEventListener('DOMContentLoaded', function() { _registerCapacitorBack(); });
+        window.addEventListener('load', function() { _registerCapacitorBack(); });
+    }
+    // Method 2: Cordova-style backbutton event (some Capacitor versions)
+    document.addEventListener('backbutton', function(e) { e.preventDefault(); _handleBackPress(); }, false);
+    // Method 3: History API popstate (WebView back navigation fallback)
+    window.history.replaceState({ daryasagar: 0 }, '');
     window.history.pushState({ daryasagar: 1 }, '');
-    _handleBackPress();
-});
+    window.addEventListener('popstate', function(e) {
+        window.history.pushState({ daryasagar: 1 }, '');
+        _handleBackPress();
+    });
+})();
 
 // ── AUTHENTICATION & RBAC SYSTEM ─────────────────────────────────────────────
 let PFZ_GROUP;
