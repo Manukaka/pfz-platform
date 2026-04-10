@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../core/theme.dart';
 import '../services/api_service.dart';
-import 'map_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

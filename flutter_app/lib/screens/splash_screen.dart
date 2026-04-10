@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../core/theme.dart';
+import '../models/pfz_zone.dart';
 import '../services/api_service.dart';
 import 'map_screen.dart';
 import 'login_screen.dart';
@@ -47,19 +48,32 @@ class _SplashScreenState extends State<SplashScreen> {
 
     // Preload all critical data in parallel
     _set('LOADING PFZ ZONES...', 0.35);
-    final pfzFuture  = ApiService.instance.fetchPfzZones().catchError((_) => <dynamic>[]);
+    final pfzFuture  = ApiService.instance.fetchPfzZones()
+        .onError((_, __) => <PfzZone>[]);
 
     _set('LOADING SST DATA...', 0.50);
-    final sstFuture  = ApiService.instance.fetchSstGrid().catchError((_) => <dynamic>[]);
+    final sstFuture  = ApiService.instance.fetchSstGrid()
+        .onError((_, __) => <Map<String, double>>[]);
 
     _set('LOADING CHL DATA...', 0.65);
-    final chlFuture  = ApiService.instance.fetchChlGrid().catchError((_) => <dynamic>[]);
+    final chlFuture  = ApiService.instance.fetchChlGrid()
+        .onError((_, __) => <Map<String, double>>[]);
 
     _set('LOADING FORECAST...', 0.80);
-    final forecastFuture = ApiService.instance.fetchForecast().catchError((_) => <dynamic>[]);
+    final forecastFuture = ApiService.instance.fetchForecast()
+        .onError((_, __) => <dynamic>[]);
 
-    final results = await Future.wait([pfzFuture, sstFuture, chlFuture, forecastFuture])
-        .timeout(const Duration(seconds: 20), onTimeout: () => [[], [], [], []]);
+    List<PfzZone> pfzZones = [];
+    List<Map<String, double>> sstGrid = [];
+    List<Map<String, double>> chlGrid = [];
+    List<dynamic> forecast = [];
+
+    await Future.wait([
+      pfzFuture.then((v)  => pfzZones = v),
+      sstFuture.then((v)  => sstGrid  = v),
+      chlFuture.then((v)  => chlGrid  = v),
+      forecastFuture.then((v) => forecast = v),
+    ]).timeout(const Duration(seconds: 20), onTimeout: () => []);
 
     _set('READY', 1.0);
     await Future.delayed(const Duration(milliseconds: 500));
@@ -67,10 +81,10 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
     Navigator.pushReplacement(context, MaterialPageRoute(
       builder: (_) => MapScreen(
-        pfzZones: results[0] as dynamic,
-        sstGrid:  results[1] as dynamic,
-        chlGrid:  results[2] as dynamic,
-        forecast: results[3] as dynamic,
+        pfzZones: pfzZones,
+        sstGrid:  sstGrid,
+        chlGrid:  chlGrid,
+        forecast: forecast,
       ),
     ));
   }
@@ -158,7 +172,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
               ),
             ).animate(key: ValueKey(_progress))
-             .custom(duration: 400.ms, curve: Curves.easeOut, builder: (_, __, child) => child!),
+             .fadeIn(duration: 400.ms),
 
             const SizedBox(height: 50),
 
