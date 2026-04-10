@@ -2655,11 +2655,11 @@ function displayAgentZones(agentData) {
             score: zone.score || zone.confidence || 0.8,
             fish_species: zone.fish_species || zone.species || [],
             depth_m: zone.depth_m || null,
-            depth_range: zone.depth_range || (zone.depth_m ? {min: zone.depth_m, max: zone.depth_m, avg: zone.depth_m} : {min: 40, max: 60, avg: 48}),
-            sst: zone.sst || parseFloat(getSST(latLngs[0][0], latLngs[0][1])) || 28,
+            depth_range: zone.depth_range || (zone.depth_m ? {min: zone.depth_m, max: zone.depth_m, avg: zone.depth_m} : null),
+            sst: zone.sst || parseFloat(getSST(latLngs[0][0], latLngs[0][1])) || null,
             chl: zone.chl || null,
-            chlorophyll: zone.chlorophyll || zone.chl || parseFloat(getCHL(latLngs[0][0], latLngs[0][1])) || 0.25,
-            best_fishing_time: zone.best_fishing_time || 'Dawn 4-7 AM',
+            chlorophyll: zone.chlorophyll || zone.chl || parseFloat(getCHL(latLngs[0][0], latLngs[0][1])) || null,
+            best_fishing_time: zone.best_fishing_time || null,
             fish_en: zone.fish_en || '',
             fish_mr: zone.fish_mr || '',
             lunar: zone.lunar || {},
@@ -4994,39 +4994,45 @@ function setHistStatus(msg) {
 function initMap() {
     FLEET_GROUP.addTo(map);
     PFZ_GROUP = L.layerGroup().addTo(map);
-    loadLivePFZ();
+    // Use preloaded PFZ data if available, otherwise fetch now
+    if (window._preloadedPFZ) {
+        renderPFZData(window._preloadedPFZ);
+    } else {
+        loadLivePFZ();
+    }
 }
 
 // ── DATA HANDLING ──────────────────────────────────────────────────────────
+function renderPFZData(data) {
+    if (!data || !data.features) return;
+    PFZ_GROUP.clearLayers();
+    data.features.forEach(f => {
+        const props = f.properties;
+        const score = props.confidence_score;
+        const level = score >= 70 ? 'high' : (score >= 50 ? 'medium' : 'low');
+        const lat = props.center_lat;
+        const lon = props.center_lon;
+        if (!lat || !lon) return;
+        const color = level === 'high' ? '#00ff88' : (level === 'medium' ? '#ffcc00' : '#ff4444');
+        const circle = L.circle([lat, lon], {
+            color: color, fillColor: color, fillOpacity: 0.3, weight: 3, radius: 8000
+        }).addTo(PFZ_GROUP);
+        const fish = props.fish_en || '--';
+        circle.bindTooltip(`<b>PFZ: ${level.toUpperCase()}</b><br>Confidence: ${score || '--'}%<br>Target: ${fish}`, { sticky: true });
+    });
+    const el = document.getElementById('sync-pfz');
+    if (el) el.textContent = data.features.length + ' zones';
+}
+
 async function loadLivePFZ(isUpdate = false) {
     if (!AUTH_TOKEN) return;
-
     try {
-        const r = await fetch('https://samudra-ai.onrender.com/api/pfz/live', {
+        const r = await fetch('https://samudra-ai.onrender.com/api/pfz/live?_t=' + Date.now(), {
             headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
         });
         if (r.ok) {
             const data = await r.json();
-            if (data.features) {
-                PFZ_GROUP.clearLayers();
-                data.features.forEach(f => {
-                    const props = f.properties;
-                    const score = props.confidence_score || 50;
-                    const level = score >= 70 ? 'high' : (score >= 50 ? 'medium' : 'low');
-                    const lat = props.center_lat;
-                    const lon = props.center_lon;
-                    if (!lat || !lon) return;
-                    const color = level === 'high' ? '#00ff88' : (level === 'medium' ? '#ffcc00' : '#ff4444');
-                    const circle = L.circle([lat, lon], {
-                        color: color,
-                        fillColor: color,
-                        fillOpacity: 0.3,
-                        weight: 3,
-                        radius: 8000
-                    }).addTo(PFZ_GROUP);
-                    circle.bindTooltip(`<b>PFZ: ${level.toUpperCase()}</b><br>Target: ${props.fish_en || 'Mixed'}`, { sticky: true });
-                });
-            }
+            renderPFZData(data);
         }
     } catch (e) { console.error('Failed to fetch real PFZ data', e); }
 }
@@ -5034,46 +5040,8 @@ async function loadLivePFZ(isUpdate = false) {
 // Initialize on window load
 window.addEventListener('DOMContentLoaded', () => {
     initMap();
-    checkSession();
+    // Session check + data preloading is handled by the splash screen preloader
 });
-
-async function checkSession() {
-    if (!AUTH_TOKEN) return showLogin();
-
-    // Emergency Bypass Session Handler (when backend offline)
-    if (AUTH_TOKEN === 'offline_admin_token') {
-        hideLogin();
-        document.getElementById('admin-btn').style.display = 'flex';
-        document.getElementById('fleet-view-btn').style.display = 'block';
-        checkPendingBadge();
-        setInterval(checkPendingBadge, 30000);
-        return;
-    }
-
-    try {
-        const r = await fetch('https://samudra-ai.onrender.com/api/auth/session-status', {
-            headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
-        });
-        if (r.ok) {
-            const data = await r.json();
-            startSessionTimer(data.expires_in_seconds);
-            hideLogin();
-            if (data.role === 'admin') {
-                document.getElementById('admin-btn').style.display = 'flex';
-                document.getElementById('fleet-view-btn').style.display = 'block';
-                // Poll for pending access requests every 30s and update badge
-                checkPendingBadge();
-                setInterval(checkPendingBadge, 30000);
-            } else {
-                // Start fisherman heartbeat
-                sendHeartbeat();
-                HEARTBEAT_TIMER = setInterval(sendHeartbeat, 60000);
-            }
-        } else {
-            handleLogout();
-        }
-    } catch (e) { console.error('Session check failed', e); }
-}
 
 function showLogin() {
     document.getElementById('auth-overlay').style.display = 'flex';
@@ -5293,23 +5261,142 @@ async function killSession(token) {
     refreshAdminData();
 }
 
-// Initialize session check
-checkSession();
-
-// ── SPLASH SCREEN — auto-hide after 2.8s ─────────────────────────────────────
+// ── SPLASH SCREEN — data-driven preloader ────────────────────────────────────
 (function() {
     const splash = document.getElementById('samudra-splash');
     if (!splash) return;
-    const SHOW_MS = 2800;
-    const hide = () => {
+
+    // Inject progress bar + status text into splash
+    const progressWrap = document.createElement('div');
+    progressWrap.id = 'spl-progress-wrap';
+    progressWrap.innerHTML = `
+        <div id="spl-status-text" style="font-size:10px;color:rgba(0,200,255,0.7);letter-spacing:2px;margin-bottom:10px;min-height:14px;text-align:center;animation:splTextIn 0.4s ease both;"></div>
+        <div style="width:180px;height:3px;background:rgba(0,200,255,0.12);border-radius:2px;overflow:hidden;">
+            <div id="spl-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#00c8ff,#00ff88);border-radius:2px;transition:width 0.4s ease;"></div>
+        </div>
+    `;
+    progressWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;margin-top:16px;';
+    const dotsEl = splash.querySelector('.spl-dots');
+    if (dotsEl) dotsEl.insertAdjacentElement('afterend', progressWrap);
+    else splash.appendChild(progressWrap);
+
+    const setStatus = (msg, pct) => {
+        const st = document.getElementById('spl-status-text');
+        const bar = document.getElementById('spl-bar');
+        if (st) st.textContent = msg;
+        if (bar) bar.style.width = pct + '%';
+    };
+
+    const hideSplash = () => {
         splash.classList.add('fadeout');
         setTimeout(() => { if (splash.parentNode) splash.parentNode.removeChild(splash); }, 950);
     };
-    // Hide after delay — or immediately if page load is slow
-    const timer = setTimeout(hide, SHOW_MS);
-    // Also hide on first user touch (fishermen tap to skip)
-    splash.addEventListener('click', () => { clearTimeout(timer); hide(); }, { once: true });
+
+    // Allow tap-to-skip after 3s
+    let skipAllowed = false;
+    setTimeout(() => { skipAllowed = true; }, 3000);
+    splash.addEventListener('click', () => { if (skipAllowed) hideSplash(); }, { once: true });
+
+    async function preloadAndLaunch() {
+        setStatus('INITIALISING...', 5);
+
+        // Step 1: Check/validate session (with 12s timeout for cold Render startup)
+        setStatus('CONNECTING TO SERVER...', 15);
+        let sessionOk = false;
+        try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 12000);
+            if (AUTH_TOKEN && AUTH_TOKEN !== 'offline_admin_token') {
+                const r = await fetch('https://samudra-ai.onrender.com/api/auth/session-status', {
+                    headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` },
+                    signal: ctrl.signal
+                });
+                clearTimeout(tid);
+                if (r.ok) {
+                    const d = await r.json();
+                    startSessionTimer(d.expires_in_seconds);
+                    hideLogin();
+                    if (d.role === 'admin') {
+                        document.getElementById('admin-btn').style.display = 'flex';
+                        document.getElementById('fleet-view-btn').style.display = 'block';
+                        checkPendingBadge();
+                        setInterval(checkPendingBadge, 30000);
+                    } else {
+                        sendHeartbeat();
+                        HEARTBEAT_TIMER = setInterval(sendHeartbeat, 60000);
+                    }
+                    sessionOk = true;
+                } else {
+                    clearTimeout(tid);
+                    handleLogout(); return;
+                }
+            } else if (AUTH_TOKEN === 'offline_admin_token') {
+                hideLogin();
+                document.getElementById('admin-btn').style.display = 'flex';
+                document.getElementById('fleet-view-btn').style.display = 'block';
+                checkPendingBadge();
+                setInterval(checkPendingBadge, 30000);
+                sessionOk = true;
+            } else {
+                showLogin();
+                hideSplash(); return;
+            }
+        } catch (e) {
+            if (AUTH_TOKEN) {
+                // Backend cold-start timeout: still try to show app with cached data
+                console.warn('Session check timed out, continuing offline');
+                hideLogin();
+                sessionOk = true;
+            } else {
+                showLogin(); hideSplash(); return;
+            }
+        }
+
+        if (!sessionOk) { showLogin(); hideSplash(); return; }
+
+        // Step 2: Preload critical data in parallel
+        setStatus('LOADING CHL DATA...', 30);
+        const chlPromise = fetch('https://samudra-ai.onrender.com/chl_data.json')
+            .then(r => r.json())
+            .then(data => { chlGrid = data.points || []; })
+            .catch(() => {});
+
+        setStatus('LOADING SST DATA...', 45);
+        const sstPromise = fetch('https://samudra-ai.onrender.com/sst_data.json')
+            .then(r => r.json())
+            .then(data => { sstGrid = data.points || []; })
+            .catch(() => {});
+
+        setStatus('LOADING PFZ ZONES...', 60);
+        const pfzPromise = fetch('https://samudra-ai.onrender.com/api/pfz/live?_t=' + Date.now())
+            .then(r => r.json())
+            .then(geojson => { window._preloadedPFZ = geojson; })
+            .catch(() => {});
+
+        setStatus('LOADING WIND DATA...', 75);
+        const windPromise = fetch('https://samudra-ai.onrender.com/api/wind/live')
+            .then(r => r.json())
+            .then(data => { window._preloadedWind = data; })
+            .catch(() => {});
+
+        // Wait for all (max 15s total for data fetches)
+        await Promise.race([
+            Promise.all([chlPromise, sstPromise, pfzPromise, windPromise]),
+            new Promise(res => setTimeout(res, 15000))
+        ]);
+
+        setStatus('READY', 100);
+        setTimeout(hideSplash, 400);
+    }
+
+    // Start slightly after DOM settles
+    setTimeout(preloadAndLaunch, 400);
 })();
+
+// checkSession is now handled inside the splash preloader above
+function checkSession() {
+    // No-op: session check now done in splash preloader
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // PWA — Service Worker registration + Install prompt
