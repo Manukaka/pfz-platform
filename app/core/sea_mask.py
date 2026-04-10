@@ -3,18 +3,39 @@ SAMUDRA AI — Sea Mask (Land Filter)
 फक्त समुद्रातील points — land वर काहीही नाही
 
 Land masking using accurate Indian West Coast coastline + EEZ boundaries
-Covers: Karnataka (12°N) → Gujarat/Kutch (24°N)
+Covers: Kerala (8°N) → Gujarat/Kutch (24°N) — Full Indian West Coast
 Validated against NASA GEBCO coastline data
 """
 
 # ===== INDIAN WEST COAST EEZ BOUNDS =====
-SEA_LAT_MIN, SEA_LAT_MAX = 12.0, 24.0
-SEA_LNG_MIN, SEA_LNG_MAX = 66.0, 74.5
+SEA_LAT_MIN, SEA_LAT_MAX = 8.0, 24.0
+SEA_LNG_MIN, SEA_LNG_MAX = 66.0, 77.5
 
 # ===== ACCURATE INDIAN WEST COAST COASTLINE (Lat-based coast longitude) =====
 # Based on OpenStreetMap and GEBCO coastline data
 # Format: latitude -> westmost longitude that's still land
 COAST_MAPPING = {
+    # Kerala coast (8°-12°N)
+    8.00:  77.20,  # Cape Comorin / Thiruvananthapuram
+    8.20:  77.10,
+    8.40:  77.00,
+    8.60:  76.95,
+    8.80:  76.90,
+    9.00:  76.80,  # Kollam
+    9.20:  76.65,
+    9.40:  76.45,
+    9.60:  76.35,
+    9.80:  76.25,
+    10.00: 76.20,  # Alappuzha / Alleppey
+    10.20: 76.15,
+    10.40: 76.10,
+    10.60: 76.05,
+    10.80: 75.95,
+    11.00: 75.90,  # Kozhikode / Calicut
+    11.20: 75.85,
+    11.40: 75.82,
+    11.60: 75.80,
+    11.80: 75.75,
     # Karnataka coast (12°-14°N)
     12.00: 74.85,  # Mangalore
     12.20: 74.80,
@@ -105,6 +126,12 @@ LAND_ZONES = [
     # Karnataka coast
     {"lat_min": 12.00, "lat_max": 15.00, "lng_min": 74.20, "lng_max": 75.00},
 
+    # Kerala interior / Western Ghats (land east of Kerala coast)
+    {"lat_min":  8.00, "lat_max": 12.00, "lng_min": 77.00, "lng_max": 78.00},
+
+    # Laccadive Sea / Kerala near-shore exclusion (backwaters not fishing grounds)
+    {"lat_min":  8.80, "lat_max":  9.80, "lng_min": 76.50, "lng_max": 77.20},
+
     # Mumbai harbor
     {"lat_min": 18.95, "lat_max": 19.10, "lng_min": 72.82, "lng_max": 72.92},
 ]
@@ -115,8 +142,8 @@ def get_coast_lng_for_lat(lat: float) -> float:
     Returns the westmost longitude that's still on land for this latitude.
     Points EAST of this are land, WEST is sea.
     """
-    if lat < 12.0 or lat > 24.0:
-        return 74.5  # Out of range
+    if lat < 8.0 or lat > 24.0:
+        return 77.5  # Out of range — conservative land limit
 
     # Find two nearest known points for interpolation
     known_lats = sorted(COAST_MAPPING.keys())
@@ -141,7 +168,7 @@ def is_sea(lat: float, lng: float) -> bool:
     Returns True if (lat, lng) is in sea (not on land).
 
     Checks:
-    1. Within Indian West Coast EEZ bounding box (12°-24°N, 66°-74.5°E)
+    1. Within Indian West Coast EEZ bounding box (8°-24°N, 66°-77.5°E)
     2. West of accurate coastline
     3. Not in known land zones
     """

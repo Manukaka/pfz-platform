@@ -42,10 +42,10 @@ def point_in_eez(lat, lon):
     """Check if point is in the sea within Maharashtra EEZ using accurate coastline."""
     return is_sea(lat, lon)
 
-# ── Processing grid (Maharashtra EEZ only — practical fishing area) ───────────
-# Lat 14°-21°N, Lon 67°-73.5°E — where Maharashtra fishermen actually operate
-lats = np.arange(14.0, 21.25, 0.25)
-lons = np.arange(67.0, 73.75, 0.25)
+# ── Processing grid (Full Indian West Coast — Kerala to Gujarat) ──────────────
+# Lat 8°-24°N, Lon 66°-77.5°E — covers Kerala, Karnataka, Goa, Maharashtra, Gujarat
+lats = np.arange(8.0, 24.25, 0.25)
+lons = np.arange(66.0, 77.75, 0.25)
 print(f"Grid: {len(lats)} x {len(lons)} = {len(lats)*len(lons)} points")
 
 # ── Build SST lookup from points ──────────────────────────────────────────────

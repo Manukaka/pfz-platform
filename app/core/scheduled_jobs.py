@@ -1,11 +1,20 @@
 # app/core/scheduled_jobs.py
 """
-APScheduler jobs: PFZ at 9AM/4PM IST, INCOIS at 5:30PM IST, prune at midnight.
+APScheduler jobs:
+  Every 30 min : SST + CHL data refresh (fast, critical for PFZ accuracy)
+  Every 60 min : Wind + Wave + Current refresh (Open-Meteo Marine)
+  9AM / 4PM IST: PFZ zone calculation using fresh data
+  5:30PM IST   : INCOIS advisory fetch
+  Midnight     : History prune
 """
 import asyncio
 import json
 import logging
-from datetime import datetime
+import os
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
 import pytz
 
@@ -14,6 +23,119 @@ from app.data.incois_scraper import fetch_incois_advisory, get_not_available_res
 
 logger = logging.getLogger(__name__)
 IST = pytz.timezone("Asia/Kolkata")
+
+# ── Fetch timestamp helpers ───────────────────────────────────────────────────
+def _file_age_minutes(path: str) -> float:
+    """Return age of file in minutes, or 9999 if missing."""
+    try:
+        mtime = os.path.getmtime(path)
+        return (datetime.now(timezone.utc).timestamp() - mtime) / 60
+    except OSError:
+        return 9999.0
+
+def _mark_fetch_start(source: str):
+    """Write a fetch-in-progress marker so UI can show pulsing indicator."""
+    try:
+        p = Path(f"data/cache/.fetching_{source}")
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(datetime.now(timezone.utc).isoformat())
+    except Exception:
+        pass
+
+def _mark_fetch_done(source: str):
+    try:
+        Path(f"data/cache/.fetching_{source}").unlink(missing_ok=True)
+    except Exception:
+        pass
+
+# ── SST refresh (every 30 min) ────────────────────────────────────────────────
+async def job_sst_refresh() -> None:
+    """Fetch fresh SST data from Open-Meteo Marine. ~15-20s, non-blocking."""
+    age = _file_age_minutes("sst_data.json")
+    if age < 25:
+        logger.debug(f"SST fresh ({age:.0f}min) — skipping")
+        return
+    logger.info("SST refresh starting…")
+    _mark_fetch_start("sst")
+    try:
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _run_sst_fetch)
+        logger.info("SST refresh complete")
+    except Exception as e:
+        logger.error(f"SST refresh failed: {e}")
+    finally:
+        _mark_fetch_done("sst")
+
+def _run_sst_fetch():
+    import importlib.util, sys as _sys
+    try:
+        # Import fetch_weather functions directly
+        spec = importlib.util.spec_from_file_location("fetch_weather", "fetch_weather.py")
+        fw = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fw)
+        fw.fetch_sst()
+        fw.save_meta()
+    except Exception as e:
+        logger.error(f"SST fetch inner error: {e}")
+
+# ── CHL refresh (every 30 min) ────────────────────────────────────────────────
+async def job_chl_refresh() -> None:
+    """Fetch fresh chlorophyll data from NOAA OceanWatch ERDDAP."""
+    age = _file_age_minutes("chl_data.json")
+    if age < 25:
+        logger.debug(f"CHL fresh ({age:.0f}min) — skipping")
+        return
+    logger.info("CHL refresh starting…")
+    _mark_fetch_start("chl")
+    try:
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _run_chl_fetch)
+        logger.info("CHL refresh complete")
+    except Exception as e:
+        logger.error(f"CHL refresh failed: {e}")
+    finally:
+        _mark_fetch_done("chl")
+
+def _run_chl_fetch():
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("fetch_weather", "fetch_weather.py")
+        fw = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fw)
+        fw.fetch_chlorophyll()
+    except Exception as e:
+        logger.error(f"CHL fetch inner error: {e}")
+
+# ── Wind/Wave/Current refresh (every 60 min) ──────────────────────────────────
+async def job_wind_wave_current_refresh() -> None:
+    """Fetch wind, wave, current from Open-Meteo Marine. ~30-45s."""
+    age = _file_age_minutes("wind_data.json")
+    if age < 55:
+        logger.debug(f"Wind fresh ({age:.0f}min) — skipping")
+        return
+    logger.info("Wind/Wave/Current refresh starting…")
+    _mark_fetch_start("wind")
+    try:
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _run_wind_fetch)
+        logger.info("Wind/Wave/Current refresh complete")
+    except Exception as e:
+        logger.error(f"Wind/Wave/Current refresh failed: {e}")
+    finally:
+        _mark_fetch_done("wind")
+
+def _run_wind_fetch():
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("fetch_weather", "fetch_weather.py")
+        fw = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fw)
+        fw.fetch_wind()
+        fw.fetch_wave()
+        fw.fetch_current()
+        fw.save_meta()
+    except Exception as e:
+        logger.error(f"Wind fetch inner error: {e}")
 
 
 async def job_pfz_cache(slot: str) -> None:

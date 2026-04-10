@@ -49,8 +49,15 @@ async def _lifespan(app):
     CMEMSClient()  # reads CMEMS_USERNAME + CMEMS_PASSWORD from env
     from app.core.scheduled_jobs import (
         job_pfz_morning, job_pfz_afternoon,
-        job_incois_evening, job_prune_history
+        job_incois_evening, job_prune_history,
+        job_sst_refresh, job_chl_refresh, job_wind_wave_current_refresh,
     )
+    from apscheduler.triggers.interval import IntervalTrigger
+    # Real-time data refresh jobs
+    _scheduler.add_job(job_sst_refresh,              IntervalTrigger(minutes=30),         id="sst_refresh",  replace_existing=True)
+    _scheduler.add_job(job_chl_refresh,              IntervalTrigger(minutes=30),         id="chl_refresh",  replace_existing=True)
+    _scheduler.add_job(job_wind_wave_current_refresh,IntervalTrigger(minutes=60),         id="wind_refresh", replace_existing=True)
+    # PFZ zone calculation (uses freshly fetched data above)
     _scheduler.add_job(job_pfz_morning,    CronTrigger(hour=9,  minute=0,  timezone=IST), id="pfz_am",     replace_existing=True)
     _scheduler.add_job(job_pfz_afternoon,  CronTrigger(hour=16, minute=0,  timezone=IST), id="pfz_pm",     replace_existing=True)
     _scheduler.add_job(job_incois_evening, CronTrigger(hour=17, minute=30, timezone=IST), id="incois_eve", replace_existing=True)
@@ -453,8 +460,8 @@ def get_sst():
         month = now.month
         seasonal_offset = -2.0 if month in [12,1,2] else (-1.0 if month in [6,7,8] else 0.0)
         points = []
-        for _lat in [x * 0.5 + 14.0 for x in range(14)]:
-            for _lon in [x * 0.5 + 67.0 for x in range(15)]:
+        for _lat in [x * 0.5 + 8.0 for x in range(33)]:
+            for _lon in [x * 0.5 + 66.0 for x in range(24)]:
                 base = 28.0 - (_lat - 17.0) * 0.25 + (_lon - 71.0) * 0.05 + seasonal_offset + _rng.gauss(0, 0.4)
                 points.append({"lat": _lat, "lon": _lon, "sst": round(max(24.0, min(33.0, base)), 1)})
         return JSONResponse(content={"points": points, "source": "synthetic-seasonal"})
@@ -469,8 +476,8 @@ def get_chl():
         now = datetime.now(timezone.utc)
         _rng = random.Random(now.timetuple().tm_yday + 1000)
         points = []
-        for _lat in [x * 0.5 + 14.0 for x in range(14)]:
-            for _lon in [x * 0.5 + 67.0 for x in range(15)]:
+        for _lat in [x * 0.5 + 8.0 for x in range(33)]:
+            for _lon in [x * 0.5 + 66.0 for x in range(24)]:
                 base = max(0.05, 0.3 + _rng.gauss(0, 0.12))
                 if _lat < 17.0:
                     base *= 1.4  # coastal upwelling zone
@@ -738,7 +745,7 @@ def get_live_pfz():
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as _pool:
             _future = _pool.submit(
                 fetch_sst_grid_ecmwf,
-                lat_min=13.0, lat_max=22.0, lon_min=66.0, lon_max=74.0
+                lat_min=8.0, lat_max=24.0, lon_min=66.0, lon_max=77.5
             )
             try:
                 sst_grid_data = _future.result(timeout=6)
@@ -1378,8 +1385,8 @@ def get_chlorophyll_heatmap():
     if not chl_points:
         import random as _random
         rng = _random.Random(datetime.now().timetuple().tm_yday)
-        for lat in [x * 0.5 + 14.0 for x in range(14)]:
-            for lon in [x * 0.5 + 67.0 for x in range(15)]:
+        for lat in [x * 0.5 + 8.0 for x in range(33)]:
+            for lon in [x * 0.5 + 66.0 for x in range(24)]:
                 base = max(0.05, 0.3 + rng.gauss(0, 0.15))
                 if lat < 17.0:
                     base *= 1.5
@@ -1396,10 +1403,10 @@ async def agent_claude_analysis(request: Request):
     from app.core.lunar import LunarEngine
     try:
         body = await request.json()
-        lat_min = body.get("lat_min", 14.0)
-        lat_max = body.get("lat_max", 21.0)
-        lng_min = body.get("lng_min", 67.0)
-        lng_max = body.get("lng_max", 74.5)
+        lat_min = body.get("lat_min", 8.0)
+        lat_max = body.get("lat_max", 24.0)
+        lng_min = body.get("lng_min", 66.0)
+        lng_max = body.get("lng_max", 77.5)
         sst_points, chl_points = [], []
         sst_source, chl_source = "unavailable", "unavailable"
         try:
@@ -1419,7 +1426,29 @@ async def agent_claude_analysis(request: Request):
         except Exception:
             pass
         now = datetime.now(timezone.utc)
-        summaries = build_ocean_summary(sst_points, chl_points)
+
+        # Load wind data for agent context
+        wind_data, wave_data, current_data = None, None, None
+        try:
+            if os.path.exists("wind_data.json"):
+                with open("wind_data.json") as f:
+                    wind_data = json.load(f)
+        except Exception:
+            pass
+        try:
+            if os.path.exists("wave_data.json"):
+                with open("wave_data.json") as f:
+                    wave_data = json.load(f)
+        except Exception:
+            pass
+        try:
+            if os.path.exists("current_data.json"):
+                with open("current_data.json") as f:
+                    current_data = json.load(f)
+        except Exception:
+            pass
+
+        summaries = build_ocean_summary(sst_points, chl_points, wind_data, wave_data, current_data)
         lunar_info = None
         try:
             lunar_info = {
@@ -1431,6 +1460,7 @@ async def agent_claude_analysis(request: Request):
         ocean_data = {"month": now.month, "sst_points": sst_points, "chl_points": chl_points, **summaries}
         region = {"lat_min": lat_min, "lat_max": lat_max, "lng_min": lng_min, "lng_max": lng_max}
         result = analyze_with_claude(ocean_data, region, lunar_info)
+
         # Enrich result with data quality metadata
         _IST = _pytz.timezone("Asia/Kolkata")
         ist_now = datetime.now(_IST)
@@ -1445,6 +1475,9 @@ async def agent_claude_analysis(request: Request):
             "chl_source": chl_source,
             "sst_points": len(sst_points),
             "chl_points": len(chl_points),
+            "wind_data": bool(wind_data),
+            "wave_data": bool(wave_data),
+            "current_data": bool(current_data),
             "incois_cross_ref": incois_available,
             "lunar_data": bool(lunar_info),
             "analysis_time_ist": ist_now.strftime("%d %b %Y %H:%M IST"),
@@ -1754,17 +1787,28 @@ def get_6day_forecast():
         rng = random.Random(int(date_str.replace("-","")) + i * 7919)
         pred_chl = round(0.18 + (wind_max / 80) + rng.uniform(0.02, 0.18), 3)
 
-        # Future-day uncertainty: exponential decay — Day 0 = 0%, Day 5 = ~40%
-        # Prediction quality drops significantly each day ahead
-        day_uncertainty = round(0.08 * i + 0.012 * (i ** 2), 4)  # 0, 0.092, 0.208, 0.348, 0.512, 0.7
-        # Weather-driven candidate scoring
+        # Future-day uncertainty: true exponential decay
+        # Day 0=0% uncertainty, Day 1=8%, Day 2=19%, Day 3=33%, Day 4=50%, Day 5=70%
+        day_uncertainty = round(1.0 - math.exp(-0.18 * i), 3) * 0.75  # 0, 0.12, 0.23, 0.32, 0.40, 0.47
+        # Weather-driven candidate scoring — full west coast zones
         candidate_zones = [
-            {"name":"North Maharashtra Shelf",  "lat_c":19.85,"lon_c":71.55,"depth_avg":85},
-            {"name":"Mumbai Offshore Bank",      "lat_c":18.90,"lon_c":71.20,"depth_avg":110},
-            {"name":"Ratnagiri Continental Shelf","lat_c":17.10,"lon_c":72.80,"depth_avg":75},
-            {"name":"Malvan Deep Shelf",         "lat_c":16.05,"lon_c":72.90,"depth_avg":95},
-            {"name":"Konkan Nearshore",          "lat_c":18.40,"lon_c":72.60,"depth_avg":55},
-            {"name":"Offshore Arabian Sea",      "lat_c":16.80,"lon_c":70.40,"depth_avg":210},
+            # Kerala
+            {"name":"Kerala Upwelling Zone",       "lat_c": 9.50, "lon_c":75.20, "depth_avg":60,  "region":"Kerala"},
+            {"name":"Kollam Bank",                  "lat_c":10.80, "lon_c":74.80, "depth_avg":80,  "region":"Kerala"},
+            # Karnataka
+            {"name":"Mangalore Shelf",              "lat_c":12.80, "lon_c":73.80, "depth_avg":70,  "region":"Karnataka"},
+            {"name":"Karwar Bank",                  "lat_c":14.20, "lon_c":73.50, "depth_avg":90,  "region":"Karnataka"},
+            # Goa / N. Karnataka
+            {"name":"Goa Offshore Shelf",           "lat_c":15.30, "lon_c":72.90, "depth_avg":95,  "region":"Goa"},
+            # Maharashtra
+            {"name":"Malvan Deep Shelf",            "lat_c":16.05, "lon_c":72.50, "depth_avg":95,  "region":"Maharashtra"},
+            {"name":"Ratnagiri Continental Shelf",  "lat_c":17.10, "lon_c":71.80, "depth_avg":75,  "region":"Maharashtra"},
+            {"name":"Konkan Nearshore",             "lat_c":18.40, "lon_c":71.60, "depth_avg":55,  "region":"Maharashtra"},
+            {"name":"Mumbai Offshore Bank",         "lat_c":18.90, "lon_c":70.80, "depth_avg":110, "region":"Maharashtra"},
+            {"name":"North Maharashtra Shelf",      "lat_c":19.85, "lon_c":70.50, "depth_avg":85,  "region":"Maharashtra"},
+            # Gujarat
+            {"name":"Saurashtra Bank",              "lat_c":21.50, "lon_c":68.80, "depth_avg":60,  "region":"Gujarat"},
+            {"name":"Veraval Fishing Ground",       "lat_c":20.90, "lon_c":69.50, "depth_avg":50,  "region":"Gujarat"},
         ]
         hotspots = []
         for zone in candidate_zones:
@@ -1785,7 +1829,9 @@ def get_6day_forecast():
             hotspots.append({
                 "lat": jlat, "lon": jlon,
                 "zone_name": zone["name"],
+                "region": zone.get("region", ""),
                 "confidence": confidence,
+                "day_index": i,
                 "pred_sst": pred_sst,
                 "pred_chl": round(pred_chl, 3),
                 "depth_m": zone["depth_avg"],
@@ -1840,10 +1886,10 @@ async def agent_army_analysis(request: Request):
     """
     try:
         body = await request.json()
-        lat_min = body.get("lat_min", 14.0)
-        lat_max = body.get("lat_max", 21.0)
-        lng_min = body.get("lng_min", 67.0)
-        lng_max = body.get("lng_max", 74.5)
+        lat_min = body.get("lat_min", 8.0)
+        lat_max = body.get("lat_max", 24.0)
+        lng_min = body.get("lng_min", 66.0)
+        lng_max = body.get("lng_max", 77.5)
 
         # 1. Try external agent analysis first
         agent_data = None
@@ -1941,117 +1987,129 @@ def agent_status():
 
 @app.get("/api/data/status")
 async def get_data_status():
-    """Real-time status of each data source: live/cached/failed with last-fetch timestamps."""
-    import httpx
-    now = datetime.now(IST)
+    """Real-time status: age in minutes, fetching flag, color grade for every data source."""
+    now_utc = datetime.now(timezone.utc)
+    now_ist = datetime.now(IST)
     sources = {}
 
-    # 1. ECMWF SST (earthkit_client)
-    try:
-        from app.data.earthkit_client import EarthkitClient
-        cache_path = "sst_data.json"
-        if os.path.exists(cache_path):
-            age_s = (now.timestamp() - os.path.getmtime(cache_path))
-            age_h = age_s / 3600
-            sources["sst"] = {
-                "name": "SST (ECMWF)",
-                "status": "cached" if age_h < 2 else "stale",
-                "last_fetch": datetime.fromtimestamp(os.path.getmtime(cache_path), tz=IST).strftime("%H:%M IST"),
-                "age_hours": round(age_h, 1),
-                "source": "ECMWF IFS"
-            }
+    def _file_info(path: str, fresh_min: int = 35, stale_min: int = 120):
+        """Returns age_minutes, last_fetch string, status, color grade, fetching flag."""
+        fetching = os.path.exists(f"data/cache/.fetching_{path.split('.')[0].split('_')[0]}")
+        if not os.path.exists(path):
+            return None
+        mtime = os.path.getmtime(path)
+        age_s = now_utc.timestamp() - mtime
+        age_m = int(age_s / 60)
+        last_fetch = datetime.fromtimestamp(mtime, tz=IST).strftime("%H:%M IST")
+        if age_m < fresh_min:
+            status, grade = "live", "green"
+        elif age_m < stale_min:
+            status, grade = "cached", "orange"
         else:
-            sources["sst"] = {"name": "SST (ECMWF)", "status": "no_data", "source": "ECMWF IFS"}
-    except Exception as e:
-        sources["sst"] = {"name": "SST (ECMWF)", "status": "error", "error": str(e)}
+            status, grade = "stale", "red"
+        next_refresh = max(0, fresh_min - age_m)
+        return {
+            "age_minutes": age_m,
+            "age_label": f"{age_m}min ago" if age_m < 60 else f"{age_m//60}h {age_m%60}min ago",
+            "last_fetch": last_fetch,
+            "status": status,
+            "grade": grade,
+            "fetching": fetching,
+            "next_refresh_min": next_refresh,
+        }
 
-    # 2. CMEMS currents/CHL
-    cmems_creds = bool(CMEMSClient.USERNAME and CMEMSClient.PASSWORD)
-    sources["cmems"] = {
-        "name": "Currents/CHL (CMEMS)",
-        "status": "live" if cmems_creds else "no_credentials",
-        "authenticated": cmems_creds,
-        "source": "Copernicus Marine (CMEMS)",
-        "note": "Set CMEMS_USERNAME + CMEMS_PASSWORD on Render" if not cmems_creds else "Credentials loaded"
-    }
+    # 1. SST
+    info = _file_info("sst_data.json", fresh_min=35, stale_min=120)
+    if info:
+        sources["sst"] = {"name": "SST", "source": "Open-Meteo Marine", **info}
+    else:
+        fetching = os.path.exists("data/cache/.fetching_sst")
+        sources["sst"] = {"name": "SST", "status": "no_data", "grade": "red",
+                          "fetching": fetching, "source": "Open-Meteo Marine"}
 
-    # 3. INCOIS advisory
-    try:
-        incois_cache = "data/cache/incois_advisory.json"
-        incois_live = "data/cache/incois_live.json"
-        found = None
-        for p in [incois_live, incois_cache]:
-            if os.path.exists(p):
-                found = p
-                break
-        if found:
-            age_s = (now.timestamp() - os.path.getmtime(found))
-            age_h = age_s / 3600
-            sources["incois"] = {
-                "name": "INCOIS Advisory",
-                "status": "cached" if age_h < 25 else "stale",
-                "last_fetch": datetime.fromtimestamp(os.path.getmtime(found), tz=IST).strftime("%H:%M IST"),
-                "age_hours": round(age_h, 1),
-                "source": "INCOIS Samudra Portal",
-                "credentials": bool(os.getenv("INCOIS_USER"))
-            }
-        else:
-            sources["incois"] = {
-                "name": "INCOIS Advisory",
-                "status": "no_data",
-                "source": "INCOIS Samudra Portal",
-                "credentials": bool(os.getenv("INCOIS_USER")),
-                "note": "No cache yet — runs daily at 17:30 IST"
-            }
-    except Exception as e:
-        sources["incois"] = {"name": "INCOIS Advisory", "status": "error", "error": str(e)}
+    # 2. CHL
+    info = _file_info("chl_data.json", fresh_min=35, stale_min=240)
+    if info:
+        sources["chl"] = {"name": "CHL", "source": "NOAA OceanWatch ERDDAP (MODIS)", **info}
+    else:
+        fetching = os.path.exists("data/cache/.fetching_chl")
+        sources["chl"] = {"name": "CHL", "status": "no_data", "grade": "red",
+                          "fetching": fetching, "source": "NOAA OceanWatch ERDDAP"}
 
-    # 4. Open-Meteo Marine (wind/wave — free, no key)
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            r = await client.get("https://marine-api.open-meteo.com/v1/marine?latitude=15&longitude=72&hourly=wave_height&forecast_days=1")
-            sources["openmeteo"] = {
-                "name": "Wind/Wave (Open-Meteo)",
-                "status": "live" if r.status_code == 200 else "degraded",
-                "http_status": r.status_code,
-                "source": "Open-Meteo Marine (free)"
-            }
-    except Exception as e:
-        sources["openmeteo"] = {"name": "Wind/Wave (Open-Meteo)", "status": "offline", "error": str(e)}
+    # 3. Wind
+    info = _file_info("wind_data.json", fresh_min=65, stale_min=180)
+    if info:
+        sources["wind"] = {"name": "Wind", "source": "Open-Meteo (10m)", **info}
+    else:
+        fetching = os.path.exists("data/cache/.fetching_wind")
+        sources["wind"] = {"name": "Wind", "status": "no_data", "grade": "red",
+                           "fetching": fetching, "source": "Open-Meteo"}
 
-    # 5. NASA Earthdata CHL (ERDDAP)
-    nasa_creds = bool(os.getenv("NASA_EARTHDATA_USER"))
-    sources["nasa"] = {
-        "name": "CHL (NASA ERDDAP)",
-        "status": "ready" if nasa_creds else "no_credentials",
-        "authenticated": nasa_creds,
-        "source": "NASA Earthdata ERDDAP",
-        "note": "Set NASA_EARTHDATA_USER + NASA_EARTHDATA_PASS on Render" if not nasa_creds else "Credentials loaded"
-    }
+    # 4. Wave
+    info = _file_info("wave_data.json", fresh_min=65, stale_min=180)
+    if info:
+        sources["wave"] = {"name": "Wave", "source": "Open-Meteo Marine", **info}
+    else:
+        sources["wave"] = {"name": "Wave", "status": "no_data", "grade": "red",
+                           "fetching": False, "source": "Open-Meteo Marine"}
 
-    # 6. PFZ Engine
-    pfz_cache = "data/cache/pfz_cache.json"
-    if os.path.exists(pfz_cache):
-        age_s = (now.timestamp() - os.path.getmtime(pfz_cache))
-        age_h = age_s / 3600
-        sources["pfz"] = {
-            "name": "PFZ Engine",
-            "status": "live" if age_h < 2 else ("cached" if age_h < 12 else "stale"),
-            "last_fetch": datetime.fromtimestamp(os.path.getmtime(pfz_cache), tz=IST).strftime("%H:%M IST"),
-            "age_hours": round(age_h, 1),
-            "source": "DaryaSagar ECMWF thermal-front engine"
+    # 5. Current
+    info = _file_info("current_data.json", fresh_min=65, stale_min=180)
+    if info:
+        sources["current"] = {"name": "Current", "source": "Open-Meteo Marine", **info}
+    else:
+        sources["current"] = {"name": "Current", "status": "no_data", "grade": "red",
+                              "fetching": False, "source": "Open-Meteo Marine"}
+
+    # 6. INCOIS advisory
+    incois_paths = ["data/cache/incois_live.json", "data/cache/incois_advisory.json"]
+    found = next((p for p in incois_paths if os.path.exists(p)), None)
+    if found:
+        info = _file_info(found, fresh_min=60*23, stale_min=60*49)  # daily data, stale after 2 days
+        sources["incois"] = {
+            "name": "INCOIS Advisory",
+            "source": "INCOIS Samudra Portal",
+            "credentials": bool(os.getenv("INCOIS_USER")),
+            **(info or {"status": "no_data", "grade": "red", "fetching": False}),
         }
     else:
-        sources["pfz"] = {"name": "PFZ Engine", "status": "no_data", "source": "DaryaSagar ECMWF thermal-front engine"}
+        sources["incois"] = {"name": "INCOIS Advisory", "status": "no_data", "grade": "red",
+                             "fetching": False, "source": "INCOIS Samudra Portal",
+                             "credentials": bool(os.getenv("INCOIS_USER")),
+                             "note": "Runs daily at 17:30 IST"}
 
-    overall = "ok"
-    if any(s.get("status") in ("error", "offline") for s in sources.values()):
-        overall = "degraded"
-    elif any(s.get("status") in ("stale", "no_data", "no_credentials") for s in sources.values()):
-        overall = "partial"
+    # 7. PFZ Engine
+    pfz_paths = ["data/cache/pfz_cache.json", "pfz_data.geojson"]
+    found = next((p for p in pfz_paths if os.path.exists(p)), None)
+    if found:
+        info = _file_info(found, fresh_min=60*6, stale_min=60*13)  # PFZ valid 6h
+        sources["pfz"] = {
+            "name": "PFZ Zones",
+            "source": "DaryaSagar thermal-front engine",
+            **(info or {"status": "no_data", "grade": "red", "fetching": False}),
+        }
+    else:
+        sources["pfz"] = {"name": "PFZ Zones", "status": "no_data", "grade": "red",
+                          "fetching": False, "source": "DaryaSagar engine"}
+
+    # 8. CMEMS (credentials check only — fetch is slow/expensive)
+    cmems_creds = bool(CMEMSClient.USERNAME and CMEMSClient.PASSWORD)
+    sources["cmems"] = {
+        "name": "CMEMS (Copernicus)",
+        "status": "authenticated" if cmems_creds else "no_credentials",
+        "grade": "green" if cmems_creds else "orange",
+        "fetching": False,
+        "source": "Copernicus Marine Service",
+        "note": "" if cmems_creds else "Set CMEMS_USERNAME + CMEMS_PASSWORD on Render",
+    }
+
+    grade_order = {"red": 0, "orange": 1, "green": 2}
+    worst = min(sources.values(), key=lambda s: grade_order.get(s.get("grade", "red"), 0))
+    overall = worst.get("grade", "red")
 
     return JSONResponse(content={
         "overall": overall,
         "sources": sources,
-        "checked_at": now.strftime("%Y-%m-%d %H:%M:%S IST")
+        "server_time_ist": now_ist.strftime("%H:%M:%S IST"),
+        "checked_at": now_utc.isoformat(),
     })
