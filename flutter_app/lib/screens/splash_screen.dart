@@ -19,7 +19,11 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _boot());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _boot()
+          .timeout(const Duration(seconds: 35), onTimeout: _goLogin)
+          .catchError((_) => _goLogin());
+    });
   }
 
   void _set(String msg, double pct) {
@@ -28,16 +32,21 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _boot() async {
-    await ApiService.instance.init();
+    try {
+      await ApiService.instance.init();
+    } catch (_) {
+      _goLogin();
+      return;
+    }
     _set('CONNECTING TO SERVER...', 0.15);
 
     if (!ApiService.instance.isLoggedIn) {
-      await Future.delayed(const Duration(milliseconds: 600));
+      await Future.delayed(const Duration(milliseconds: 400));
       _goLogin();
       return;
     }
 
-    // Validate session
+    // Validate session (12s timeout for Render cold-start)
     try {
       await ApiService.instance.checkSession();
     } catch (_) {
