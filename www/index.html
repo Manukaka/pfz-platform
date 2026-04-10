@@ -1362,56 +1362,68 @@ function restoreSyncTimes() {
 }
 // Update sync status indicator dots — local + backend real check
 function updateSyncIndicators() {
-    function setInd(id, state, title) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        // state: 'ok' (green), 'warn' (orange), '' (red)
-        el.className = 'sync-dot-ind' + (state ? ' ' + state : '');
-        if (title) el.title = title;
+    function setInd(dotId, ageId, grade, ageLabel, title, fetching) {
+        var dot = document.getElementById(dotId);
+        var ageEl = document.getElementById(ageId);
+        if (!dot) return;
+        var cls = 'sync-dot-ind';
+        if (fetching) cls += ' fetching';
+        else if (grade === 'green') cls += ' ok';
+        else if (grade === 'orange') cls += ' warn';
+        dot.className = cls;
+        if (title) dot.title = title;
+        if (ageEl) ageEl.textContent = fetching ? '...' : (ageLabel || '');
     }
-    // Local fast checks first
-    setInd('ind-pfz', pfzGroup && pfzGroup.getLayers().length > 0 ? 'ok' : '',
-        pfzGroup && pfzGroup.getLayers().length > 0 ? 'PFZ: loaded' : 'PFZ: not loaded');
-    var sstEl = document.getElementById('sb-sst');
-    setInd('ind-sst', sstEl && sstEl.textContent !== '--\u00b0C' ? 'ok' : '', 'SST/CHL');
-    setInd('ind-incois', incoisMapLoaded && incoisMapGroup.getLayers().length > 0 ? 'ok' : '',
-        incoisMapLoaded ? 'INCOIS: loaded' : 'INCOIS: not loaded');
-    setInd('ind-wind', typeof windLayer !== 'undefined' && windLayer && map.hasLayer(windLayer) ? 'warn' : '',
-        'Wind/Wave: synthetic data');
-    var ac = localStorage.getItem('ds_agent_v1');
-    setInd('ind-ai', ac && ac.length > 10 ? 'ok' : '', ac ? 'AI: cached' : 'AI: no analysis yet');
 
-    // Backend real data status check (every 5 min)
+    // Instant local checks (no network)
+    var pfzOk = pfzGroup && pfzGroup.getLayers().length > 0;
+    setInd('ind-pfz', 'age-pfz', pfzOk ? 'green' : 'red', pfzOk ? 'loaded' : 'none', 'PFZ zones', false);
+    var sstEl = document.getElementById('sb-sst');
+    var sstOk = sstEl && sstEl.textContent && sstEl.textContent !== '--°C';
+    setInd('ind-sst', 'age-sst', sstOk ? 'green' : 'red', '', 'SST data', false);
+    var ac = localStorage.getItem('ds_agent_v1');
+    setInd('ind-ai', 'age-ai', ac && ac.length > 10 ? 'green' : 'red', ac ? 'cached' : 'none', 'AI analysis', false);
+
+    // Backend real data status — poll every 60 seconds (was 5 min)
     var _lastStatusFetch = window._lastStatusFetch || 0;
-    if (Date.now() - _lastStatusFetch > 300000) {
+    if (Date.now() - _lastStatusFetch > 60000) {
         window._lastStatusFetch = Date.now();
         fetch('/api/data/status').then(function(r){ return r.json(); }).then(function(d) {
             var s = d.sources || {};
-            if (s.pfz) {
-                var pfzState = s.pfz.status === 'live' || s.pfz.status === 'cached' ? 'ok' : (s.pfz.status === 'stale' ? 'warn' : '');
-                setInd('ind-pfz', pfzState, 'PFZ: ' + s.pfz.status + (s.pfz.last_fetch ? ' @ ' + s.pfz.last_fetch : ''));
+            function applySource(dotId, ageId, src) {
+                if (!src) return;
+                setInd(dotId, ageId,
+                    src.grade || 'red',
+                    src.age_label || src.status || '',
+                    (src.name || dotId) + ': ' + (src.age_label || src.status || '') + (src.last_fetch ? ' @ ' + src.last_fetch : ''),
+                    src.fetching || false
+                );
             }
-            if (s.sst) {
-                var sstState = s.sst.status === 'cached' ? 'ok' : (s.sst.status === 'stale' ? 'warn' : '');
-                setInd('ind-sst', sstState, 'SST: ' + s.sst.status + (s.sst.last_fetch ? ' @ ' + s.sst.last_fetch : ''));
+            applySource('ind-pfz',    'age-pfz',    s.pfz);
+            applySource('ind-sst',    'age-sst',    s.sst);
+            applySource('ind-chl',    'age-chl',    s.chl);
+            applySource('ind-wind',   'age-wind',   s.wind);
+            applySource('ind-incois', 'age-incois', s.incois);
+            // AI indicator stays local (no backend status for it)
+            var ac2 = localStorage.getItem('ds_agent_v1');
+            if (ac2 && ac2.length > 10) {
+                try {
+                    var acd = JSON.parse(ac2);
+                    var ageMins = acd.ts ? Math.round((Date.now() - acd.ts) / 60000) : null;
+                    setInd('ind-ai', 'age-ai', ageMins !== null && ageMins < 240 ? 'green' : 'orange',
+                        ageMins !== null ? ageMins + 'min ago' : 'cached',
+                        'AI analysis: ' + (ageMins !== null ? ageMins + 'min ago' : 'cached'), false);
+                } catch(e) {}
             }
-            if (s.incois) {
-                var incState = s.incois.status === 'cached' ? 'ok' : (s.incois.status === 'stale' ? 'warn' : '');
-                setInd('ind-incois', incState, 'INCOIS: ' + s.incois.status + (s.incois.last_fetch ? ' @ ' + s.incois.last_fetch : ''));
-            }
-            if (s.openmeteo) {
-                setInd('ind-wind', s.openmeteo.status === 'live' ? 'warn' : '', 'Wind/Wave: ' + s.openmeteo.status + ' (synthetic grid)');
-            }
-            if (s.cmems && !s.cmems.authenticated) {
-                var curEl = document.getElementById('ind-sst');
-                if (curEl) curEl.title = (curEl.title || '') + ' | CMEMS: no credentials';
-            }
-        }).catch(function(){});
+        }).catch(function(){
+            // Network error — don't change indicators, keep last known state
+        });
     }
 }
-// Run indicator check every 30 seconds
-setInterval(updateSyncIndicators, 30000);
-// Also run shortly after page load
+// Poll every 60 seconds
+setInterval(updateSyncIndicators, 60000);
+// Run immediately on load and again after 3s (after data may have loaded)
+updateSyncIndicators();
 setTimeout(updateSyncIndicators, 3000);
 
 // ── Last Agent Zones persistence ─────────────────────────────────────────────

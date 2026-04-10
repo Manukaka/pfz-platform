@@ -269,31 +269,48 @@ def _fallback_chlorophyll():
 # 5. SST — Open-Meteo Marine
 # ══════════════════════════════════════════════════════════════════════════════
 def fetch_sst():
-    """Fetch SST across a full Arabian Sea grid (4-degree spacing for speed)."""
-    print("Fetching SST data (full Arabian Sea grid) …")
+    """
+    Fetch SST across Indian West Coast at 1° spacing (high-res near-shore) +
+    2° spacing for open Arabian Sea (speed balance).
+    Total: ~80 points, covers Kerala–Gujarat coast accurately.
+    """
+    print("Fetching SST data (high-res west coast grid) …")
     points = []
+    seen = set()
 
-    # 4-degree spacing: covers 5–25°N, 55–77°E → 6×7 = 42 points (fast, good coverage)
-    sst_lats = [v for v in range(5, 26, 4)]   # [5, 9, 13, 17, 21, 25]
-    sst_lons = [v for v in range(55, 78, 4)]  # [55, 59, 63, 67, 71, 75]
+    # High-resolution west coast strip: 1° spacing, 8–24°N, 66–77°E
+    west_coast_lats = [round(8 + i, 1) for i in range(17)]   # 8–24°N (17 pts)
+    west_coast_lons = [round(66 + i, 1) for i in range(12)]  # 66–77°E (12 pts)
 
-    for lat in sst_lats:
-        for lon in sst_lons:
-            h = fetch_om(
-                "https://marine-api.open-meteo.com/v1/marine",
-                lat, lon,
-                {"hourly": "sea_surface_temperature", "forecast_days": 1}
-            )
-            sst = latest_value(h, "sea_surface_temperature")
-            if sst and 15 < sst < 35:   # sanity check: valid ocean SST range
-                points.append({"lat": lat, "lon": lon, "sst": round(sst, 2)})
-                print(f"  SST ({lat},{lon}): {sst:.1f}°C")
-            else:
-                print(f"  SST ({lat},{lon}): no data / out of range")
+    # Coarser offshore grid: 2° spacing, covers 5–25°N, 55–66°E (open sea)
+    offshore_lats = [v for v in range(5, 26, 2)]
+    offshore_lons = [v for v in range(55, 67, 2)]
+
+    all_points = (
+        [(lat, lon) for lat in west_coast_lats for lon in west_coast_lons] +
+        [(lat, lon) for lat in offshore_lats for lon in offshore_lons]
+    )
+
+    for lat, lon in all_points:
+        key = (lat, lon)
+        if key in seen:
+            continue
+        seen.add(key)
+        h = fetch_om(
+            "https://marine-api.open-meteo.com/v1/marine",
+            lat, lon,
+            {"hourly": "sea_surface_temperature", "forecast_days": 1}
+        )
+        sst = latest_value(h, "sea_surface_temperature")
+        if sst and 15 < sst < 35:
+            points.append({"lat": lat, "lon": lon, "sst": round(sst, 2)})
+            print(f"  SST ({lat},{lon}): {sst:.1f}°C")
+        else:
+            print(f"  SST ({lat},{lon}): skip (val={sst})")
 
     with open("sst_data.json", "w") as f:
-        json.dump({"updated": NOW, "points": points}, f)
-    print(f"[OK] sst_data.json saved ({len(points)}/{len(sst_lats)*len(sst_lons)} points)")
+        json.dump({"updated": NOW, "source": "Open-Meteo Marine", "points": points}, f)
+    print(f"[OK] sst_data.json saved ({len(points)}/{len(all_points)} pts)")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # META
