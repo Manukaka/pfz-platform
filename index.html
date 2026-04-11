@@ -120,6 +120,14 @@
         .lang-btn.active { background:var(--accent); color:#000; border-color:var(--accent); }
         #map { position:fixed; top:48px; left:0; right:0; bottom:32px; z-index:1; }
         #layers-btn { display:none; }
+        #layers-toggle-btn {
+            transition: all 0.3s;
+        }
+        #layers-toggle-btn:hover {
+            background: rgba(0,200,255,0.15);
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
         #layer-panel {
             display:none;
             position:fixed; top:90px; left:10px;
@@ -394,6 +402,22 @@
         @keyframes glow-pulse {
             0%, 100% { opacity: 1; filter: drop-shadow(0 0 6px currentColor); }
             50% { opacity: 0.7; filter: drop-shadow(0 0 2px currentColor); }
+        }
+        /* INCOIS marker pulse */
+        .incois-marker-pulse {
+            animation: incoisPulse 2s ease-in-out infinite;
+        }
+        @keyframes incoisPulse {
+            0%, 100% { box-shadow: 0 0 6px currentColor; }
+            50% { box-shadow: 0 0 16px currentColor; }
+        }
+        /* Samudra marker pulse */
+        .samudra-marker-pulse {
+            animation: samudraPulse 2.5s ease-in-out infinite;
+        }
+        @keyframes samudraPulse {
+            0%, 100% { box-shadow: 0 0 6px #00ddff; transform: scale(1); }
+            50% { box-shadow: 0 0 18px #00ddff; transform: scale(1.15); }
         }
         /* PFZ Pulsing center marker */
         .pfz-center-marker {
@@ -933,7 +957,39 @@
 <div id="map"></div>
 <div id="vel-status"></div>
 
-<!-- data-layers-panel removed as requested -->
+<!-- Agent Analysis Button -->
+<button id="agent-btn" onclick="runAgentAnalysis()">🤖 AI Agent Analysis</button>
+
+<!-- Floating Data Layers Panel -->
+<div id="data-layers-panel" style="position:fixed;top:58px;left:10px;width:210px;background:var(--panel);border:2px solid var(--border);border-radius:10px;z-index:600;backdrop-filter:blur(16px);box-shadow:0 6px 20px rgba(0,0,0,0.4);display:none;overflow:hidden;">
+    <div style="padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
+        <span style="font-size:9px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;">DATA LAYERS</span>
+        <span style="cursor:pointer;color:var(--dim);font-size:14px;" onclick="document.getElementById('data-layers-panel').style.display='none'">✕</span>
+    </div>
+    <div style="padding:8px 12px;">
+        <div class="dlp-header">🌊 OCEAN DATA</div>
+        <div class="dlp-item"><span class="dlp-item-name">🌬️ Wind Animation</span><div class="dlp-tog" id="tog-wind-main" onclick="toggleWindMain(this)"></div></div>
+        <div class="dlp-item"><span class="dlp-item-name">🌊 Wave Animation</span><div class="dlp-tog" id="tog-wave-main" onclick="toggleWaveMain(this)"></div></div>
+        <div class="dlp-item"><span class="dlp-item-name">🔄 Current Animation</span><div class="dlp-tog" id="tog-current-main" onclick="toggleCurrentMain(this)"></div></div>
+        <div class="dlp-item"><span class="dlp-item-name">🌡️ SST Heatmap</span><div class="dlp-tog" id="tog-sst-main" onclick="toggleSST(this)"></div></div>
+        <div class="dlp-item"><span class="dlp-item-name">🌿 Chlorophyll</span><div class="dlp-tog" id="tog-chl-main" onclick="toggleCHL(this)"></div></div>
+
+        <div class="dlp-header" style="margin-top:8px;">📍 PFZ SOURCES</div>
+        <div class="dlp-item"><span class="dlp-item-name" style="color:#ff4444;">◉ Algorithm PFZ</span><div class="dlp-tog on" id="tog-algo-pfz" onclick="togglePFZ(this)"></div></div>
+        <div class="dlp-item"><span class="dlp-item-name" style="color:#ffff00;">◉ AI Agent PFZ</span><div class="dlp-tog" id="tog-agent-pfz" onclick="toggleAgentPFZ(this)"></div></div>
+        <div class="dlp-item"><span class="dlp-item-name" style="color:#ff88ff;">◉ INCOIS PFZ</span><div class="dlp-tog" id="tog-incois-pfz" onclick="toggleINCOISMarkers(this)"></div></div>
+        <div class="dlp-item"><span class="dlp-item-name" style="color:#00ddff;">◉ Samudra 2.0</span><div class="dlp-tog" id="tog-samudra-pfz" onclick="toggleSamudraPFZ(this)"></div></div>
+
+        <div class="dlp-header" style="margin-top:8px;">🗺️ OVERLAYS</div>
+        <div class="dlp-item"><span class="dlp-item-name">🔲 EEZ Boundary</span><div class="dlp-tog on" id="tog-eez-main" onclick="toggleEEZ(this)"></div></div>
+        <div class="dlp-item"><span class="dlp-item-name">🚢 FLC Ports</span><div class="dlp-tog on" id="tog-flc-main" onclick="toggleFLC(this)"></div></div>
+        <div class="dlp-item"><span class="dlp-item-name">🌊 Bathymetry</span><div class="dlp-tog" id="tog-bathy-main" onclick="toggleBathymetry(this)"></div></div>
+        <div class="dlp-item"><span class="dlp-item-name">⚓ Sea Marks</span><div class="dlp-tog" id="tog-seamark-main" onclick="toggleSeaMarks(this)"></div></div>
+    </div>
+</div>
+
+<!-- Layers Toggle Button (fixed) -->
+<button id="layers-toggle-btn" onclick="toggleDataLayersPanel()" style="position:fixed;top:58px;left:10px;z-index:601;background:var(--panel);border:1px solid var(--border);color:var(--accent);padding:7px 12px;border-radius:8px;font-size:11px;cursor:pointer;font-family:'Space Mono',monospace;box-shadow:0 4px 12px rgba(0,0,0,0.3);">🗺️ Layers</button>
 
 <!-- 6-Day Forecast Panel -->
 <div id="forecast-panel">
@@ -1050,6 +1106,30 @@
     <div style="font-size:10px;color:var(--dim);line-height:1.8;">
         • INCOIS SAMUDRA<br>• Copernicus CMEMS SST<br>• Open-Meteo Marine API<br>• NASA ERDDAP Chlorophyll-a<br>• ETOPO1 Bathymetry
     </div>
+
+    <div class="ms-title">⚙️ Settings</div>
+    <div class="tog-row"><span>Auto-refresh PFZ</span><div class="tog on" id="tog-auto-refresh" onclick="toggleAutoRefresh(this)"></div></div>
+    <div class="tog-row"><span>Auto-load Wind</span><div class="tog" id="tog-auto-wind" onclick="toggleAutoWind(this)"></div></div>
+    <div class="tog-row"><span>Dark Map Theme</span><div class="tog on" id="tog-dark-theme" onclick="toggleDarkTheme(this)"></div></div>
+    <div class="tog-row"><span>Show Legend</span><div class="tog on" id="tog-legend" onclick="toggleLegendVis(this)"></div></div>
+    <div class="tog-row"><span>PFZ Notifications</span><div class="tog on" id="tog-notif" onclick="toggleNotif(this)"></div></div>
+    <div class="tog-row"><span>Offline Cache</span><div class="tog on" id="tog-cache" onclick="toggleCache(this)"></div></div>
+    <div style="font-size:9px;color:var(--dim);margin-top:6px;">
+        <div>Update interval: <select id="refresh-interval" onchange="setRefreshInterval(this.value)" style="background:var(--panel);border:1px solid var(--border);color:var(--accent);padding:2px 4px;border-radius:3px;font-size:9px;font-family:'Space Mono',monospace;">
+            <option value="15">15 min</option>
+            <option value="30" selected>30 min</option>
+            <option value="60">60 min</option>
+        </select></div>
+    </div>
+
+    <div class="ms-title">📱 Samudra 2.0 Integration</div>
+    <button class="menu-btn" onclick="fetchSamudraData()">🔄 Fetch Samudra Coordinates</button>
+    <button class="menu-btn" onclick="openSamudraApp()">📱 Open Samudra 2.0 App</button>
+    <div id="samudra-status" style="font-size:9px;color:var(--dim);margin-top:4px;"></div>
+
+    <div class="ms-title">📄 Export</div>
+    <button class="menu-btn" onclick="exportPDF()">📄 Export PDF Report</button>
+    <button class="menu-btn" onclick="exportGeoJSON()">🗺️ Export GeoJSON</button>
 </div>
 
 <div id="incois-panel">
@@ -1067,9 +1147,12 @@
 
 <div id="legend">
     <div class="leg-title">MAP LEGEND</div>
-    <div class="leg-row"><div class="leg-line" style="border-color:#ff4444;"></div><span>उच्च PFZ</span></div>
-    <div class="leg-row"><div class="leg-line" style="border-color:#ffaa00;"></div><span>मध्यम PFZ</span></div>
-    <div class="leg-row"><div class="leg-line" style="border-color:#00ff88;"></div><span>कमी PFZ</span></div>
+    <div class="leg-row"><div class="leg-line" style="border-color:#ff4444;"></div><span>उच्च PFZ (Algorithm)</span></div>
+    <div class="leg-row"><div class="leg-line" style="border-color:#ffaa00;"></div><span>मध्यम PFZ (Algorithm)</span></div>
+    <div class="leg-row"><div class="leg-line" style="border-color:#00ff88;"></div><span>कमी PFZ (Algorithm)</span></div>
+    <div class="leg-row"><div class="leg-line" style="border-color:#ffff00;border-style:dashed;"></div><span>AI Agent PFZ</span></div>
+    <div class="leg-row"><div style="width:8px;height:8px;border-radius:50%;background:#ff88ff;border:2px solid #fff;"></div><span>INCOIS Advisory</span></div>
+    <div class="leg-row"><div style="width:8px;height:8px;border-radius:50%;background:#00ddff;border:2px solid #fff;"></div><span>Samudra 2.0</span></div>
     <div class="leg-row"><div style="width:24px;height:2px;background:#ff3333;"></div><span>EEZ</span></div>
     <div class="leg-row"><div style="width:8px;height:8px;border-radius:50%;background:#00aaff;border:2px solid #fff;"></div><span>FLC Port</span></div>
 </div>
@@ -1083,6 +1166,10 @@
     <div class="sb-item"><span class="sb-lbl">खोली</span><span id="sb-depth">-- m</span></div>
     <div class="sb-item"><span class="sb-lbl">SST</span><span id="sb-sst">--°C</span></div>
     <div class="sb-item"><span class="sb-lbl">CHL</span><span id="sb-chl">-- mg/m³</span></div>
+    <div class="sb-item" id="connectivity-indicator" style="gap:5px;">
+        <span id="conn-dot" style="width:8px;height:8px;border-radius:50%;background:#555;display:inline-block;animation:pulse-dot 2s infinite;"></span>
+        <span id="conn-text" style="font-size:9px;color:var(--dim);">Checking...</span>
+    </div>
     <div class="sb-item" style="margin-left:auto;gap:8px;">
         <span class="sb-lbl">DATA</span>
         <span id="sb-refresh" style="color:var(--dim);">—</span>
@@ -2917,9 +3004,9 @@ document.getElementById('log-date').textContent=new Date().toLocaleDateString('m
 // ══════════════════════════════════════════════════════════════════════════════
 setTimeout(function() {
     console.log('🌬️ Auto-starting wind layer...');
-    const windToggle = document.getElementById('tog-wind-main');
+    const windToggle = document.getElementById('tog-wind');
     if (windToggle && !windToggle.classList.contains('on')) {
-        toggleWindMain(windToggle);
+        toggleWind(windToggle);
     }
 }, 3000);
 
@@ -2927,12 +3014,12 @@ setTimeout(function() {
 // 6-DAY MARINE FORECAST — auto-load on page start
 // ══════════════════════════════════════════════════════════════════════════════
 (function positionForecastPanel(){
-    // Position forecast panel just below data-layers-panel
-    const dlp = document.getElementById('data-layers-panel');
+    // Position forecast panel centered on screen
     const fp = document.getElementById('forecast-panel');
-    if (dlp && fp) {
-        const r = dlp.getBoundingClientRect();
-        fp.style.top = (r.bottom + 6) + 'px';
+    if (fp) {
+        fp.style.top = '50%';
+        fp.style.left = '50%';
+        fp.style.transform = 'translate(-50%, -50%)';
     }
 })();
 
@@ -3401,6 +3488,438 @@ window.addEventListener('appinstalled', () => {
     if (btn) btn.remove();
     console.log('[PWA] App installed successfully');
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CONNECTIVITY INDICATOR — Real-time API health monitoring
+// ══════════════════════════════════════════════════════════════════════════════
+let connStatus = { online: false, lastCheck: null, apiCount: 0 };
+
+async function checkConnectivity() {
+    const dot = document.getElementById('conn-dot');
+    const text = document.getElementById('conn-text');
+    if (!dot || !text) return;
+
+    try {
+        const r = await fetch('/api/health?_t=' + Date.now(), { signal: AbortSignal.timeout(5000) });
+        if (r.ok) {
+            const data = await r.json();
+            connStatus.online = true;
+            connStatus.lastCheck = new Date();
+            connStatus.apiCount = data.data_sources_active || 0;
+            dot.style.background = '#00ff88';
+            dot.style.boxShadow = '0 0 8px #00ff88';
+            text.style.color = 'var(--accent2)';
+            text.textContent = 'API ✓ ' + connStatus.apiCount + ' sources';
+        } else {
+            throw new Error('API error');
+        }
+    } catch (e) {
+        if (navigator.onLine) {
+            dot.style.background = '#ffaa00';
+            dot.style.boxShadow = '0 0 8px #ffaa00';
+            text.style.color = 'var(--warn)';
+            text.textContent = 'API ⚠';
+            connStatus.online = true;
+        } else {
+            dot.style.background = '#ff4444';
+            dot.style.boxShadow = '0 0 8px #ff4444';
+            text.style.color = 'var(--danger)';
+            text.textContent = 'OFFLINE';
+            connStatus.online = false;
+        }
+    }
+}
+// Check every 30 seconds
+checkConnectivity();
+setInterval(checkConnectivity, 30000);
+// Listen for online/offline events
+window.addEventListener('online', checkConnectivity);
+window.addEventListener('offline', checkConnectivity);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DATA LAYERS PANEL TOGGLE
+// ══════════════════════════════════════════════════════════════════════════════
+function toggleDataLayersPanel() {
+    const panel = document.getElementById('data-layers-panel');
+    const btn = document.getElementById('layers-toggle-btn');
+    if (panel.style.display === 'block') {
+        panel.style.display = 'none';
+        btn.style.borderColor = 'var(--border)';
+    } else {
+        panel.style.display = 'block';
+        btn.style.borderColor = 'var(--accent)';
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CHLOROPHYLL LAYER TOGGLE
+// ══════════════════════════════════════════════════════════════════════════════
+let chlLayer = null;
+function toggleCHL(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        if (!chlLayer && chlGrid.length > 0) {
+            chlLayer = L.layerGroup();
+            chlGrid.forEach(pt => {
+                const chl = pt.chl;
+                // Color: low CHL = blue, high CHL = green
+                const hue = Math.min(chl * 300, 120); // 0=blue, 120=green
+                const color = `hsl(${hue}, 80%, 45%)`;
+                const marker = L.circleMarker([pt.lat, pt.lon], {
+                    radius: 6, fillColor: color, color: color,
+                    weight: 1, opacity: 0.5, fillOpacity: 0.35
+                });
+                marker.bindTooltip(`CHL: ${chl.toFixed(3)} mg/m³`, {sticky: true});
+                chlLayer.addLayer(marker);
+            });
+        }
+        if (chlLayer) map.addLayer(chlLayer);
+    } else {
+        if (chlLayer) map.removeLayer(chlLayer);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// INCOIS MAP MARKERS — Plot INCOIS advisory zones on the map
+// ══════════════════════════════════════════════════════════════════════════════
+let incoisMarkerGroup = L.layerGroup();
+let incoisMarkersLoaded = false;
+
+function loadINCOISMapMarkers() {
+    if (incoisMarkersLoaded) return;
+    fetch('/api/incois/advisory?_t=' + Date.now())
+        .then(r => r.json())
+        .then(data => {
+            incoisMarkerGroup.clearLayers();
+            const sectors = data.sectors || {};
+            Object.values(sectors).forEach(sector => {
+                (sector.zones || []).forEach(z => {
+                    if (!z.lat || !z.lon) return;
+                    const confColor = z.confidence === 'high' ? '#ff4444' : (z.confidence === 'medium' ? '#ffaa00' : '#00ff88');
+                    const icon = L.divIcon({
+                        className: '',
+                        html: `<div style="width:14px;height:14px;background:${confColor};border:2px solid #fff;border-radius:50%;box-shadow:0 0 10px ${confColor};display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:bold;">I</div>`,
+                        iconSize: [14, 14], iconAnchor: [7, 7]
+                    });
+                    const marker = L.marker([z.lat, z.lon], { icon });
+                    const popup = `<div style="font-family:'Space Mono',monospace;min-width:200px;">
+                        <div style="font-size:11px;font-weight:700;color:#ff88ff;margin-bottom:6px;border-bottom:1px solid rgba(255,136,255,0.3);padding-bottom:4px;">🏛️ INCOIS Advisory Zone</div>
+                        <div style="font-size:10px;line-height:1.6;">
+                            <div style="color:var(--dim);">Confidence: <span style="color:${confColor};font-weight:700;text-transform:uppercase;">${z.confidence || 'medium'} (${((z.score || 0) * 100).toFixed(0)}%)</span></div>
+                            <div style="color:var(--dim);">SST: <span style="color:var(--warn);">${z.sst || '--'}°C</span></div>
+                            <div style="color:var(--dim);">Depth: <span style="color:var(--accent);">${z.depth_m || '--'} m</span></div>
+                            ${z.fish_species ? '<div style="color:var(--dim);">Fish: <span style="color:var(--accent2);font-size:9px;">' + z.fish_species + '</span></div>' : ''}
+                            ${z.best_fishing_time ? '<div style="color:var(--dim);">Best Time: <span style="color:#ff88ff;">' + z.best_fishing_time + '</span></div>' : ''}
+                            ${z.nearest_landmark ? '<div style="color:var(--dim);">Near: <span style="color:var(--text);">' + z.nearest_landmark + '</span></div>' : ''}
+                        </div>
+                    </div>`;
+                    marker.bindPopup(popup, { maxWidth: 280 });
+                    incoisMarkerGroup.addLayer(marker);
+                });
+            });
+            incoisMarkersLoaded = true;
+            console.log('✅ INCOIS markers loaded:', incoisMarkerGroup.getLayers().length);
+        })
+        .catch(e => console.warn('INCOIS markers load failed:', e));
+}
+
+function toggleINCOISMarkers(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        loadINCOISMapMarkers();
+        incoisMarkerGroup.addTo(map);
+    } else {
+        map.removeLayer(incoisMarkerGroup);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// AGENT PFZ LAYER TOGGLE
+// ══════════════════════════════════════════════════════════════════════════════
+function toggleAgentPFZ(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        agentPFZGroup.addTo(map);
+        if (agentZonesData.length === 0) {
+            // Auto-run agent analysis if no data yet
+            runAgentAnalysis();
+        }
+    } else {
+        map.removeLayer(agentPFZGroup);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SAMUDRA 2.0 INTEGRATION — Fetch INCOIS Samudra app coordinates
+// ══════════════════════════════════════════════════════════════════════════════
+let samudraMarkerGroup = L.layerGroup();
+let samudraData = [];
+
+async function fetchSamudraData() {
+    const status = document.getElementById('samudra-status');
+    if (status) status.textContent = '⟳ Fetching Samudra 2.0 data...';
+
+    try {
+        // Try fetching from our backend proxy for Samudra data
+        const r = await fetch('/api/samudra/coordinates?_t=' + Date.now());
+        if (r.ok) {
+            const data = await r.json();
+            displaySamudraZones(data);
+            if (status) status.textContent = '✅ ' + (data.zones?.length || 0) + ' Samudra zones loaded';
+        } else {
+            // Fallback: use INCOIS advisory data as Samudra proxy
+            const r2 = await fetch('/api/incois/advisory?_t=' + Date.now());
+            if (r2.ok) {
+                const data = await r2.json();
+                const zones = [];
+                Object.values(data.sectors || {}).forEach(sector => {
+                    (sector.zones || []).forEach(z => {
+                        if (z.lat && z.lon) zones.push(z);
+                    });
+                });
+                displaySamudraZones({ zones, source: 'INCOIS Advisory (proxy)' });
+                if (status) status.textContent = '⚠️ Using INCOIS proxy: ' + zones.length + ' zones';
+            }
+        }
+    } catch (e) {
+        console.warn('Samudra fetch failed:', e);
+        if (status) status.textContent = '❌ Failed to fetch Samudra data';
+    }
+}
+
+function displaySamudraZones(data) {
+    samudraMarkerGroup.clearLayers();
+    samudraData = data.zones || [];
+
+    samudraData.forEach(z => {
+        if (!z.lat || !z.lon || isLand(z.lat, z.lon)) return;
+        const icon = L.divIcon({
+            className: '',
+            html: `<div style="width:16px;height:16px;background:rgba(0,221,255,0.3);border:2px solid #00ddff;border-radius:50%;box-shadow:0 0 12px rgba(0,221,255,0.6);display:flex;align-items:center;justify-content:center;font-size:9px;color:#00ddff;font-weight:bold;">S</div>`,
+            iconSize: [16, 16], iconAnchor: [8, 8]
+        });
+        const marker = L.marker([z.lat, z.lon], { icon });
+        const popup = `<div style="font-family:'Space Mono',monospace;min-width:200px;">
+            <div style="font-size:11px;font-weight:700;color:#00ddff;margin-bottom:6px;border-bottom:1px solid rgba(0,221,255,0.3);padding-bottom:4px;">📱 Samudra 2.0 Zone</div>
+            <div style="font-size:10px;line-height:1.6;">
+                <div style="color:var(--dim);">Location: <span style="color:var(--accent2);">${z.lat.toFixed(3)}°N, ${z.lon.toFixed(3)}°E</span></div>
+                ${z.sst ? '<div style="color:var(--dim);">SST: <span style="color:var(--warn);">' + z.sst + '°C</span></div>' : ''}
+                ${z.depth_m ? '<div style="color:var(--dim);">Depth: <span style="color:var(--accent);">' + z.depth_m + ' m</span></div>' : ''}
+                ${z.fish_species ? '<div style="color:var(--dim);">Fish: <span style="color:var(--accent2);font-size:9px;">' + z.fish_species + '</span></div>' : ''}
+                <div style="color:var(--dim);margin-top:4px;font-size:8px;">Source: ${data.source || 'INCOIS Samudra 2.0'}</div>
+            </div>
+        </div>`;
+        marker.bindPopup(popup, { maxWidth: 280 });
+        samudraMarkerGroup.addLayer(marker);
+    });
+
+    // Auto-show on map
+    const tog = document.getElementById('tog-samudra-pfz');
+    if (tog && !tog.classList.contains('on')) {
+        tog.classList.add('on');
+    }
+    samudraMarkerGroup.addTo(map);
+}
+
+function toggleSamudraPFZ(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        if (samudraData.length === 0) fetchSamudraData();
+        samudraMarkerGroup.addTo(map);
+    } else {
+        map.removeLayer(samudraMarkerGroup);
+    }
+}
+
+function openSamudraApp() {
+    // Try to open Samudra app on Android via intent
+    const androidIntent = 'intent://samudra.incois.gov.in/#Intent;scheme=https;package=in.gov.incois.samudra;end';
+    const webFallback = 'https://samudra.incois.gov.in/';
+
+    // Check if running in Capacitor/WebView
+    if (window.Capacitor && Capacitor.isNativePlatform()) {
+        // Try opening Samudra app
+        try {
+            window.open(androidIntent, '_blank');
+        } catch (e) {
+            window.open(webFallback, '_blank');
+        }
+    } else {
+        window.open(webFallback, '_blank');
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SETTINGS FUNCTIONS
+// ══════════════════════════════════════════════════════════════════════════════
+function toggleAutoRefresh(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        if (!pfzRefreshTimer) pfzRefreshTimer = setInterval(loadPFZLive, 30 * 60 * 1000);
+    } else {
+        if (pfzRefreshTimer) { clearInterval(pfzRefreshTimer); pfzRefreshTimer = null; }
+    }
+}
+
+function toggleAutoWind(el) {
+    el.classList.toggle('on');
+    localStorage.setItem('samudra_auto_wind', el.classList.contains('on') ? '1' : '0');
+}
+
+function toggleDarkTheme(el) {
+    el.classList.toggle('on');
+    if (!el.classList.contains('on')) {
+        document.documentElement.style.setProperty('--bg', '#e8ecf0');
+        document.documentElement.style.setProperty('--panel', 'rgba(255,255,255,0.98)');
+        document.documentElement.style.setProperty('--text', '#1a2a3a');
+        document.documentElement.style.setProperty('--dim', '#5a6a7a');
+    } else {
+        document.documentElement.style.setProperty('--bg', '#0a0f1a');
+        document.documentElement.style.setProperty('--panel', 'rgba(8,18,38,0.98)');
+        document.documentElement.style.setProperty('--text', '#e0f0ff');
+        document.documentElement.style.setProperty('--dim', '#7090a0');
+    }
+}
+
+function toggleLegendVis(el) {
+    el.classList.toggle('on');
+    document.getElementById('legend').style.display = el.classList.contains('on') ? 'block' : 'none';
+}
+
+function toggleNotif(el) {
+    el.classList.toggle('on');
+    localStorage.setItem('samudra_notif', el.classList.contains('on') ? '1' : '0');
+    if (el.classList.contains('on') && 'Notification' in window) {
+        Notification.requestPermission();
+    }
+}
+
+function toggleCache(el) {
+    el.classList.toggle('on');
+    localStorage.setItem('samudra_cache', el.classList.contains('on') ? '1' : '0');
+}
+
+function setRefreshInterval(mins) {
+    mins = parseInt(mins);
+    if (pfzRefreshTimer) clearInterval(pfzRefreshTimer);
+    pfzRefreshTimer = setInterval(loadPFZLive, mins * 60 * 1000);
+    localStorage.setItem('samudra_refresh_interval', mins);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PDF EXPORT — Generate PFZ report
+// ══════════════════════════════════════════════════════════════════════════════
+function exportPDF() {
+    // Build report content
+    const now = new Date();
+    const title = 'SAMUDRA AI - PFZ Report';
+    const date = now.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const time = now.toLocaleTimeString('en-IN');
+
+    let reportHTML = `
+    <html><head><title>${title}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+        h1 { color: #0066cc; border-bottom: 2px solid #0066cc; padding-bottom: 10px; }
+        h2 { color: #006644; margin-top: 20px; }
+        table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+        th { background: #0066cc; color: white; }
+        .high { color: #cc0000; font-weight: bold; }
+        .medium { color: #cc8800; font-weight: bold; }
+        .low { color: #008844; font-weight: bold; }
+        .footer { margin-top: 30px; font-size: 10px; color: #888; border-top: 1px solid #ddd; padding-top: 10px; }
+    </style>
+    </head><body>
+    <h1>🐟 ${title}</h1>
+    <p><strong>Date:</strong> ${date} | <strong>Time:</strong> ${time}</p>
+    <p><strong>Region:</strong> Maharashtra Coast (Arabian Sea) | <strong>Coverage:</strong> 14°N-21°N, 67°E-74.5°E</p>
+
+    <h2>Algorithm PFZ Zones</h2>
+    <table><tr><th>Zone</th><th>Type</th><th>Score</th><th>SST</th><th>Depth</th><th>Location</th><th>Fish Species</th></tr>`;
+
+    // Add algorithm PFZ zones
+    pfzGroup.eachLayer(layer => {
+        if (layer.feature) {
+            const p = layer.feature.properties;
+            const coords = layer.getLatLngs();
+            if (coords && coords.length > 0) {
+                const mid = coords[Math.floor(coords.length / 2)];
+                reportHTML += `<tr>
+                    <td>${p.zone_id || '--'}</td>
+                    <td class="${p.type || 'medium'}">${(p.type || 'medium').toUpperCase()}</td>
+                    <td>${((p.score || 0) * 100).toFixed(0)}%</td>
+                    <td>${p.sst || '--'}°C</td>
+                    <td>${p.depth_m || '--'}m</td>
+                    <td>${mid ? mid.lat.toFixed(3) + '°N, ' + mid.lng.toFixed(3) + '°E' : '--'}</td>
+                    <td>${p.fish_en || '--'}</td>
+                </tr>`;
+            }
+        }
+    });
+    reportHTML += '</table>';
+
+    // Add agent PFZ zones
+    if (agentZonesData.length > 0) {
+        reportHTML += '<h2>AI Agent PFZ Zones</h2><table><tr><th>Zone</th><th>Quality</th><th>Confidence</th><th>SST</th><th>Depth</th><th>Location</th></tr>';
+        agentZonesData.forEach((z, i) => {
+            reportHTML += `<tr>
+                <td>${i + 1}</td>
+                <td class="${z.quality}">${z.quality.toUpperCase()}</td>
+                <td>${(z.confidence * 100).toFixed(0)}%</td>
+                <td>${z.sst || '--'}°C</td>
+                <td>${z.depth_m || '--'}m</td>
+                <td>${z.center.lat.toFixed(3)}°N, ${z.center.lng.toFixed(3)}°E</td>
+            </tr>`;
+        });
+        reportHTML += '</table>';
+    }
+
+    reportHTML += `
+    <div class="footer">
+        <p>Generated by SAMUDRA AI PFZ Platform | Developer: Manoj Dhamdhere</p>
+        <p>Data Sources: INCOIS, Copernicus CMEMS, Open-Meteo Marine, NASA ERDDAP, GEBCO</p>
+        <p>⚠️ Advisory only. Verify conditions before venturing into sea.</p>
+    </div>
+    </body></html>`;
+
+    // Open in new window for printing
+    const win = window.open('', '_blank');
+    win.document.write(reportHTML);
+    win.document.close();
+    setTimeout(() => win.print(), 500);
+}
+
+function exportGeoJSON() {
+    const features = [];
+    pfzGroup.eachLayer(layer => {
+        if (layer.getLatLngs && layer.options.weight > 3) {
+            const coords = layer.getLatLngs().map(ll => [ll.lng, ll.lat]);
+            if (coords.length > 1) {
+                features.push({
+                    type: 'Feature',
+                    geometry: { type: 'LineString', coordinates: coords },
+                    properties: { source: 'algorithm', type: layer.options.color === '#ff4444' ? 'high' : layer.options.color === '#ffaa00' ? 'medium' : 'low' }
+                });
+            }
+        }
+    });
+    agentZonesData.forEach(z => {
+        features.push({
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [z.center.lng, z.center.lat] },
+            properties: { source: 'ai_agent', quality: z.quality, confidence: z.confidence }
+        });
+    });
+    const geojson = JSON.stringify({ type: 'FeatureCollection', features }, null, 2);
+    const blob = new Blob([geojson], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pfz_zones_' + new Date().toISOString().split('T')[0] + '.geojson';
+    a.click();
+    URL.revokeObjectURL(url);
+}
 
 </script>
 </body>
