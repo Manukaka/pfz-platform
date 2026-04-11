@@ -27,8 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await ApiService.instance.login(u, p);
       if (!mounted) return;
-      // After login, go to splash to preload data
-      Navigator.pushReplacementNamed(context, '/splash');
+      Navigator.pushReplacementNamed(context, '/map');
     } catch (e) {
       setState(() { _error = 'Invalid credentials'; _loading = false; });
     }

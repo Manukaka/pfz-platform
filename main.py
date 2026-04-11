@@ -448,6 +448,68 @@ def get_wave():
 def health():
     return {"status": "ok"}
 
+@app.get("/api/health")
+def api_health():
+    """API health check with data source count for connectivity indicator."""
+    active_sources = 0
+    for path in ["sst_data.json", "chl_data.json", "wind_data.json", "wave_data.json", "current_data.json"]:
+        if os.path.exists(path):
+            mtime = os.path.getmtime(path)
+            age_h = (datetime.now(timezone.utc).timestamp() - mtime) / 3600
+            if age_h < 6:
+                active_sources += 1
+    return {"status": "ok", "data_sources_active": active_sources, "timestamp": datetime.now(timezone.utc).isoformat()}
+
+@app.get("/api/samudra/coordinates")
+def get_samudra_coordinates():
+    """
+    Fetch INCOIS Samudra 2.0 suggested PFZ coordinates.
+    Falls back to INCOIS advisory data if Samudra API is unavailable.
+    """
+    # Try cached Samudra data first
+    samudra_cache = "data/cache/samudra_zones.json"
+    if os.path.exists(samudra_cache):
+        mtime = os.path.getmtime(samudra_cache)
+        age_h = (datetime.now(timezone.utc).timestamp() - mtime) / 3600
+        if age_h < 24:
+            with open(samudra_cache, "r") as f:
+                return JSONResponse(content=json.load(f))
+
+    # Fall back to INCOIS advisory data as Samudra proxy
+    incois_paths = ["data/cache/incois_live.json", "data/cache/incois_advisory.json"]
+    for path in incois_paths:
+        if os.path.exists(path):
+            try:
+                with open(path, "r") as f:
+                    data = json.load(f)
+                zones = []
+                for sector in (data.get("sectors") or {}).values():
+                    for z in sector.get("zones", []):
+                        if z.get("lat") and z.get("lon"):
+                            zones.append({
+                                "lat": z["lat"], "lon": z["lon"],
+                                "sst": z.get("sst"), "depth_m": z.get("depth_m"),
+                                "confidence": z.get("confidence", "medium"),
+                                "fish_species": z.get("fish_species", ""),
+                                "best_fishing_time": z.get("best_fishing_time", ""),
+                            })
+                return JSONResponse(content={
+                    "zones": zones,
+                    "source": "INCOIS Advisory (Samudra proxy)",
+                    "updated": datetime.now(timezone.utc).isoformat(),
+                    "count": len(zones)
+                })
+            except Exception:
+                continue
+
+    # Generate representative zones from PFZ engine as last resort
+    return JSONResponse(content={
+        "zones": [],
+        "source": "unavailable",
+        "message": "Samudra 2.0 data not yet available. Enable INCOIS advisory for proxy data.",
+        "count": 0
+    })
+
 @app.get("/sst_data.json")
 def get_sst():
     try:

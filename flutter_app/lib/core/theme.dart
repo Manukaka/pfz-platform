@@ -21,7 +21,7 @@ class AppTheme {
       surface: panel,
       error: danger,
     ),
-    fontFamily: 'SpaceMono',
+    fontFamily: null, // Use system default — SpaceMono not bundled
     appBarTheme: const AppBarTheme(
       backgroundColor: panel,
       foregroundColor: textPrimary,

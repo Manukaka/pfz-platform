@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'core/theme.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/map_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,12 +22,12 @@ class DaryasagarApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '?????????',
+      title: 'दर्यासागर',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       routes: {
-        '/splash': (_) => const SplashScreen(),
-        '/login':  (_) => const LoginScreen(),
+        '/login': (_) => const LoginScreen(),
+        '/map':   (_) => const MapScreen(),
       },
       home: const SplashScreen(),
     );

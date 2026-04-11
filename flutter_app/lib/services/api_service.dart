@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants.dart';
 import '../models/pfz_zone.dart';
 
@@ -13,11 +12,6 @@ class ApiService {
 
   String? get token => _token;
   bool get isLoggedIn => _token != null;
-
-  Future<void> init() async {
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString('samudra_token');
-  }
 
   Map<String, String> get _authHeaders => {
     'Authorization': 'Bearer $_token',
@@ -35,29 +29,13 @@ class ApiService {
     if (r.statusCode == 200) {
       final data = jsonDecode(r.body) as Map<String, dynamic>;
       _token = data['token'] as String;
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('samudra_token', _token!);
-      await prefs.setString('samudra_role', (data['user']?['role'] ?? '') as String);
       return data;
     }
     throw Exception('Invalid credentials');
   }
 
-  Future<Map<String, dynamic>> checkSession() async {
-    if (_token == null) throw Exception('Not logged in');
-    final r = await http.get(
-      Uri.parse(kApiSession),
-      headers: _authHeaders,
-    ).timeout(const Duration(seconds: 12));
-    if (r.statusCode == 200) return jsonDecode(r.body) as Map<String, dynamic>;
-    throw Exception('Session expired');
-  }
-
   Future<void> logout() async {
     _token = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('samudra_token');
-    await prefs.remove('samudra_role');
   }
 
   // ── PFZ DATA ──────────────────────────────────────────────────────────────

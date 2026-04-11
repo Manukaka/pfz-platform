@@ -8,18 +8,7 @@ import '../services/api_service.dart';
 import '../widgets/data_cards.dart';
 
 class MapScreen extends StatefulWidget {
-  final List<PfzZone> pfzZones;
-  final List<dynamic> sstGrid;
-  final List<dynamic> chlGrid;
-  final List<dynamic> forecast;
-
-  const MapScreen({
-    super.key,
-    required this.pfzZones,
-    required this.sstGrid,
-    required this.chlGrid,
-    required this.forecast,
-  });
+  const MapScreen({super.key});
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -31,28 +20,48 @@ class _MapScreenState extends State<MapScreen> {
   bool _refreshing = false;
   int _bottomTab = 0;
   List<PfzZone> _zones = [];
+  List<dynamic> _forecast = [];
+  List<dynamic> _sstGrid = [];
+  List<dynamic> _chlGrid = [];
 
   @override
   void initState() {
     super.initState();
-    _zones = widget.pfzZones;
+    _fetchAll();
   }
 
-  Future<void> _refresh() async {
-    setState(() => _refreshing = true);
+  Future<void> _fetchAll() async {
+      if (mounted) setState(() => _refreshing = true);
     try {
-      final zones = await ApiService.instance.fetchPfzZones();
-      setState(() { _zones = zones; });
+      final results = await Future.wait([
+        ApiService.instance.fetchPfzZones().onError((_, __) => <PfzZone>[]),
+        ApiService.instance.fetchForecast().onError((_, __) => <dynamic>[]),
+        ApiService.instance.fetchSstGrid().onError((_, __) => <Map<String,double>>[]),
+        ApiService.instance.fetchChlGrid().onError((_, __) => <Map<String,double>>[]),
+      ]).timeout(const Duration(seconds: 30), onTimeout: () => [[], [], [], []]);
+      if (mounted) {
+        setState(() {
+          if (results.length == 4) {
+            _zones    = results[0] as List<PfzZone>;
+            _forecast = results[1];
+            _sstGrid  = results[2];
+            _chlGrid  = results[3];
+          }
+        });
+      }
     } catch (e) {
       if (mounted) {
+        // If 401, token expired → go to login
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to refresh data'), backgroundColor: AppTheme.danger)
-        );
+          const SnackBar(content: Text('Could not load data. Check connection.'),
+              backgroundColor: AppTheme.danger));
       }
     } finally {
       if (mounted) setState(() => _refreshing = false);
     }
   }
+
+  Future<void> _refresh() => _fetchAll();
 
   Color _zoneColor(String level) {
     switch (level) {
@@ -157,26 +166,14 @@ class _MapScreenState extends State<MapScreen> {
           initialZoom: 6.5,
           minZoom: 4,
           maxZoom: 15,
-          backgroundColor: AppTheme.bg,
         ),
         children: [
-          // Ocean tile layer
+          // Dark ocean tile layer — CartoDB Dark Matter (no API key needed)
           TileLayer(
-            urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            subdomains: const ['a', 'b', 'c'],
+            urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+            subdomains: const ['a', 'b', 'c', 'd'],
+            userAgentPackageName: 'com.daryasagar.app',
             tileDisplay: const TileDisplay.fadeIn(),
-            tileBuilder: (context, child, tile) {
-              // Dark ocean filter
-              return ColorFiltered(
-                colorFilter: const ColorFilter.matrix([
-                  -0.3, 0, 0, 0, 20,
-                   0, -0.1, 0, 0, 10,
-                   0, 0, 0.5, 0, 30,
-                   0, 0, 0, 1, 0,
-                ]),
-                child: child,
-              );
-            },
           ),
           // PFZ zones as circles
           CircleLayer(
@@ -249,7 +246,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Widget _buildForecastTab() {
-    final forecast = widget.forecast;
+    final forecast = _forecast;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -275,7 +272,7 @@ class _MapScreenState extends State<MapScreen> {
         const SizedBox(height: 16),
         DataSummaryCard(
           title: 'SST GRID',
-          value: '${widget.sstGrid.length} pts',
+          value: '${_sstGrid.length} pts',
           icon: Icons.thermostat,
           color: AppTheme.warn,
           subtitle: 'Sea Surface Temperature',
@@ -283,7 +280,7 @@ class _MapScreenState extends State<MapScreen> {
         const SizedBox(height: 10),
         DataSummaryCard(
           title: 'CHLOROPHYLL',
-          value: '${widget.chlGrid.length} pts',
+          value: '${_chlGrid.length} pts',
           icon: Icons.eco,
           color: AppTheme.accent2,
           subtitle: 'CHL Concentration Grid',

@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../core/theme.dart';
-import '../models/pfz_zone.dart';
-import '../services/api_service.dart';
-import 'map_screen.dart';
 import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -20,9 +17,10 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _boot()
-          .timeout(const Duration(seconds: 35), onTimeout: _goLogin)
-          .catchError((_) => _goLogin());
+      _boot().catchError((e, st) {
+        debugPrint('BOOT ERROR: $e\n$st');
+        _goLogin();
+      });
     });
   }
 
@@ -32,70 +30,10 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _boot() async {
-    try {
-      await ApiService.instance.init();
-    } catch (_) {
-      _goLogin();
-      return;
-    }
-    _set('CONNECTING TO SERVER...', 0.15);
-
-    if (!ApiService.instance.isLoggedIn) {
-      await Future.delayed(const Duration(milliseconds: 400));
-      _goLogin();
-      return;
-    }
-
-    // Validate session (12s timeout for Render cold-start)
-    try {
-      await ApiService.instance.checkSession();
-    } catch (_) {
-      await ApiService.instance.logout();
-      _goLogin();
-      return;
-    }
-
-    // Preload all critical data in parallel
-    _set('LOADING PFZ ZONES...', 0.35);
-    final pfzFuture  = ApiService.instance.fetchPfzZones()
-        .onError((_, __) => <PfzZone>[]);
-
-    _set('LOADING SST DATA...', 0.50);
-    final sstFuture  = ApiService.instance.fetchSstGrid()
-        .onError((_, __) => <Map<String, double>>[]);
-
-    _set('LOADING CHL DATA...', 0.65);
-    final chlFuture  = ApiService.instance.fetchChlGrid()
-        .onError((_, __) => <Map<String, double>>[]);
-
-    _set('LOADING FORECAST...', 0.80);
-    final forecastFuture = ApiService.instance.fetchForecast()
-        .onError((_, __) => <dynamic>[]);
-
-    List<PfzZone> pfzZones = [];
-    List<Map<String, double>> sstGrid = [];
-    List<Map<String, double>> chlGrid = [];
-    List<dynamic> forecast = [];
-
-    await Future.wait([
-      pfzFuture.then((v)  => pfzZones = v),
-      sstFuture.then((v)  => sstGrid  = v),
-      chlFuture.then((v)  => chlGrid  = v),
-      forecastFuture.then((v) => forecast = v),
-    ]).timeout(const Duration(seconds: 20), onTimeout: () => []);
-
     _set('READY', 1.0);
     await Future.delayed(const Duration(milliseconds: 500));
-
     if (!mounted) return;
-    Navigator.pushReplacement(context, MaterialPageRoute(
-      builder: (_) => MapScreen(
-        pfzZones: pfzZones,
-        sstGrid:  sstGrid,
-        chlGrid:  chlGrid,
-        forecast: forecast,
-      ),
-    ));
+    _goLogin();
   }
 
   void _goLogin() {
