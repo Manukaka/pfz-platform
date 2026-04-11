@@ -39,8 +39,47 @@ from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
+# ── Samudra 2.0 data service URL ──────────────────────────────────────────────
+SAMUDRA_API_URL = os.getenv("SAMUDRA_API_URL", "https://samudra-ai.onrender.com").rstrip("/")
+
 IST = pytz.timezone("Asia/Kolkata")
 _scheduler = AsyncIOScheduler(timezone=IST)
+
+
+def _fetch_from_samudra(path: str, timeout: int = 6):
+    """
+    Fetch JSON data from the Samudra 2.0 service (samudra-ai.onrender.com).
+    Returns parsed JSON on success, None on any error.
+    """
+    import requests as _req
+    try:
+        url = f"{SAMUDRA_API_URL}{path}"
+        r = _req.get(url, timeout=timeout)
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return None
+
+
+def _load_cached_velocity(filename: str, max_age_hours: float = 2.0):
+    """
+    Load a velocity JSON file (wind/wave/current) if it exists and is fresh.
+    Returns parsed JSON list on success, None otherwise.
+    """
+    try:
+        if not os.path.exists(filename):
+            return None
+        age_h = (datetime.now(timezone.utc).timestamp() - os.path.getmtime(filename)) / 3600
+        if age_h > max_age_hours:
+            return None
+        with open(filename, "r") as f:
+            data = json.load(f)
+        if isinstance(data, list) and len(data) >= 2:
+            return data
+    except Exception:
+        pass
+    return None
 
 
 @asynccontextmanager
@@ -458,24 +497,134 @@ def api_health():
             age_h = (datetime.now(timezone.utc).timestamp() - mtime) / 3600
             if age_h < 6:
                 active_sources += 1
-    return {"status": "ok", "data_sources_active": active_sources, "timestamp": datetime.now(timezone.utc).isoformat()}
+    # Check Samudra 2.0 connectivity (non-blocking best-effort)
+    samudra_ok = False
+    try:
+        import requests as _req
+        r = _req.get(f"{SAMUDRA_API_URL}/health", timeout=3)
+        samudra_ok = r.status_code == 200
+    except Exception:
+        pass
+    return {
+        "status": "ok",
+        "data_sources_active": active_sources,
+        "samudra_service": "connected" if samudra_ok else "unavailable",
+        "samudra_url": SAMUDRA_API_URL,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.get("/api/samudra/pfz")
+def get_samudra_pfz():
+    """
+    Proxy endpoint: fetch live PFZ GeoJSON directly from Samudra 2.0 service.
+    Returns the raw GeoJSON from samudra-ai.onrender.com/api/pfz/live.
+    Falls back to local /api/pfz/live if Samudra service is unreachable.
+    """
+    samudra_pfz = _fetch_from_samudra("/api/pfz/live", timeout=8)
+    if samudra_pfz and samudra_pfz.get("type") == "FeatureCollection":
+        return JSONResponse(content=samudra_pfz)
+
+    # Also try the static geojson endpoint
+    samudra_geojson = _fetch_from_samudra("/pfz_data.geojson", timeout=6)
+    if samudra_geojson and samudra_geojson.get("type") == "FeatureCollection":
+        return JSONResponse(content=samudra_geojson)
+
+    return JSONResponse(
+        content={"type": "FeatureCollection", "features": [], "source": "unavailable"},
+        status_code=503
+    )
+
 
 @app.get("/api/samudra/coordinates")
 def get_samudra_coordinates():
     """
     Fetch INCOIS Samudra 2.0 suggested PFZ coordinates.
-    Falls back to INCOIS advisory data if Samudra API is unavailable.
+    Priority: (1) fresh cache, (2) live Samudra 2.0 service, (3) INCOIS advisory proxy.
     """
-    # Try cached Samudra data first
+    # 1. Try fresh cached Samudra data
     samudra_cache = "data/cache/samudra_zones.json"
     if os.path.exists(samudra_cache):
         mtime = os.path.getmtime(samudra_cache)
         age_h = (datetime.now(timezone.utc).timestamp() - mtime) / 3600
-        if age_h < 24:
+        if age_h < 6:
             with open(samudra_cache, "r") as f:
                 return JSONResponse(content=json.load(f))
 
-    # Fall back to INCOIS advisory data as Samudra proxy
+    # 2. Try live Samudra 2.0 service — fetch PFZ zones and normalize to our format
+    pfz_live = _fetch_from_samudra("/api/pfz/live", timeout=8)
+    if pfz_live and pfz_live.get("type") == "FeatureCollection":
+        zones = []
+        for feat in pfz_live.get("features", []):
+            props = feat.get("properties", {})
+            geom = feat.get("geometry", {})
+            coords = geom.get("coordinates", [])
+            # Extract centroid from geometry
+            lat, lon = None, None
+            if geom.get("type") == "Point" and len(coords) >= 2:
+                lon, lat = coords[0], coords[1]
+            elif geom.get("type") == "Polygon" and coords:
+                ring = coords[0]
+                if ring:
+                    lon = sum(c[0] for c in ring) / len(ring)
+                    lat = sum(c[1] for c in ring) / len(ring)
+            if lat and lon:
+                zones.append({
+                    "lat": round(lat, 4),
+                    "lon": round(lon, 4),
+                    "sst": props.get("sst"),
+                    "depth_m": props.get("depth_m"),
+                    "confidence": props.get("confidence", "medium"),
+                    "fish_species": props.get("fish_species", props.get("species", "")),
+                    "best_fishing_time": props.get("best_time", props.get("best_fishing_time", "")),
+                    "score": props.get("score"),
+                })
+        if zones:
+            result = {
+                "zones": zones,
+                "source": "Samudra 2.0 (samudra-ai.onrender.com)",
+                "updated": datetime.now(timezone.utc).isoformat(),
+                "count": len(zones)
+            }
+            # Cache the result
+            try:
+                os.makedirs("data/cache", exist_ok=True)
+                with open(samudra_cache, "w") as f:
+                    json.dump(result, f)
+            except Exception:
+                pass
+            return JSONResponse(content=result)
+
+    # Also try the samudra /api/incois/live endpoint as PFZ source
+    incois_live = _fetch_from_samudra("/api/incois/live", timeout=6)
+    if incois_live and incois_live.get("available"):
+        zones = []
+        for sector in (incois_live.get("sectors") or {}).values():
+            for z in (sector.get("zones") or []):
+                if z.get("lat") and z.get("lon"):
+                    zones.append({
+                        "lat": z["lat"], "lon": z["lon"],
+                        "sst": z.get("sst"), "depth_m": z.get("depth_m"),
+                        "confidence": z.get("confidence", "medium"),
+                        "fish_species": z.get("fish_species", ""),
+                        "best_fishing_time": z.get("best_fishing_time", ""),
+                    })
+        if zones:
+            result = {
+                "zones": zones,
+                "source": "Samudra 2.0 INCOIS (samudra-ai.onrender.com)",
+                "updated": datetime.now(timezone.utc).isoformat(),
+                "count": len(zones)
+            }
+            try:
+                os.makedirs("data/cache", exist_ok=True)
+                with open(samudra_cache, "w") as f:
+                    json.dump(result, f)
+            except Exception:
+                pass
+            return JSONResponse(content=result)
+
+    # 3. Fall back to local INCOIS advisory data as Samudra proxy
     incois_paths = ["data/cache/incois_live.json", "data/cache/incois_advisory.json"]
     for path in incois_paths:
         if os.path.exists(path):
@@ -495,14 +644,13 @@ def get_samudra_coordinates():
                             })
                 return JSONResponse(content={
                     "zones": zones,
-                    "source": "INCOIS Advisory (Samudra proxy)",
+                    "source": "INCOIS Advisory (local proxy)",
                     "updated": datetime.now(timezone.utc).isoformat(),
                     "count": len(zones)
                 })
             except Exception:
                 continue
 
-    # Generate representative zones from PFZ engine as last resort
     return JSONResponse(content={
         "zones": [],
         "source": "unavailable",
@@ -516,6 +664,10 @@ def get_sst():
         with open("sst_data.json", "r") as f:
             return JSONResponse(content=json.load(f))
     except FileNotFoundError:
+        # Try Samudra 2.0 service for SST data
+        samudra_sst = _fetch_from_samudra("/sst_data.json", timeout=6)
+        if samudra_sst and samudra_sst.get("points"):
+            return JSONResponse(content=samudra_sst)
         # Serve synthetic SST grid for Arabian Sea / Maharashtra coast
         now = datetime.now(timezone.utc)
         _rng = random.Random(now.timetuple().tm_yday)
@@ -534,6 +686,10 @@ def get_chl():
         with open("chl_data.json", "r") as f:
             return JSONResponse(content=json.load(f))
     except FileNotFoundError:
+        # Try Samudra 2.0 service for chlorophyll data
+        samudra_chl = _fetch_from_samudra("/chl_data.json", timeout=6)
+        if samudra_chl and samudra_chl.get("points"):
+            return JSONResponse(content=samudra_chl)
         # Serve synthetic chlorophyll grid
         now = datetime.now(timezone.utc)
         _rng = random.Random(now.timetuple().tm_yday + 1000)
@@ -1552,7 +1708,21 @@ async def agent_claude_analysis(request: Request):
 
 @app.get("/api/wind/live")
 def get_live_wind():
-    """Serve wind data with daily variation. Quick generation, no external API calls."""
+    """
+    Serve live wind data.
+    Priority: (1) fresh cached wind_data.json, (2) Samudra 2.0 service, (3) synthetic fallback.
+    """
+    # 1. Try fresh cached file first (populated by scheduler every 60 min)
+    cached = _load_cached_velocity("wind_data.json", max_age_hours=2.0)
+    if cached:
+        return JSONResponse(content=cached)
+
+    # 2. Try Samudra 2.0 service
+    samudra_data = _fetch_from_samudra("/api/wind/live", timeout=5)
+    if samudra_data and isinstance(samudra_data, list) and len(samudra_data) >= 2:
+        return JSONResponse(content=samudra_data)
+
+    # 3. Synthetic fallback with monsoon-based patterns
     now = datetime.now(timezone.utc)
     lats_grid = [25,23,21,19,17,15,13,11,9,7,5]
     lons_grid = [55,57,59,61,63,65,67,69,71,73,75,77]
@@ -1560,11 +1730,9 @@ def get_live_wind():
     u_data = [0.0] * (ny * nx)
     v_data = [0.0] * (ny * nx)
 
-    # Generate realistic wind patterns using date-seeded RNG
     seed = now.year * 1000000 + now.month * 10000 + now.day * 100 + now.hour // 3
     rng = random.Random(seed)
 
-    # Base monsoon pattern varies by season
     month = now.month
     if month in [6, 7, 8, 9]:  # SW Monsoon - strong westerlies
         base_u, base_v = -4.0 + rng.uniform(-1, 1), -2.0 + rng.uniform(-0.5, 0.5)
@@ -1582,14 +1750,11 @@ def get_live_wind():
     for iy, lat in enumerate(lats_grid):
         for ix, lon in enumerate(lons_grid):
             idx = iy * nx + ix
-            # Add spatial variation
             lat_factor = math.sin(math.radians(lat * 3 + seed % 100)) * 0.4
             lon_factor = math.cos(math.radians(lon * 2.5 + seed % 73)) * 0.3
-            # More wind over open ocean
             ocean_factor = 1.0 + (0.3 if lon < 70 else 0)
             u = (base_u + rng.uniform(-1.5, 1.5) + lat_factor) * ocean_factor
             v = (base_v + rng.uniform(-1.5, 1.5) + lon_factor) * ocean_factor
-            # Scale to reasonable m/s
             u_data[idx] = round(u * strength / 4.0, 3)
             v_data[idx] = round(v * strength / 4.0, 3)
 
@@ -1616,7 +1781,21 @@ def get_live_wind():
 
 @app.get("/api/current/live")
 def get_live_current():
-    """Generate ocean current data with daily variation."""
+    """
+    Serve live ocean current data.
+    Priority: (1) fresh cached current_data.json, (2) Samudra 2.0 service, (3) synthetic fallback.
+    """
+    # 1. Try fresh cached file first
+    cached = _load_cached_velocity("current_data.json", max_age_hours=2.0)
+    if cached:
+        return JSONResponse(content=cached)
+
+    # 2. Try Samudra 2.0 service
+    samudra_data = _fetch_from_samudra("/api/current/live", timeout=5)
+    if samudra_data and isinstance(samudra_data, list) and len(samudra_data) >= 2:
+        return JSONResponse(content=samudra_data)
+
+    # 3. Synthetic fallback
     now = datetime.now(timezone.utc)
     lats_grid = [25,23,21,19,17,15,13,11,9,7,5]
     lons_grid = [55,57,59,61,63,65,67,69,71,73,75,77]
@@ -1628,7 +1807,6 @@ def get_live_current():
     rng = random.Random(seed)
     month = now.month
 
-    # Ocean currents in Arabian Sea
     if month in [6, 7, 8, 9]:  # Somali current + SW monsoon drift
         base_u, base_v = -0.4, 0.3
     elif month in [11, 12, 1, 2]:  # NE monsoon counter-current
@@ -1711,7 +1889,21 @@ def get_current_at_point(lat: float, lon: float):
 
 @app.get("/api/wave/live")
 def get_live_wave():
-    """Generate wave data with daily variation."""
+    """
+    Serve live wave data.
+    Priority: (1) fresh cached wave_data.json, (2) Samudra 2.0 service, (3) synthetic fallback.
+    """
+    # 1. Try fresh cached file first
+    cached = _load_cached_velocity("wave_data.json", max_age_hours=2.0)
+    if cached:
+        return JSONResponse(content=cached)
+
+    # 2. Try Samudra 2.0 service
+    samudra_data = _fetch_from_samudra("/api/wave/live", timeout=5)
+    if samudra_data and isinstance(samudra_data, list) and len(samudra_data) >= 2:
+        return JSONResponse(content=samudra_data)
+
+    # 3. Synthetic fallback
     now = datetime.now(timezone.utc)
     lats_grid = [25,23,21,19,17,15,13,11,9,7,5]
     lons_grid = [55,57,59,61,63,65,67,69,71,73,75,77]
@@ -1723,7 +1915,6 @@ def get_live_wave():
     rng = random.Random(seed)
     month = now.month
 
-    # Wave direction follows dominant swell
     if month in [6, 7, 8, 9]:  # Big swells from SW
         base_u, base_v = -0.8, -0.5
         strength = rng.uniform(1.5, 3.0)
@@ -1737,7 +1928,6 @@ def get_live_wave():
     for iy, lat in enumerate(lats_grid):
         for ix, lon in enumerate(lons_grid):
             idx = iy * nx + ix
-            # Waves get bigger in open ocean
             open_ocean = 1.0 + (0.5 if lon < 68 else (0.2 if lon < 72 else 0))
             u = (base_u + rng.uniform(-0.3, 0.3)) * strength * open_ocean
             v = (base_v + rng.uniform(-0.3, 0.3)) * strength * open_ocean
