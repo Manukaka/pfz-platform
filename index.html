@@ -915,7 +915,7 @@
         <div class="spl-dot"></div>
         <div class="spl-dot"></div>
     </div>
-    <div class="spl-version">v2.0 &nbsp;|&nbsp; Maharashtra Coast</div>
+    <div class="spl-version">v2.0 &nbsp;|&nbsp; India West Coast (Kerala → Gujarat)</div>
 </div>
 
 <div id="topbar">
@@ -1040,16 +1040,34 @@
     <button class="menu-btn" onclick="toggleINCOIS()">🏛️ INCOIS Advisory</button>
     <button class="menu-btn warn" onclick="document.getElementById('anchor-panel').style.display='block';toggleMenu()">⚓ Anchor Alarm</button>
     <button class="menu-btn" onclick="toggleRouteMode()">🗺️ Route Planning</button>
+    <div class="ms-title">📤 Export & Share</div>
+    <button class="menu-btn" onclick="exportPDF();toggleMenu();">📄 PDF Report</button>
+    <button class="menu-btn" onclick="exportGeoJSON();toggleMenu();">🗺️ GeoJSON Export</button>
+    <button class="menu-btn green" onclick="shareLocation()">📤 Location Share</button>
+    <div class="ms-title">⚙️ Settings</div>
+    <div class="tog-row"><span>🔄 Auto-Refresh PFZ</span><div class="tog on" id="tog-autorefresh" onclick="toggleAutoRefresh(this)"></div></div>
+    <div class="tog-row"><span>🌬️ Auto Wind Layer</span><div class="tog" id="tog-autowind" onclick="toggleAutoWind(this)"></div></div>
+    <div class="tog-row"><span>🌙 Dark Theme</span><div class="tog on" id="tog-theme" onclick="toggleDarkTheme(this)"></div></div>
+    <div class="tog-row"><span>📐 Show Legend</span><div class="tog on" id="tog-legend" onclick="toggleLegendVis(this)"></div></div>
+    <div class="tog-row"><span>🔔 Notifications</span><div class="tog on" id="tog-notif" onclick="toggleNotif(this)"></div></div>
+    <div class="tog-row"><span>💾 Offline Cache</span><div class="tog on" id="tog-cache" onclick="toggleCache(this)"></div></div>
+    <div style="margin-top:8px;">
+        <span style="font-size:9px;color:var(--dim);">Refresh interval (min)</span>
+        <select id="refresh-interval" onchange="setRefreshInterval(this.value)" style="background:var(--panel);color:var(--accent);border:1px solid var(--border);border-radius:4px;padding:4px;font-family:inherit;font-size:10px;margin-left:4px;">
+            <option value="15">15</option>
+            <option value="30" selected>30</option>
+            <option value="60">60</option>
+        </select>
+    </div>
     <div class="ms-title">📓 Fishing Log</div>
     <div id="log-date" style="font-size:10px;color:var(--dim);margin-bottom:6px;"></div>
     <textarea id="fish-log" placeholder="आजचे मासे नोंदवा..."></textarea>
     <button class="menu-btn" onclick="saveLog()">💾 Save करा</button>
-    <div class="ms-title">📡 Share</div>
-    <button class="menu-btn green" onclick="shareLocation()">📤 Location Share</button>
-    <div class="ms-title">ℹ️ Data Sources</div>
+    <div class="ms-title">ℹ️ Samudra 2.0</div>
     <div style="font-size:10px;color:var(--dim);line-height:1.8;">
-        • INCOIS SAMUDRA<br>• Copernicus CMEMS SST<br>• Open-Meteo Marine API<br>• NASA ERDDAP Chlorophyll-a<br>• ETOPO1 Bathymetry
+        • INCOIS SAMUDRA methodology<br>• Copernicus CMEMS SST<br>• Open-Meteo Marine API<br>• NASA ERDDAP Chlorophyll-a<br>• ETOPO1 Bathymetry<br>• ECMWF IFS Open Data
     </div>
+    <div style="font-size:9px;color:var(--accent2);margin-top:8px;letter-spacing:1px;">v2.0 — Full West Coast</div>
 </div>
 
 <div id="incois-panel">
@@ -1067,15 +1085,41 @@
 
 <div id="legend">
     <div class="leg-title">MAP LEGEND</div>
-    <div class="leg-row"><div class="leg-line" style="border-color:#ff4444;"></div><span>उच्च PFZ</span></div>
-    <div class="leg-row"><div class="leg-line" style="border-color:#ffaa00;"></div><span>मध्यम PFZ</span></div>
-    <div class="leg-row"><div class="leg-line" style="border-color:#00ff88;"></div><span>कमी PFZ</span></div>
+    <div class="leg-row"><div class="leg-line" style="border-color:#ff4444;"></div><span data-i18n="leg_high">उच्च PFZ</span></div>
+    <div class="leg-row"><div class="leg-line" style="border-color:#ffaa00;"></div><span data-i18n="leg_med">मध्यम PFZ</span></div>
+    <div class="leg-row"><div class="leg-line" style="border-color:#00ff88;"></div><span data-i18n="leg_low">कमी PFZ</span></div>
+    <div class="leg-row"><div style="width:24px;height:2px;border-top:2px dashed #ffaa00;"></div><span>🤖 Agent AI</span></div>
+    <div class="leg-row"><div style="width:8px;height:8px;border-radius:50%;background:#ff44ff;border:2px solid #fff;"></div><span>🏛️ INCOIS</span></div>
+    <div class="leg-row"><div style="width:8px;height:8px;border-radius:50%;background:#00e5ff;border:2px solid #fff;"></div><span>🌊 Samudra</span></div>
     <div class="leg-row"><div style="width:24px;height:2px;background:#ff3333;"></div><span>EEZ</span></div>
     <div class="leg-row"><div style="width:8px;height:8px;border-radius:50%;background:#00aaff;border:2px solid #fff;"></div><span>FLC Port</span></div>
 </div>
 
 <button id="gps-btn" onclick="locateMe()">📍</button>
 <button id="sos-btn" onclick="sendSOS()">🆘 SOS</button>
+<button id="agent-btn" onclick="runAgentAnalysis()" title="AI Agent Analysis" style="position:fixed;bottom:128px;right:20px;z-index:1001;width:44px;height:44px;border-radius:50%;background:var(--panel);border:2px solid var(--warn);color:var(--warn);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;box-shadow:0 0 12px rgba(255,170,0,0.3);transition:all 0.3s;">🤖</button>
+<button id="layers-toggle-btn" onclick="toggleDataLayersPanel()" title="Data Layers" style="position:fixed;bottom:176px;right:20px;z-index:1001;width:44px;height:44px;border-radius:50%;background:var(--panel);border:1px solid var(--border);color:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;box-shadow:0 0 8px rgba(0,200,255,0.2);transition:all 0.3s;">🗂️</button>
+
+<!-- FLOATING DATA LAYERS PANEL -->
+<div id="data-layers-panel" style="display:none;position:fixed;bottom:230px;right:20px;width:260px;background:var(--panel);border:1px solid var(--border);border-radius:12px;z-index:1002;padding:14px;backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,0.5);max-height:70vh;overflow-y:auto;">
+    <div style="font-size:11px;color:var(--accent);letter-spacing:2px;margin-bottom:10px;font-weight:700;">DATA LAYERS</div>
+    <div style="font-size:9px;color:var(--dim);margin-bottom:8px;">🌊 Ocean Data</div>
+    <div class="tog-row"><span>🌬️ Wind</span><div class="tog" onclick="toggleWind(this)"></div></div>
+    <div class="tog-row"><span>🌊 Waves</span><div class="tog" onclick="toggleWave(this)"></div></div>
+    <div class="tog-row"><span>🔄 Currents</span><div class="tog" onclick="toggleCurrent(this)"></div></div>
+    <div class="tog-row"><span>🌡️ SST Heatmap</span><div class="tog" onclick="toggleSST(this)"></div></div>
+    <div class="tog-row"><span>🌿 Chlorophyll</span><div class="tog" onclick="toggleCHL(this)"></div></div>
+    <div style="font-size:9px;color:var(--dim);margin:8px 0 6px;">🐟 PFZ Sources</div>
+    <div class="tog-row"><span>📊 Algorithm PFZ</span><div class="tog on" onclick="togglePFZ(this)"></div></div>
+    <div class="tog-row"><span>🤖 Agent AI PFZ</span><div class="tog" onclick="toggleAgentPFZ(this)"></div></div>
+    <div class="tog-row"><span>🏛️ INCOIS PFZ</span><div class="tog" onclick="toggleINCOISMarkers(this)"></div></div>
+    <div class="tog-row"><span>🌊 Samudra 2.0</span><div class="tog" onclick="toggleSamudraPFZ(this)"></div></div>
+    <div style="font-size:9px;color:var(--dim);margin:8px 0 6px;">🗺️ Overlays</div>
+    <div class="tog-row"><span>EEZ Boundary</span><div class="tog on" onclick="toggleEEZ(this)"></div></div>
+    <div class="tog-row"><span>FLC Ports</span><div class="tog on" onclick="toggleFLC(this)"></div></div>
+    <div class="tog-row"><span>🌊 Bathymetry</span><div class="tog" onclick="toggleBathymetry(this)"></div></div>
+    <div class="tog-row"><span>⚓ Sea Marks</span><div class="tog" onclick="toggleSeaMarks(this)"></div></div>
+</div>
 
 <div id="statusbar">
     <div class="sb-item"><span class="sb-lbl">LAT</span><span id="sb-lat">--</span></div>
@@ -1083,7 +1127,11 @@
     <div class="sb-item"><span class="sb-lbl">खोली</span><span id="sb-depth">-- m</span></div>
     <div class="sb-item"><span class="sb-lbl">SST</span><span id="sb-sst">--°C</span></div>
     <div class="sb-item"><span class="sb-lbl">CHL</span><span id="sb-chl">-- mg/m³</span></div>
-    <div class="sb-item" style="margin-left:auto;gap:8px;">
+    <div class="sb-item" id="conn-item" style="margin-left:auto;gap:4px;cursor:pointer;" onclick="checkConnectivity()">
+        <span id="conn-dot" style="width:6px;height:6px;border-radius:50%;background:#7090a0;display:inline-block;"></span>
+        <span id="conn-text" style="font-size:8px;color:var(--dim);">...</span>
+    </div>
+    <div class="sb-item" style="gap:8px;">
         <span class="sb-lbl">DATA</span>
         <span id="sb-refresh" style="color:var(--dim);">—</span>
         <span id="sb-next" style="color:var(--accent2);font-size:9px;"></span>
@@ -1123,7 +1171,11 @@
 // ══════════════════════════════════════════════════════════════════════════════
 // MAP INIT
 // ══════════════════════════════════════════════════════════════════════════════
-const map = L.map('map',{center:[17.5,71.0],zoom:7,minZoom:5,maxZoom:14,zoomControl:false});
+const map = L.map('map',{center:[15.0,72.0],zoom:6,minZoom:5,maxZoom:14,zoomControl:false});
+
+// ── API BASE URL — all backend calls go to Render ────────────────────────────
+const API_BASE = 'https://samudra-ai.onrender.com';
+function apiUrl(path) { return API_BASE + path; }
 L.control.zoom({position:'bottomright'}).addTo(map);
 
 // Fix canvas transparency continuously
@@ -1166,40 +1218,75 @@ function toggleLayerPanel(){
 // EEZ
 // ══════════════════════════════════════════════════════════════════════════════
 const eezCoords = [
-    [19.5,72.8],[19.0,72.9],[18.5,72.9],[18.0,73.0],
-    [17.5,73.2],[17.0,73.4],[16.5,73.6],[16.0,73.7],
-    [15.5,73.9],[15.0,74.0],
-    [15.0,69.5],[15.5,69.0],[16.0,68.5],[16.5,68.2],
-    [17.0,68.0],[17.5,67.8],[18.0,67.8],[18.5,68.0],
-    [19.0,68.3],[19.5,68.8],[19.5,72.8]
+    // Coastline side (south Kerala to north Gujarat)
+    [8.0,77.2],[8.5,76.9],[9.0,76.4],[9.5,76.2],[10.0,76.1],
+    [10.5,75.9],[11.0,75.7],[11.5,75.4],[12.0,75.1],[12.5,74.8],
+    [13.0,74.7],[13.5,74.5],[14.0,74.3],[14.5,74.1],[15.0,74.0],
+    [15.5,73.9],[16.0,73.7],[16.5,73.6],[17.0,73.4],[17.5,73.2],
+    [18.0,73.0],[18.5,72.9],[19.0,72.9],[19.5,72.8],[20.0,72.8],
+    [20.5,72.7],[21.0,72.5],[21.5,72.0],[22.0,71.0],[22.5,70.0],
+    [23.0,69.0],[23.5,68.5],
+    // EEZ outer boundary (going back south)
+    [23.5,64.0],[23.0,63.5],[22.5,63.0],[22.0,63.0],
+    [21.5,63.5],[21.0,64.0],[20.5,64.5],[20.0,65.0],
+    [19.5,65.5],[19.0,65.8],[18.5,66.0],[18.0,66.0],
+    [17.5,66.0],[17.0,66.0],[16.5,66.0],[16.0,66.0],
+    [15.5,66.5],[15.0,67.0],[14.5,67.5],[14.0,68.0],
+    [13.5,68.5],[13.0,69.0],[12.5,69.5],[12.0,70.0],
+    [11.5,70.5],[11.0,71.0],[10.5,71.5],[10.0,72.0],
+    [9.5,72.5],[9.0,73.0],[8.5,73.5],[8.0,74.0],[8.0,77.2]
 ];
 const eezLayer = L.polyline(eezCoords,{color:'#ff3333',weight:2.5,opacity:0.9}).addTo(map);
-eezLayer.bindTooltip('Maharashtra EEZ Boundary',{sticky:true,opacity:0.8});
+eezLayer.bindTooltip('India West Coast EEZ Boundary',{sticky:true,opacity:0.8});
 function toggleEEZ(el){ el.classList.toggle('on'); el.classList.contains('on')?map.addLayer(eezLayer):map.removeLayer(eezLayer); }
 
 // ══════════════════════════════════════════════════════════════════════════════
 // FLC PORTS
 // ══════════════════════════════════════════════════════════════════════════════
 const flcData=[
-    {name:'Sassoon Dock (Mumbai)',state:'Maharashtra',lat:18.899,lng:72.823},
-    {name:'Versova (Mumbai)',state:'Maharashtra',lat:19.126,lng:72.815},
-    {name:'Colaba Pt. (Mumbai)',state:'Maharashtra',lat:18.896,lng:72.812},
-    {name:'Alibag',state:'Maharashtra',lat:18.648,lng:72.872},
-    {name:'Murud',state:'Maharashtra',lat:18.323,lng:72.958},
-    {name:'Harnai',state:'Maharashtra',lat:17.802,lng:73.089},
-    {name:'Dabhol',state:'Maharashtra',lat:17.588,lng:73.178},
-    {name:'Jaigad',state:'Maharashtra',lat:17.316,lng:73.213},
-    {name:'Ratnagiri',state:'Maharashtra',lat:16.994,lng:73.301},
-    {name:'Vijaydurg',state:'Maharashtra',lat:16.556,lng:73.333},
-    {name:'Malvan',state:'Maharashtra',lat:16.060,lng:73.467},
-    {name:'Sindhudurg',state:'Maharashtra',lat:16.049,lng:73.466},
-    {name:'Vengurla',state:'Maharashtra',lat:15.861,lng:73.633},
-    {name:'Kelshi',state:'Maharashtra',lat:17.671,lng:73.063},
-    {name:'Velas',state:'Maharashtra',lat:17.956,lng:73.012},
+    // Kerala
+    {name:'Thiruvananthapuram',state:'Kerala',lat:8.524,lng:76.936},
+    {name:'Kollam',state:'Kerala',lat:8.887,lng:76.590},
+    {name:'Alappuzha',state:'Kerala',lat:9.494,lng:76.338},
+    {name:'Kochi (Cochin)',state:'Kerala',lat:9.966,lng:76.267},
+    {name:'Kozhikode (Calicut)',state:'Kerala',lat:11.258,lng:75.780},
+    {name:'Kannur',state:'Kerala',lat:11.869,lng:75.371},
+    {name:'Kasaragod',state:'Kerala',lat:12.499,lng:74.989},
+    // Karnataka
+    {name:'Mangalore',state:'Karnataka',lat:12.866,lng:74.842},
+    {name:'Udupi/Malpe',state:'Karnataka',lat:13.348,lng:74.703},
+    {name:'Bhatkal',state:'Karnataka',lat:13.961,lng:74.555},
+    {name:'Karwar',state:'Karnataka',lat:14.812,lng:74.129},
+    {name:'Honnavar',state:'Karnataka',lat:14.281,lng:74.443},
+    // Goa
     {name:'Panaji',state:'Goa',lat:15.499,lng:73.831},
     {name:'Vasco da Gama',state:'Goa',lat:15.395,lng:73.809},
+    {name:'Margao/Cutbona',state:'Goa',lat:15.272,lng:73.919},
+    // Maharashtra
+    {name:'Vengurla',state:'Maharashtra',lat:15.861,lng:73.633},
+    {name:'Malvan',state:'Maharashtra',lat:16.060,lng:73.467},
+    {name:'Sindhudurg',state:'Maharashtra',lat:16.049,lng:73.466},
+    {name:'Vijaydurg',state:'Maharashtra',lat:16.556,lng:73.333},
+    {name:'Ratnagiri',state:'Maharashtra',lat:16.994,lng:73.301},
+    {name:'Jaigad',state:'Maharashtra',lat:17.316,lng:73.213},
+    {name:'Dabhol',state:'Maharashtra',lat:17.588,lng:73.178},
+    {name:'Harnai',state:'Maharashtra',lat:17.802,lng:73.089},
+    {name:'Kelshi',state:'Maharashtra',lat:17.671,lng:73.063},
+    {name:'Velas',state:'Maharashtra',lat:17.956,lng:73.012},
+    {name:'Murud',state:'Maharashtra',lat:18.323,lng:72.958},
+    {name:'Alibag',state:'Maharashtra',lat:18.648,lng:72.872},
+    {name:'Sassoon Dock (Mumbai)',state:'Maharashtra',lat:18.899,lng:72.823},
+    {name:'Versova (Mumbai)',state:'Maharashtra',lat:19.126,lng:72.815},
+    {name:'Vasai',state:'Maharashtra',lat:19.367,lng:72.823},
+    // Gujarat
+    {name:'Daman',state:'Gujarat',lat:20.414,lng:72.832},
     {name:'Diu',state:'Gujarat',lat:20.714,lng:70.987},
     {name:'Veraval',state:'Gujarat',lat:20.906,lng:70.368},
+    {name:'Porbandar',state:'Gujarat',lat:21.633,lng:69.609},
+    {name:'Dwarka',state:'Gujarat',lat:22.238,lng:68.967},
+    {name:'Okha',state:'Gujarat',lat:22.467,lng:69.069},
+    {name:'Jakhau',state:'Gujarat',lat:23.222,lng:68.614},
+    {name:'Mundra',state:'Gujarat',lat:22.839,lng:69.705},
 ];
 const flcIcon=L.divIcon({className:'',html:'<div style="width:10px;height:10px;background:#00aaff;border:2px solid #fff;border-radius:50%;box-shadow:0 0 6px #00aaff;margin:-5px 0 0 -5px;"></div>',iconSize:[10,10]});
 let flcGroup=L.layerGroup();
@@ -1240,7 +1327,7 @@ function toggleFLCSearch(){
 // ══════════════════════════════════════════════════════════════════════════════
 let chlGrid = [];   // [{lat, lon, chl}, ...]
 
-fetch('/chl_data.json')
+fetch(API_BASE + '/chl_data.json')
     .then(r => r.json())
     .then(data => {
         chlGrid = data.points || [];
@@ -1269,7 +1356,7 @@ function getCHL(lat, lon) {
 // ══════════════════════════════════════════════════════════════════════════════
 let sstGrid = [];
 
-fetch('/sst_data.json')
+fetch(API_BASE + '/sst_data.json')
     .then(r => r.json())
     .then(data => { sstGrid = data.points || []; console.log(`✅ SST grid: ${sstGrid.length} pts`); })
     .catch(e => console.warn('SST data not available:', e));
@@ -1295,7 +1382,7 @@ async function fetchDepth(lat, lon) {
     if (depthCache[key] !== undefined) return depthCache[key];
 
     try {
-        const r = await fetch(`/api/depth?lat=${lat}&lon=${lon}`);
+        const r = await fetch(API_BASE + `/api/depth?lat=${lat}&lon=${lon}`);
         const data = await r.json();
         let val;
         if (data.is_land) {
@@ -1457,7 +1544,7 @@ function toggleWind(el) {
         if (windLoading) { setVelStatus('🌬️ Wind लोड होत आहे…'); return; }
         windLoading = true;
         setVelStatus('🌬️ Wind लोड होत आहे…');
-        loadVelocity('/api/wind/live',
+        loadVelocity(API_BASE + '/api/wind/live',
             ['#d4e6f1','#85c1e9','#3498db','#1a5276','#0d47a1'],
             0.012, 'Wind', 15, 'tog-wind',
             function(vel) {
@@ -1489,7 +1576,7 @@ function toggleWave(el) {
         if (waveLoading) { setVelStatus('🌊 Waves लोड होत आहे…'); return; }
         waveLoading = true;
         setVelStatus('🌊 Waves लोड होत आहे…');
-        loadVelocity('/api/wave/live?_t='+Date.now(),
+        loadVelocity(API_BASE + '/api/wave/live?_t='+Date.now(),
             ['#1a9850','#91cf60','#d9ef8b','#fee08b','#fc8d59','#d73027'],
             0.025, 'Waves', 5, 'tog-wave',
             function(vel) {
@@ -1520,7 +1607,7 @@ function toggleCurrent(el) {
         if (currentLoading) { setVelStatus('🔄 Currents लोड होत आहे…'); return; }
         currentLoading = true;
         setVelStatus('🔄 Currents लोड होत आहे…');
-        loadVelocity('/api/current/live?_t='+Date.now(),
+        loadVelocity(API_BASE + '/api/current/live?_t='+Date.now(),
             ['#00ff88','#00cc66','#009944','#006622','#003311'],
             0.035, 'Currents', 3, 'tog-current',
             function(vel) {
@@ -1548,7 +1635,7 @@ function refreshWindLayer() {
     map.removeLayer(windLayer);
     windLayer = null;
     windLoading = true;
-    loadVelocity('/api/wind/live',
+    loadVelocity(API_BASE + '/api/wind/live',
         ['#d4e6f1','#85c1e9','#3498db','#1a5276','#0d47a1'],
         0.012, 'Wind', 15, 'tog-wind',
         function(vel) {
@@ -1565,7 +1652,7 @@ function refreshWaveLayer() {
     map.removeLayer(waveLayer);
     waveLayer = null;
     waveLoading = true;
-    loadVelocity('/api/wave/live?_t='+Date.now(),
+    loadVelocity(API_BASE + '/api/wave/live?_t='+Date.now(),
         ['#1a9850','#91cf60','#d9ef8b','#fee08b','#fc8d59','#d73027'],
         0.025, 'Waves', 5, 'tog-wave',
         function(vel) { waveLoading = false; if (!vel) return; waveLayer = vel; map.addLayer(waveLayer); }
@@ -1576,7 +1663,7 @@ function refreshCurrentLayer() {
     map.removeLayer(currentLayer);
     currentLayer = null;
     currentLoading = true;
-    loadVelocity('/api/current/live?_t='+Date.now(),
+    loadVelocity(API_BASE + '/api/current/live?_t='+Date.now(),
         ['#00ff88','#00cc66','#009944','#006622','#003311'],
         0.035, 'Currents', 3, 'tog-current',
         function(vel) { currentLoading = false; if (!vel) return; currentLayer = vel; map.addLayer(currentLayer); }
@@ -1601,6 +1688,7 @@ const zoneNames = {
 let lang = 'mr';
 let pfzRefreshTimer = null;
 let pfzLoadCount = 0;
+let pfzZonesData = [];
 
 // ── Build beautiful popup HTML for PFZ zone ──────────────────────────────────
 function buildPFZPopup(props, coords) {
@@ -1803,11 +1891,12 @@ function loadPFZLive() {
     }
     loadBar.style.display = 'block';
 
-    const url = '/api/pfz/live?_t=' + Date.now();
+    const url = API_BASE + '/api/pfz/live?_t=' + Date.now();
     fetch(url).then(r => r.json()).then(geojson => {
         // Clear old PFZ
         pfzGroup.clearLayers();
         pfzMarkerGroup.clearLayers();
+        pfzZonesData = [];
 
         const metadata = geojson.metadata || {};
         console.log(`🐟 PFZ LIVE: ${geojson.features?.length || 0} zones [${metadata.period || ''}]`);
@@ -1819,6 +1908,10 @@ function loadPFZLive() {
             const coords = feature.geometry.coordinates.map(c => [c[1], c[0]]);
 
             if (!coords.length || coords.some(c => isLand(c[0], c[1]))) return;
+
+            // Store zone data for exports
+            const _mid = Math.floor(coords.length / 2);
+            pfzZonesData.push({ lat: coords[_mid][0], lon: coords[_mid][1], sst: props.sst, score: props.score, type, label: props.label || '' });
 
             // Animated PFZ line with glow
             const line = L.polyline(coords, {
@@ -1934,7 +2027,7 @@ function loadPFZLive() {
 
 // Fallback: load static PFZ data
 function loadPFZStatic() {
-    fetch('/pfz_data.geojson').then(r => r.json()).then(geojson => {
+    fetch(API_BASE + '/pfz_data.geojson').then(r => r.json()).then(geojson => {
         pfzGroup.clearLayers();
         (geojson.features || []).forEach(feature => {
             const props = feature.properties;
@@ -2000,7 +2093,7 @@ async function runAgentAnalysis() {
     };
 
     try {
-        const response = await fetch('/api/agents/army', {
+        const response = await fetch(API_BASE + '/api/agents/army', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(body)
@@ -2452,7 +2545,7 @@ function toggleWindMain(el) {
         } else if (!windLoading) {
             windLoading = true;
             setVelStatus('🌬️ Wind लोड होत आहे…');
-            loadVelocity('/api/wind/live',
+            loadVelocity(API_BASE + '/api/wind/live',
                 ['#d4e6f1','#85c1e9','#3498db','#1a5276','#0d47a1'],
                 0.012, 'Wind', 15, 'tog-wind',
                 function(vel) {
@@ -2484,7 +2577,7 @@ function toggleWaveMain(el) {
         } else if (!waveLoading) {
             waveLoading = true;
             setVelStatus('🌊 Waves लोड होत आहे…');
-            loadVelocity('/api/wave/live?_t='+Date.now(),
+            loadVelocity(API_BASE + '/api/wave/live?_t='+Date.now(),
                 ['#1a9850','#91cf60','#d9ef8b','#fee08b','#fc8d59','#d73027'],
                 0.025, 'Waves', 5, 'tog-wave',
                 function(vel) {
@@ -2516,7 +2609,7 @@ function toggleCurrentMain(el) {
         } else if (!currentLoading) {
             currentLoading = true;
             setVelStatus('🔄 Currents लोड होत आहे…');
-            loadVelocity('/api/current/live?_t='+Date.now(),
+            loadVelocity(API_BASE + '/api/current/live?_t='+Date.now(),
                 ['#00ff88','#00cc66','#009944','#006622','#003311'],
                 0.035, 'Currents', 3, 'tog-current',
                 function(vel) {
@@ -2818,7 +2911,7 @@ function toggleINCOIS() {
 function loadINCOISAdvisory() {
     const container = document.getElementById('incois-content');
     container.innerHTML = '<div class="incois-loading">⟳ Loading INCOIS advisory...</div>';
-    fetch('/api/incois/advisory?_t=' + Date.now()).then(r => r.json()).then(data => {
+    fetch(API_BASE + '/api/incois/advisory?_t=' + Date.now()).then(r => r.json()).then(data => {
         let html = '';
         // Metadata bar
         html += '<div style="padding:8px 16px;font-size:9px;color:var(--dim);border-bottom:1px solid var(--border);">';
@@ -2939,7 +3032,7 @@ setTimeout(function() {
 function loadForecast() {
     const iconMap = {sun:'☀️',['cloud-sun']:'⛅',fog:'🌫️',drizzle:'🌧️',rain:'🌧️',snow:'🌨️',storm:'⛈️'};
     const fishMap = {good:{en:'🟢 Good',mr:'🟢 चांगले'},moderate:{en:'🟡 Moderate',mr:'🟡 साधारण'},risky:{en:'🔴 Risky',mr:'🔴 धोकादायक'}};
-    fetch('/api/forecast/6day?_t=' + Date.now())
+    fetch(API_BASE + '/api/forecast/6day?_t=' + Date.now())
     .then(r => r.json())
     .then(data => {
         const container = document.getElementById('forecast-tiles');
@@ -3008,7 +3101,7 @@ async function sendBroadcast() {
     const msg = document.getElementById('broadcast-msg').value;
     if (!msg) return alert('Enter a message');
     try {
-        const r = await fetch('/api/auth/broadcast', {
+        const r = await fetch(API_BASE + '/api/auth/broadcast', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${AUTH_TOKEN}`,
@@ -3028,7 +3121,7 @@ async function sendHeartbeat() {
     if (!AUTH_TOKEN || USER_ROLE === 'admin') return;
     navigator.geolocation.getCurrentPosition(async pos => {
         try {
-            const r = await fetch('/api/auth/ping', {
+            const r = await fetch(API_BASE + '/api/auth/ping', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${AUTH_TOKEN}`,
@@ -3059,14 +3152,14 @@ async function sendHeartbeat() {
 async function renderFleetMarkers() {
     if (!AUTH_TOKEN || USER_ROLE !== 'admin') return;
     try {
-        const r = await fetch('/api/auth/admin/sessions', {
+        const r = await fetch(API_BASE + '/api/auth/admin/sessions', {
             headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
         });
         if (!r.ok) return;
         const sessions = await r.json();
 
         // Also fetch safety alerts
-        const ra = await fetch('/api/auth/admin/alerts', {
+        const ra = await fetch(API_BASE + '/api/auth/admin/alerts', {
             headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
         });
         const alerts = ra.ok ? await ra.json() : [];
@@ -3125,7 +3218,7 @@ async function showBroadcastHistory() {
     content.innerHTML = '<div style="color:var(--dim);font-size:12px;">Loading history...</div>';
 
     try {
-        const r = await fetch('/api/auth/broadcast-history', {
+        const r = await fetch(API_BASE + '/api/auth/broadcast-history', {
             headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
         });
         if (r.ok) {
@@ -3162,7 +3255,7 @@ function toggleFleet(el) {
 async function checkSession() {
     if (!AUTH_TOKEN) return showLogin();
     try {
-        const r = await fetch('/api/auth/session-status', {
+        const r = await fetch(API_BASE + '/api/auth/session-status', {
             headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
         });
         if (r.ok) {
@@ -3177,10 +3270,20 @@ async function checkSession() {
                 sendHeartbeat();
                 HEARTBEAT_TIMER = setInterval(sendHeartbeat, 60000);
             }
-        } else {
+        } else if (r.status === 401) {
             handleLogout();
+        } else {
+            // Server error but not auth failure — keep session, retry later
+            console.warn('Session check returned', r.status, '— retrying in 30s');
+            hideLogin();
+            setTimeout(checkSession, 30000);
         }
-    } catch (e) { console.error('Session check failed', e); }
+    } catch (e) {
+        // Network error — don't logout, show offline state, retry
+        console.warn('Session check failed (network) — retrying in 15s', e);
+        hideLogin();
+        setTimeout(checkSession, 15000);
+    }
 }
 
 function showLogin() {
@@ -3229,7 +3332,7 @@ document.getElementById('login-btn').onclick = async () => {
     err.textContent = '';
 
     try {
-        const r = await fetch('/api/auth/login', {
+        const r = await fetch(API_BASE + '/api/auth/login', {
             method: 'POST',
             body: JSON.stringify({ username: u, password: p })
         });
@@ -3263,7 +3366,7 @@ document.getElementById('submit-request').onclick = async () => {
     if (!name || !boat || !phone) return alert('Fill all details');
 
     try {
-        const r = await fetch('/api/auth/request-access', {
+        const r = await fetch(API_BASE + '/api/auth/request-access', {
             method: 'POST',
             body: JSON.stringify({ name, boat_name: boat, phone })
         });
@@ -3289,8 +3392,8 @@ async function refreshAdminData() {
     const sessEl = document.getElementById('admin-sessions');
 
     const [reqsRes, sessRes] = await Promise.all([
-        fetch('/api/auth/admin/requests', { headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` } }),
-        fetch('/api/auth/admin/sessions', { headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` } })
+        fetch(API_BASE + '/api/auth/admin/requests', { headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` } }),
+        fetch(API_BASE + '/api/auth/admin/sessions', { headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` } })
     ]);
 
     const reqs = await reqsRes.json();
@@ -3319,7 +3422,7 @@ async function refreshAdminData() {
 }
 
 async function approveUser(id, hours) {
-    const r = await fetch('/api/auth/admin/approve', {
+    const r = await fetch(API_BASE + '/api/auth/admin/approve', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${AUTH_TOKEN}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ request_id: id, hours })
@@ -3331,13 +3434,342 @@ async function approveUser(id, hours) {
 
 async function killSession(token) {
     if (!confirm('Kill this session? User will be logged out.')) return;
-    await fetch('/api/auth/admin/kill', {
+    await fetch(API_BASE + '/api/auth/admin/kill', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${AUTH_TOKEN}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ token })
     });
     refreshAdminData();
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DATA LAYERS PANEL + CONNECTIVITY + SETTINGS + EXPORT
+// ══════════════════════════════════════════════════════════════════════════════
+
+function toggleDataLayersPanel() {
+    const p = document.getElementById('data-layers-panel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+// ── CONNECTIVITY CHECKER ─────────────────────────────────────────────────────
+let _connOK = false;
+async function checkConnectivity() {
+    const dot = document.getElementById('conn-dot');
+    const txt = document.getElementById('conn-text');
+    if (!dot || !txt) return;
+    try {
+        const r = await fetch(API_BASE + '/api/health', { signal: AbortSignal.timeout(5000) });
+        _connOK = r.ok;
+        if (r.ok) {
+            const d = await r.json();
+            dot.style.background = '#00ff88';
+            txt.textContent = d.active_sources + '/' + d.total_sources + ' sources';
+            txt.style.color = 'var(--accent2)';
+        } else {
+            dot.style.background = '#ffaa00';
+            txt.textContent = 'Degraded';
+            txt.style.color = 'var(--warn)';
+        }
+    } catch (e) {
+        _connOK = false;
+        dot.style.background = '#ff4444';
+        txt.textContent = 'Offline';
+        txt.style.color = '#ff6666';
+    }
+}
+checkConnectivity();
+setInterval(checkConnectivity, 30000);
+
+// ── CHL LAYER (Chlorophyll heatmap from chlGrid) ────────────────────────────
+let chlLayer = null;
+function toggleCHL(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        if (!chlGrid.length) { el.classList.remove('on'); alert('CHL data not loaded yet'); return; }
+        chlLayer = L.layerGroup();
+        chlGrid.forEach(pt => {
+            const v = pt.chl;
+            const c = v > 2 ? '#00ff00' : v > 1 ? '#88ff00' : v > 0.5 ? '#ffff00' : v > 0.2 ? '#00aaff' : '#0044ff';
+            L.circleMarker([pt.lat, pt.lon], { radius: 4, color: c, fillColor: c, fillOpacity: 0.5, weight: 0 }).addTo(chlLayer);
+        });
+        chlLayer.addTo(map);
+    } else {
+        if (chlLayer) { map.removeLayer(chlLayer); chlLayer = null; }
+    }
+}
+
+// ── INCOIS MAP MARKERS ──────────────────────────────────────────────────────
+let incoisMapGroup = L.layerGroup();
+let incoisMapLoaded = false;
+async function loadINCOISMapMarkers() {
+    if (incoisMapLoaded) return;
+    try {
+        const r = await fetch(API_BASE + '/api/incois/advisory?_t=' + Date.now());
+        const data = await r.json();
+        const sectors = data.sectors || {};
+        Object.values(sectors).forEach(s => {
+            (s.zones || []).forEach(z => {
+                if (!z.lat || !z.lon) return;
+                const col = z.confidence === 'high' ? '#ff00ff' : z.confidence === 'medium' ? '#ff88ff' : '#cc88cc';
+                L.circleMarker([z.lat, z.lon], {
+                    radius: 8, fillColor: col, color: '#fff', weight: 1.5, fillOpacity: 0.8
+                }).bindPopup('<b>INCOIS PFZ</b><br>Score: ' + ((z.score||0)*100).toFixed(0) + '%<br>SST: ' + (z.sst||'--') + '°C<br>Species: ' + (z.fish_species||'--'))
+                .addTo(incoisMapGroup);
+            });
+        });
+        incoisMapLoaded = true;
+    } catch (e) { console.warn('INCOIS markers load failed:', e); }
+}
+
+function toggleINCOISMarkers(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        loadINCOISMapMarkers().then(() => incoisMapGroup.addTo(map));
+    } else {
+        map.removeLayer(incoisMapGroup);
+    }
+}
+
+// ── AGENT PFZ TOGGLE ────────────────────────────────────────────────────────
+function toggleAgentPFZ(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        if (agentZonesData.length === 0) {
+            // Trigger analysis if not done yet
+            runAgentAnalysis();
+        }
+        agentPFZGroup.addTo(map);
+    } else {
+        map.removeLayer(agentPFZGroup);
+    }
+}
+
+// ── SAMUDRA 2.0 PFZ ────────────────────────────────────────────────────────
+let samudraGroup = L.layerGroup();
+let samudraLoaded = false;
+async function fetchSamudraData() {
+    if (samudraLoaded) return;
+    try {
+        const r = await fetch(API_BASE + '/api/samudra/coordinates?_t=' + Date.now());
+        const data = await r.json();
+        (data.zones || []).forEach(z => {
+            const col = z.confidence === 'high' ? '#00ffff' : z.confidence === 'medium' ? '#00bbcc' : '#008899';
+            const circle = L.circle([z.lat, z.lon], {
+                radius: (z.radius_km || 15) * 1000,
+                color: col, fillColor: col, fillOpacity: 0.15, weight: 2, dashArray: '6,4'
+            }).bindPopup('<b>Samudra 2.0 Zone</b><br>Score: ' + ((z.incois_score||0)*100).toFixed(0) + '%<br>SST: ' + (z.sst||'--') + '°C<br>Species: ' + (z.species||'--'));
+            circle.addTo(samudraGroup);
+            L.circleMarker([z.lat, z.lon], { radius: 5, fillColor: col, color: '#fff', weight: 1, fillOpacity: 0.9 }).addTo(samudraGroup);
+        });
+        samudraLoaded = true;
+    } catch (e) { console.warn('Samudra data failed:', e); }
+}
+
+function toggleSamudraPFZ(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        fetchSamudraData().then(() => samudraGroup.addTo(map));
+    } else {
+        map.removeLayer(samudraGroup);
+    }
+}
+
+// ── EXPORT: PDF REPORT ──────────────────────────────────────────────────────
+function exportPDF() {
+    const win = window.open('', '_blank');
+    const now = new Date().toLocaleString('en-IN');
+    const pfzCount = pfzGroup ? pfzGroup.getLayers().length : 0;
+    const agentCount = agentPFZGroup ? agentPFZGroup.getLayers().length : 0;
+
+    let pfzHTML = '';
+    if (typeof pfzZonesData !== 'undefined' && pfzZonesData.length) {
+        pfzZonesData.forEach((z, i) => {
+            pfzHTML += '<tr><td>Zone ' + (i+1) + '</td><td>' + (z.lat||0).toFixed(3) + '°N, ' + (z.lon||0).toFixed(3) + '°E</td><td>' + (z.sst||'--') + '°C</td><td>' + (z.score ? (z.score*100).toFixed(0) + '%' : '--') + '</td></tr>';
+        });
+    }
+
+    win.document.write(`<!DOCTYPE html><html><head><title>Samudra 2.0 - PFZ Report</title>
+    <style>body{font-family:Arial,sans-serif;padding:30px;color:#222;max-width:800px;margin:auto}
+    h1{color:#0066aa;border-bottom:3px solid #0066aa;padding-bottom:10px}
+    table{width:100%;border-collapse:collapse;margin:15px 0}th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:13px}
+    th{background:#f0f5ff}
+    .meta{color:#666;font-size:12px;margin-bottom:20px}</style></head><body>
+    <h1>🌊 Samudra 2.0 — PFZ Advisory Report</h1>
+    <div class="meta">Generated: ${now} | Source: Samudra AI Platform | Coverage: India West Coast (8°N - 24°N)</div>
+    <h3>Algorithm PFZ Zones (${pfzCount} detected)</h3>
+    <table><tr><th>Zone</th><th>Location</th><th>SST</th><th>Score</th></tr>${pfzHTML || '<tr><td colspan=4>No zones currently detected</td></tr>'}</table>
+    <h3>Agent AI Zones: ${agentCount}</h3>
+    <p style="font-size:11px;color:#888;">Disclaimer: PFZ advisories are based on satellite-derived oceanographic parameters. Actual fishing success depends on local conditions. Always follow safety protocols.</p>
+    <button onclick="window.print()" style="padding:10px 30px;background:#0066aa;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px;">🖨️ Print / Save PDF</button>
+    </body></html>`);
+    win.document.close();
+}
+
+// ── EXPORT: GeoJSON ─────────────────────────────────────────────────────────
+function exportGeoJSON() {
+    const features = [];
+    // Algorithm PFZ zones
+    if (typeof pfzZonesData !== 'undefined') {
+        pfzZonesData.forEach(z => {
+            features.push({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [z.lon, z.lat] },
+                properties: { source: 'algorithm', sst: z.sst, score: z.score, label: z.label || '' }
+            });
+        });
+    }
+    // Agent zones
+    if (agentZonesData.length) {
+        agentZonesData.forEach(z => {
+            features.push({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [z.lon || z.lng, z.lat] },
+                properties: { source: 'agent_ai', species: z.species, confidence: z.confidence }
+            });
+        });
+    }
+    const geojson = { type: 'FeatureCollection', features };
+    const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'samudra_pfz_' + new Date().toISOString().slice(0, 10) + '.geojson';
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+// ── SETTINGS TOGGLES ────────────────────────────────────────────────────────
+let autoRefreshEnabled = true;
+
+function toggleAutoRefresh(el) {
+    el.classList.toggle('on');
+    autoRefreshEnabled = el.classList.contains('on');
+    if (autoRefreshEnabled) {
+        pfzRefreshTimer = setInterval(loadPFZLive, (parseInt(document.getElementById('refresh-interval').value) || 30) * 60000);
+    } else {
+        if (pfzRefreshTimer) { clearInterval(pfzRefreshTimer); pfzRefreshTimer = null; }
+    }
+}
+
+function toggleAutoWind(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        // Auto-show wind layer
+        const windTog = document.querySelector('#data-layers-panel .tog-row .tog');
+        if (windTog && !windTog.classList.contains('on')) toggleWind(windTog);
+    }
+}
+
+function toggleDarkTheme(el) {
+    el.classList.toggle('on');
+    // Already dark by default — toggle to light
+    if (!el.classList.contains('on')) {
+        document.documentElement.style.setProperty('--bg', '#f0f2f5');
+        document.documentElement.style.setProperty('--panel', 'rgba(255,255,255,0.95)');
+        document.documentElement.style.setProperty('--text', '#222');
+        document.documentElement.style.setProperty('--dim', '#666');
+        document.documentElement.style.setProperty('--border', 'rgba(0,0,0,0.1)');
+    } else {
+        document.documentElement.style.setProperty('--bg', '#0a0e14');
+        document.documentElement.style.setProperty('--panel', 'rgba(12,18,28,0.96)');
+        document.documentElement.style.setProperty('--text', '#e0e8f0');
+        document.documentElement.style.setProperty('--dim', '#5a7080');
+        document.documentElement.style.setProperty('--border', 'rgba(255,255,255,0.06)');
+    }
+}
+
+function toggleLegendVis(el) {
+    el.classList.toggle('on');
+    const legend = document.getElementById('legend');
+    if (legend) legend.style.display = el.classList.contains('on') ? 'block' : 'none';
+}
+
+function toggleNotif(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on') && 'Notification' in window) {
+        Notification.requestPermission();
+    }
+}
+
+function toggleCache(el) {
+    el.classList.toggle('on');
+    localStorage.setItem('samudra_cache_enabled', el.classList.contains('on') ? '1' : '0');
+}
+
+function setRefreshInterval(mins) {
+    if (pfzRefreshTimer) clearInterval(pfzRefreshTimer);
+    if (autoRefreshEnabled) {
+        pfzRefreshTimer = setInterval(loadPFZLive, parseInt(mins) * 60000);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// THREE-LANGUAGE SYSTEM (Marathi / Hindi / English)
+// ══════════════════════════════════════════════════════════════════════════════
+const TRANSLATIONS = {
+    mr: {
+        pfz_title: 'संभाव्य मासेमारी क्षेत्र',
+        depth: 'खोली', sst: 'समुद्र तापमान', wind: 'वारा', waves: 'लाटा', currents: 'प्रवाह',
+        forecast: 'हवामान अंदाज', settings: 'सेटिंग्ज', export_pdf: 'PDF अहवाल',
+        high: 'उच्च', medium: 'मध्यम', low: 'कमी',
+        locate_me: 'माझं स्थान', route_plan: 'मार्ग नियोजन', anchor_alarm: 'अँकर अलार्म',
+        offline: 'ऑफलाइन', online: 'ऑनलाइन', loading: 'लोड होत आहे...',
+        species: 'मासे प्रजाती', confidence: 'विश्वासार्हता', score: 'गुण',
+        from_coast: 'किनाऱ्यापासून', best_time: 'सर्वोत्तम वेळ',
+        no_zones: 'सध्या कोणतेही क्षेत्र आढळले नाही',
+        disclaimer: 'हा सल्ला उपग्रह डेटावर आधारित आहे. स्थानिक परिस्थिती वेगळी असू शकते.',
+        legend: 'दंतकथा', layers: 'डेटा स्तर', search_port: 'बंदर शोधा'
+    },
+    hi: {
+        pfz_title: 'संभावित मछली पकड़ने का क्षेत्र',
+        depth: 'गहराई', sst: 'समुद्री तापमान', wind: 'हवा', waves: 'लहरें', currents: 'धाराएं',
+        forecast: 'मौसम पूर्वानुमान', settings: 'सेटिंग्स', export_pdf: 'PDF रिपोर्ट',
+        high: 'उच्च', medium: 'मध्यम', low: 'कम',
+        locate_me: 'मेरा स्थान', route_plan: 'मार्ग योजना', anchor_alarm: 'एंकर अलार्म',
+        offline: 'ऑफलाइन', online: 'ऑनलाइन', loading: 'लोड हो रहा है...',
+        species: 'मछली प्रजातियां', confidence: 'विश्वसनीयता', score: 'अंक',
+        from_coast: 'तट से', best_time: 'सर्वोत्तम समय',
+        no_zones: 'वर्तमान में कोई क्षेत्र नहीं मिला',
+        disclaimer: 'यह सलाह उपग्रह डेटा पर आधारित है। स्थानीय स्थिति भिन्न हो सकती है।',
+        legend: 'संकेत', layers: 'डेटा परतें', search_port: 'बंदरगाह खोजें'
+    },
+    en: {
+        pfz_title: 'Potential Fishing Zone',
+        depth: 'Depth', sst: 'Sea Surface Temp', wind: 'Wind', waves: 'Waves', currents: 'Currents',
+        forecast: 'Weather Forecast', settings: 'Settings', export_pdf: 'PDF Report',
+        high: 'High', medium: 'Medium', low: 'Low',
+        locate_me: 'My Location', route_plan: 'Route Planning', anchor_alarm: 'Anchor Alarm',
+        offline: 'Offline', online: 'Online', loading: 'Loading...',
+        species: 'Fish Species', confidence: 'Confidence', score: 'Score',
+        from_coast: 'From coast', best_time: 'Best Time',
+        no_zones: 'No zones currently detected',
+        disclaimer: 'Advisory based on satellite data. Local conditions may vary.',
+        legend: 'Legend', layers: 'Data Layers', search_port: 'Search port'
+    }
+};
+
+function setLanguage(langCode) {
+    lang = langCode;
+    document.querySelectorAll('.lang-btn').forEach(b => {
+        b.classList.toggle('active', b.textContent.trim().toLowerCase().includes(langCode === 'mr' ? 'मर' : langCode === 'hi' ? 'हिं' : 'en'));
+    });
+    const T = TRANSLATIONS[langCode] || TRANSLATIONS.en;
+    // Update key UI elements
+    const depthLbl = document.querySelector('#statusbar .sb-lbl');
+    if (depthLbl && depthLbl.textContent.match(/खोली|गहराई|Depth/)) depthLbl.textContent = T.depth;
+    const legendEl = document.getElementById('legend');
+    if (legendEl) {
+        const title = legendEl.querySelector('div:first-child');
+        if (title) title.textContent = T.legend;
+    }
+    // Store preference
+    localStorage.setItem('samudra_lang', langCode);
+}
+
+// Restore language preference
+(function() {
+    const savedLang = localStorage.getItem('samudra_lang');
+    if (savedLang && savedLang !== 'mr') setLanguage(savedLang);
+})();
 
 // Initialize session check
 checkSession();

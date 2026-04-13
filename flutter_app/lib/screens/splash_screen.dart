@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../core/theme.dart';
-import '../models/pfz_zone.dart';
 import '../services/api_service.dart';
 import 'map_screen.dart';
 import 'login_screen.dart';
@@ -38,63 +37,61 @@ class _SplashScreenState extends State<SplashScreen> {
       _goLogin();
       return;
     }
-    _set('CONNECTING TO SERVER...', 0.15);
+    _set('CHECKING CREDENTIALS...', 0.15);
 
+    // No token at all → must login first
     if (!ApiService.instance.isLoggedIn) {
-      await Future.delayed(const Duration(milliseconds: 400));
+      await Future.delayed(const Duration(milliseconds: 300));
       _goLogin();
       return;
     }
 
-    // Validate session (12s timeout for Render cold-start)
+    // Token exists → try to validate online, but always let the user in
+    _set('CONNECTING...', 0.35);
     try {
-      await ApiService.instance.checkSession();
+      final online = await ApiService.instance.checkSessionSafe();
+      if (!online) {
+        // Server unreachable → proceed with cached token, data will load when online
+        _set('OFFLINE MODE', 0.55);
+        await Future.delayed(const Duration(milliseconds: 600));
+      }
     } catch (_) {
-      await ApiService.instance.logout();
-      _goLogin();
-      return;
+      // 401 → token expired (e.g. Render restarted). Try auto re-login silently.
+      final u = ApiService.instance.savedUsername;
+      final p = ApiService.instance.savedPassword;
+      if (u != null && p != null) {
+        try {
+          _set('RE-CONNECTING...', 0.45);
+          await ApiService.instance.login(u, p);
+          _set('CONNECTED', 0.55);
+        } catch (e) {
+          final msg = e.toString();
+          if (msg.contains('network:') || msg.contains('offline')) {
+            // Server down, but we have credentials — proceed offline
+            _set('OFFLINE MODE', 0.55);
+            await Future.delayed(const Duration(milliseconds: 600));
+          } else {
+            // Credentials rejected by server → needs fresh login
+            _goLogin();
+            return;
+          }
+        }
+      } else {
+        // No saved credentials and token invalid → need fresh login
+        _goLogin();
+        return;
+      }
     }
 
-    // Preload all critical data in parallel
-    _set('LOADING PFZ ZONES...', 0.35);
-    final pfzFuture  = ApiService.instance.fetchPfzZones()
-        .onError((_, __) => <PfzZone>[]);
-
-    _set('LOADING SST DATA...', 0.50);
-    final sstFuture  = ApiService.instance.fetchSstGrid()
-        .onError((_, __) => <Map<String, double>>[]);
-
-    _set('LOADING CHL DATA...', 0.65);
-    final chlFuture  = ApiService.instance.fetchChlGrid()
-        .onError((_, __) => <Map<String, double>>[]);
-
-    _set('LOADING FORECAST...', 0.80);
-    final forecastFuture = ApiService.instance.fetchForecast()
-        .onError((_, __) => <dynamic>[]);
-
-    List<PfzZone> pfzZones = [];
-    List<Map<String, double>> sstGrid = [];
-    List<Map<String, double>> chlGrid = [];
-    List<dynamic> forecast = [];
-
-    await Future.wait([
-      pfzFuture.then((v)  => pfzZones = v),
-      sstFuture.then((v)  => sstGrid  = v),
-      chlFuture.then((v)  => chlGrid  = v),
-      forecastFuture.then((v) => forecast = v),
-    ]).timeout(const Duration(seconds: 20), onTimeout: () => []);
+    _set('LOADING DATA...', 0.60);
+    await Future.delayed(const Duration(milliseconds: 600));
 
     _set('READY', 1.0);
     await Future.delayed(const Duration(milliseconds: 500));
 
     if (!mounted) return;
     Navigator.pushReplacement(context, MaterialPageRoute(
-      builder: (_) => MapScreen(
-        pfzZones: pfzZones,
-        sstGrid:  sstGrid,
-        chlGrid:  chlGrid,
-        forecast: forecast,
-      ),
+      builder: (_) => const MapScreen(),
     ));
   }
 

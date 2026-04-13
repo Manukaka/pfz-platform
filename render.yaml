@@ -13,13 +13,19 @@ services:
       - key: PORT
         value: '5000'
       - key: REGION_LAT_MIN
-        value: '14.0'
+        value: '8.0'
       - key: REGION_LAT_MAX
-        value: '21.0'
+        value: '24.0'
       - key: REGION_LNG_MIN
-        value: '67.0'
+        value: '66.0'
       - key: REGION_LNG_MAX
-        value: '74.5'
+        value: '78.0'
+      - key: CMEMS_USERNAME
+        sync: false
+      - key: CMEMS_PASSWORD
+        sync: false
+      - key: NASA_API_KEY
+        sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: INCOIS_USER

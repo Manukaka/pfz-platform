@@ -120,12 +120,18 @@ AUTH_FILE = "auth.json"
 
 def load_auth():
     if not os.path.exists(AUTH_FILE):
-        data = {"users": {"manukaka": {"password": "Ashu@9970", "role": "admin", "full_name": "Manoj (Admin)"}}, "sessions": {}, "requests": {}}
+        data = {"users": {"manukaka": {"password": "Ashu@9970", "role": "admin", "full_name": "Manoj (Admin)"}, "manojdhamdhere@live.com": {"password": "Ashu@9970", "role": "admin", "full_name": "Manoj Dhamdhere"}}, "sessions": {}, "requests": {}}
         with open(AUTH_FILE, "w") as f:
             json.dump(data, f, indent=4)
         return data
     with open(AUTH_FILE, "r") as f:
-        return json.load(f)
+        data = json.load(f)
+    # Ensure email user always exists
+    if "manojdhamdhere@live.com" not in data.get("users", {}):
+        data.setdefault("users", {})["manojdhamdhere@live.com"] = {"password": "Ashu@9970", "role": "admin", "full_name": "Manoj Dhamdhere"}
+        with open(AUTH_FILE, "w") as f:
+            json.dump(data, f, indent=4)
+    return data
 
 def save_auth(data):
     with open(AUTH_FILE, "w") as f:
@@ -447,6 +453,62 @@ def get_wave():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/api/health")
+def api_health():
+    """Rich health check with data source status for connectivity indicator."""
+    sources = {}
+    sources["sst"] = os.path.exists("sst_data.json")
+    sources["chl"] = os.path.exists("chl_data.json")
+    sources["wind"] = os.path.exists("wind_data.json")
+    sources["wave"] = os.path.exists("wave_data.json")
+    sources["current"] = os.path.exists("current_data.json")
+    sources["pfz"] = os.path.exists("pfz_data.geojson")
+    active = sum(1 for v in sources.values() if v)
+    return {
+        "status": "ok",
+        "data_sources_active": active,
+        "data_sources_total": len(sources),
+        "sources": sources,
+        "timestamp": datetime.now(IST).strftime("%d %b %Y %H:%M IST"),
+    }
+
+@app.get("/api/samudra/coordinates")
+def get_samudra_coordinates():
+    """
+    Samudra 2.0 PFZ coordinates — serves our own INCOIS-scored PFZ data
+    in INCOIS Samudra-compatible format (this app IS Samudra 2.0).
+    """
+    try:
+        live_resp = get_live_pfz()
+        live_data = json.loads(live_resp.body)
+        features = live_data.get("features", [])
+        zones = []
+        for f in features:
+            props = f["properties"]
+            zones.append({
+                "lat": props["center_lat"],
+                "lon": props["center_lon"],
+                "depth_m": props["depth_m"],
+                "sst": props["sst"],
+                "chl": props.get("chl"),
+                "confidence": props["type"],
+                "score": props["score"],
+                "sector": props.get("incois_sector", "Offshore"),
+                "fish_species": props.get("fish_en", ""),
+                "best_time": props.get("best_fishing_time", ""),
+                "source": "SAMUDRA 2.0 AI (INCOIS methodology)",
+            })
+        return {
+            "type": "samudra_pfz",
+            "version": "2.0",
+            "zones": zones,
+            "zone_count": len(zones),
+            "generated": datetime.now(IST).strftime("%d %b %Y %H:%M IST"),
+            "methodology": "SST thermal front (Sobel) + CHL + Bathymetry + Lunar",
+        }
+    except Exception as e:
+        return {"type": "samudra_pfz", "version": "2.0", "zones": [], "error": str(e)}
 
 @app.get("/sst_data.json")
 def get_sst():
@@ -1371,6 +1433,64 @@ def get_incois_history(date_str: str):
     return JSONResponse(content=data)
 
 
+@app.get("/api/incois/tuna")
+def get_incois_tuna():
+    """Tuna-specific PFZ advisory — filters zones optimal for Tuna fishing.
+    Uses SST 24-29°C, CHL 0.2-0.8 mg/m³, depth 100-300m thresholds."""
+    from app.data.incois_client import generate_full_advisory
+    try:
+        sst_points, chl_points = [], []
+        try:
+            if os.path.exists("sst_data.json"):
+                with open("sst_data.json") as f:
+                    sst_points = json.load(f).get("points", [])
+        except Exception:
+            pass
+        try:
+            if os.path.exists("chl_data.json"):
+                with open("chl_data.json") as f:
+                    chl_points = json.load(f).get("points", [])
+        except Exception:
+            pass
+        wind_data = None
+        try:
+            if os.path.exists("wind_data.json"):
+                with open("wind_data.json") as f:
+                    wind_data = json.load(f)
+        except Exception:
+            pass
+
+        advisory = generate_full_advisory(sst_points, chl_points, wind_data)
+        tuna_zones = []
+        all_zones = advisory.get("zones", [])
+        for z in all_zones:
+            sst_val = z.get("sst", 0)
+            chl_val = z.get("chl", 0)
+            depth_val = z.get("depth_m", 50)
+            species_list = z.get("fish_species", [])
+            species_names = [s.get("name_en", "").lower() if isinstance(s, dict) else str(s).lower() for s in species_list]
+            is_tuna_sst = 24.0 <= sst_val <= 29.0
+            is_tuna_chl = 0.15 <= chl_val <= 1.0
+            is_tuna_depth = depth_val >= 80
+            has_tuna_species = any("tuna" in n for n in species_names)
+            if has_tuna_species or (is_tuna_sst and is_tuna_chl and is_tuna_depth):
+                z["tuna_score"] = round(
+                    (0.3 * min(1, max(0, 1 - abs(sst_val - 26.5) / 3))) +
+                    (0.25 * min(1, max(0, chl_val / 0.8))) +
+                    (0.25 * min(1, max(0, (depth_val - 80) / 220))) +
+                    (0.2 * (1 if has_tuna_species else 0.5)), 3)
+                tuna_zones.append(z)
+        tuna_zones.sort(key=lambda x: x.get("tuna_score", 0), reverse=True)
+        return JSONResponse(content={
+            "type": "tuna_advisory",
+            "zones": tuna_zones,
+            "total": len(tuna_zones),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+
+
 @app.get("/api/chlorophyll/heatmap")
 def get_chlorophyll_heatmap():
     """Return chlorophyll grid for frontend canvas heatmap."""
@@ -1484,6 +1604,174 @@ async def agent_claude_analysis(request: Request):
         }
         save_agent(date_str, slot, result)
         return JSONResponse(content={"status": "success", "data": result})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+
+
+@app.post("/api/agents/gemini")
+async def agent_gemini_analysis(request: Request):
+    """Google Gemini AI agent — refines INCOIS zones into precise polygon boundaries.
+    Requires GEMINI_API_KEY or GOOGLE_API_KEY environment variable."""
+    import pytz as _pytz
+    from app.agents.gemini_agent import analyze_with_gemini
+    from app.core.lunar import LunarEngine
+    try:
+        body = await request.json()
+        lat_min = body.get("lat_min", 8.0)
+        lat_max = body.get("lat_max", 24.0)
+
+        # Load SST/CHL grid data
+        sst_points, chl_points = [], []
+        try:
+            if os.path.exists("sst_data.json"):
+                with open("sst_data.json") as f:
+                    d = json.load(f)
+                    sst_points = d.get("points", [])
+        except Exception:
+            pass
+        try:
+            if os.path.exists("chl_data.json"):
+                with open("chl_data.json") as f:
+                    d = json.load(f)
+                    chl_points = d.get("points", [])
+        except Exception:
+            pass
+
+        # Load wind data
+        wind_data = None
+        try:
+            if os.path.exists("wind_data.json"):
+                with open("wind_data.json") as f:
+                    wind_data = json.load(f)
+        except Exception:
+            pass
+
+        # Load INCOIS zones as seed locations
+        from app.data.incois_client import IncoisPfzEngine
+        incois_zones = []
+        try:
+            engine = IncoisPfzEngine()
+            result_raw = engine.generate_pfz_advisory(
+                sst_points=sst_points, chl_points=chl_points, lat_min=lat_min, lat_max=lat_max
+            )
+            incois_zones = result_raw.get("zones", [])
+        except Exception:
+            pass
+
+        # Lunar phase
+        now = datetime.now(timezone.utc)
+        lunar_info = None
+        try:
+            lunar_info = {
+                "phase": LunarEngine.get_lunar_phase(now),
+                "illumination": LunarEngine.get_lunar_illumination_percent(now),
+            }
+        except Exception:
+            pass
+
+        result = analyze_with_gemini(
+            sst_points=sst_points,
+            chl_points=chl_points,
+            incois_zones=incois_zones,
+            wind_data=wind_data,
+            lunar_info=lunar_info,
+        )
+        _IST = _pytz.timezone("Asia/Kolkata")
+        result["analysis_time_ist"] = datetime.now(_IST).strftime("%d %b %Y %H:%M IST")
+        return JSONResponse(content={"status": "success", "data": result})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+
+
+@app.post("/api/agents/gemini/incois")
+async def gemini_incois_analysis(request: Request):
+    """Use Gemini to cross-reference INCOIS points with current ocean data.
+    Enriches INCOIS zones with AI confidence, species, and optimal timing."""
+    import pytz as _pytz
+    from app.data.history_manager import get_incois
+    from app.core.lunar import LunarEngine
+    try:
+        now = datetime.now(timezone.utc)
+        _IST = _pytz.timezone("Asia/Kolkata")
+        ist_now = datetime.now(_IST)
+        date_str = ist_now.strftime("%Y-%m-%d")
+
+        # Get INCOIS zones
+        incois_data = get_incois(date_str)
+        incois_zones = []
+        if incois_data and incois_data.get("available"):
+            incois_zones = incois_data.get("zones", [])
+
+        # Load ocean data
+        sst_points, chl_points = [], []
+        try:
+            if os.path.exists("sst_data.json"):
+                with open("sst_data.json") as f:
+                    sst_points = json.load(f).get("points", [])
+        except Exception:
+            pass
+        try:
+            if os.path.exists("chl_data.json"):
+                with open("chl_data.json") as f:
+                    chl_points = json.load(f).get("points", [])
+        except Exception:
+            pass
+        wind_data = None
+        try:
+            if os.path.exists("wind_data.json"):
+                with open("wind_data.json") as f:
+                    wind_data = json.load(f)
+        except Exception:
+            pass
+
+        lunar_info = None
+        try:
+            lunar_info = {
+                "phase": LunarEngine.get_lunar_phase(now),
+                "illumination": LunarEngine.get_lunar_illumination_percent(now),
+            }
+        except Exception:
+            pass
+
+        api_key = os.getenv("GEMINI_API_KEY", "") or os.getenv("GOOGLE_API_KEY", "")
+        if not api_key:
+            return JSONResponse(content={"status": "success", "data": {
+                "zones": incois_zones, "summary": "Gemini API key not configured — returning raw INCOIS data",
+                "enriched": False}})
+
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(
+                model_name="gemini-2.0-flash",
+                generation_config=genai.GenerationConfig(temperature=0.2, max_output_tokens=4096),
+            )
+            prompt = (
+                f"You are a fisheries oceanographer. Analyze these INCOIS advisory zones with current ocean data.\n"
+                f"INCOIS Zones: {json.dumps(incois_zones[:20])}\n"
+                f"SST data points: {len(sst_points)} points\n"
+                f"CHL data points: {len(chl_points)} points\n"
+                f"Wind available: {bool(wind_data)}\n"
+                f"Lunar: {json.dumps(lunar_info) if lunar_info else 'unavailable'}\n"
+                f"Month: {now.month}\n\n"
+                f"For each INCOIS zone, add: confidence (0-1), recommended species with probabilities, "
+                f"best_fishing_time, wind_risk, and reasoning citing SST/CHL/wind values.\n"
+                f"Return JSON: {{\"zones\": [...enriched zones...], \"summary\": \"...\"}}"
+            )
+            response = model.generate_content(prompt)
+            text = response.text.strip()
+            import re as _re
+            text = _re.sub(r"^```(?:json)?\s*", "", text)
+            text = _re.sub(r"\s*```$", "", text)
+            result = json.loads(text)
+            result["enriched"] = True
+            result["source"] = "gemini-2.0-flash"
+            result["analysis_time_ist"] = ist_now.strftime("%d %b %Y %H:%M IST")
+            return JSONResponse(content={"status": "success", "data": result})
+        except Exception as ge:
+            return JSONResponse(content={"status": "success", "data": {
+                "zones": incois_zones, "summary": f"Gemini analysis failed: {ge}",
+                "enriched": False}})
     except Exception as e:
         return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
 

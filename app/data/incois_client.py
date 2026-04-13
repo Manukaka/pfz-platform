@@ -74,6 +74,19 @@ INCOIS_SECTORS = {
         ],
         "primary_species": ["Mackerel", "Sardine", "Oil Sardine", "Tuna", "Squid"],
     },
+    "Kerala": {
+        "lat_min": 8.0, "lat_max": 12.0,
+        "lng_min": 72.0, "lng_max": 77.0,
+        "landing_centers": [
+            {"name": "Kochi (Cochin)", "lat": 9.97, "lng": 76.27},
+            {"name": "Kozhikode (Calicut)", "lat": 11.26, "lng": 75.78},
+            {"name": "Kollam", "lat": 8.89, "lng": 76.59},
+            {"name": "Kannur", "lat": 11.87, "lng": 75.37},
+            {"name": "Thiruvananthapuram", "lat": 8.52, "lng": 76.94},
+            {"name": "Alappuzha", "lat": 9.49, "lng": 76.34},
+        ],
+        "primary_species": ["Oil Sardine", "Mackerel", "Tuna", "Anchovies", "Prawns", "Squid"],
+    },
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════

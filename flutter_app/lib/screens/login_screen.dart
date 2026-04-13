@@ -15,6 +15,24 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   String _error = '';
   bool _obscure = true;
+  bool _hasSavedCreds = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill saved credentials for one-tap re-login
+    final savedUser = ApiService.instance.savedUsername;
+    final savedPass = ApiService.instance.savedPassword;
+    if (savedUser != null && savedUser.isNotEmpty) {
+      _userCtrl.text = savedUser;
+      _passCtrl.text = savedPass ?? '';
+      _hasSavedCreds = true;
+    } else {
+      // Default credentials for quick login
+      _userCtrl.text = 'manukaka';
+      _passCtrl.text = 'Ashu@9970';
+    }
+  }
 
   Future<void> _login() async {
     final u = _userCtrl.text.trim();
@@ -27,11 +45,26 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await ApiService.instance.login(u, p);
       if (!mounted) return;
-      // After login, go to splash to preload data
       Navigator.pushReplacementNamed(context, '/splash');
     } catch (e) {
-      setState(() { _error = 'Invalid credentials'; _loading = false; });
+      final msg = e.toString();
+      String display;
+      if (msg.contains('network:') || msg.contains('offline')) {
+        display = 'Server offline — check connection and retry';
+      } else if (msg.contains('auth:') || msg.contains('401')) {
+        display = 'Invalid credentials';
+      } else if (msg.contains('TimeoutException')) {
+        display = 'Server waking up — please retry in 10 seconds';
+      } else {
+        display = 'Could not connect — please retry';
+      }
+      setState(() { _error = display; _loading = false; });
     }
+  }
+
+  /// Skip login and go straight to map using saved token (offline mode)
+  void _continueOffline() {
+    Navigator.pushReplacementNamed(context, '/map');
   }
 
   @override
@@ -139,6 +172,25 @@ class _LoginScreenState extends State<LoginScreen> {
                               : const Text('LOGIN', style: TextStyle(letterSpacing: 2)),
                         ),
                       ),
+                      if (_hasSavedCreds) ...[
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 44,
+                          child: OutlinedButton.icon(
+                            onPressed: _loading ? null : _continueOffline,
+                            icon: const Icon(Icons.offline_bolt, size: 16),
+                            label: const Text('CONTINUE OFFLINE', style: TextStyle(letterSpacing: 1.5, fontSize: 12)),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF00c8ff),
+                              side: const BorderSide(color: Color(0x6600c8ff)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text('Uses last session data', textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 9, color: Color(0x6600c8ff))),
+                      ],
                     ]),
                   ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.15),
                 ],
