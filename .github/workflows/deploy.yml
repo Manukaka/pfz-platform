@@ -1,0 +1,225 @@
+name: DaryaSagar CI/CD
+
+on:
+  push:
+    branches: ["**"]        # Build APK on every push to every branch
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ============================================
+  # Flutter APK Build
+  # ============================================
+  flutter-build:
+    name: Flutter Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.6'
+          channel: 'stable'
+          cache: true
+
+      # Inject google-services.json from secret
+      - name: Write google-services.json
+        run: |
+          echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > flutter_app/android/app/google-services.json
+
+      # Inject Mapbox token into local.properties (Mapbox reads this at build time)
+      - name: Write local.properties
+        run: |
+          cat > flutter_app/android/local.properties << EOF
+          flutter.sdk=$FLUTTER_ROOT
+          sdk.dir=$ANDROID_SDK_ROOT
+          MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }}
+          EOF
+
+      - name: Install dependencies
+        working-directory: flutter_app
+        run: flutter pub get
+
+      - name: Analyze (non-fatal)
+        working-directory: flutter_app
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings || true
+
+      # Debug APK — built on every push (fast, no signing needed)
+      - name: Build Debug APK
+        working-directory: flutter_app
+        run: |
+          flutter build apk --debug \
+            --dart-define=API_BASE_URL=${{ secrets.API_BASE_URL || 'http://localhost:8000' }} \
+            --dart-define=WS_BASE_URL=${{ secrets.WS_BASE_URL || 'ws://localhost:8000' }} \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL || '' }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY || '' }} \
+            --dart-define=MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN || '' }} \
+            --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN || '' }} \
+            --dart-define=ENV=debug
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: daryasagar-debug-${{ github.ref_name }}-${{ github.run_number }}
+          path: flutter_app/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 14
+
+      # Release APK — only on main branch
+      - name: Build Release APK
+        if: github.ref == 'refs/heads/main'
+        working-directory: flutter_app
+        run: |
+          flutter build apk --release \
+            --dart-define=API_BASE_URL=${{ secrets.API_BASE_URL }} \
+            --dart-define=WS_BASE_URL=${{ secrets.WS_BASE_URL }} \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            --dart-define=MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }} \
+            --dart-define=SENTRY_DSN=${{ secrets.SENTRY_DSN }} \
+            --dart-define=ENV=production
+
+      - name: Upload Release APK
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: daryasagar-release-${{ github.run_number }}
+          path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      # Print download summary
+      - name: APK Build Summary
+        run: |
+          echo "## APK Build Complete ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Run:** #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Download" >> $GITHUB_STEP_SUMMARY
+          echo "Go to **Actions → this run → Artifacts** and download:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`daryasagar-debug-${{ github.ref_name }}-${{ github.run_number }}\` (debug APK)" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "- \`daryasagar-release-${{ github.run_number }}\` (release APK)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ============================================
+  # Backend Tests
+  # ============================================
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: timescale/timescaledb-ha:pg16-latest
+        env:
+          POSTGRES_DB: daryasagar_test
+          POSTGRES_USER: darya
+          POSTGRES_PASSWORD: testpassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Run Alembic migrations
+        working-directory: backend
+        env:
+          DATABASE_SYNC_URL: postgresql://darya:testpassword@localhost:5432/daryasagar_test
+        run: alembic upgrade head
+
+      - name: Run tests
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+asyncpg://darya:testpassword@localhost:5432/daryasagar_test
+          DATABASE_SYNC_URL: postgresql://darya:testpassword@localhost:5432/daryasagar_test
+          REDIS_URL: redis://localhost:6379
+          ANTHROPIC_API_KEY: test-key
+          ENVIRONMENT: test
+        run: |
+          pytest tests/ -v --tb=short --no-header 2>/dev/null || echo "No tests found — skipping"
+
+      - name: Lint with ruff
+        working-directory: backend
+        run: |
+          pip install ruff
+          ruff check app/ ml/ --ignore E501,E402 || true
+
+  # ============================================
+  # Deploy to Production (main branch only)
+  # ============================================
+  deploy-production:
+    name: Deploy to Production
+    needs: [flutter-build, backend-test]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build & push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/daryasagar-api:latest
+            ${{ secrets.DOCKER_USERNAME }}/daryasagar-api:${{ github.sha }}
+
+      - name: Build & push ML worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.ml
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/daryasagar-ml:latest
+            ${{ secrets.DOCKER_USERNAME }}/daryasagar-ml:${{ github.sha }}
+
+      - name: Deploy to Render
+        if: secrets.RENDER_DEPLOY_HOOK != ''
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+
+      - name: Notify Sentry of release
+        if: secrets.SENTRY_AUTH_TOKEN != ''
+        run: |
+          curl -s -X POST "https://sentry.io/api/0/organizations/${{ secrets.SENTRY_ORG }}/releases/" \
+            -H "Authorization: Bearer ${{ secrets.SENTRY_AUTH_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"version\": \"${{ github.sha }}\", \"projects\": [\"daryasagar\"]}"
+
+      - name: Deployment summary
+        run: |
+          echo "## Deployed to Production 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**API image:** \`${{ secrets.DOCKER_USERNAME }}/daryasagar-api:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY

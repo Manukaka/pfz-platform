@@ -1,0 +1,225 @@
+version: '3.9'
+
+services:
+  # ============================================
+  # FastAPI Backend
+  # ============================================
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: daryasagar-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://darya:${DB_PASSWORD}@postgres:5432/daryasagar
+      - DATABASE_SYNC_URL=postgresql://darya:${DB_PASSWORD}@postgres:5432/daryasagar
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SENTRY_DSN=${SENTRY_DSN}
+      - ENVIRONMENT=production
+      - MAPBOX_ACCESS_TOKEN=${MAPBOX_ACCESS_TOKEN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/models:/app/models:ro
+    networks:
+      - daryasagar-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================
+  # ML Inference Worker
+  # ============================================
+  ml-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.ml
+    container_name: daryasagar-ml
+    restart: unless-stopped
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql+asyncpg://darya:${DB_PASSWORD}@postgres:5432/daryasagar
+      - ENVIRONMENT=production
+    depends_on:
+      - kafka
+      - postgres
+      - redis
+    volumes:
+      - ./backend/models:/app/models:ro
+    networks:
+      - daryasagar-net
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]  # Optional GPU support
+
+  # ============================================
+  # Data Ingestion Worker (INCOIS, Kafka)
+  # ============================================
+  data-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: daryasagar-data
+    restart: unless-stopped
+    command: python -m app.services.data_ingestion.worker
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql+asyncpg://darya:${DB_PASSWORD}@postgres:5432/daryasagar
+    depends_on:
+      - kafka
+      - postgres
+    networks:
+      - daryasagar-net
+
+  # ============================================
+  # PostgreSQL + PostGIS + TimescaleDB
+  # ============================================
+  postgres:
+    image: timescale/timescaledb-ha:pg16-latest
+    container_name: daryasagar-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=daryasagar
+      - POSTGRES_USER=darya
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./backend/database/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+    networks:
+      - daryasagar-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U darya -d daryasagar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: >
+      postgres
+      -c shared_preload_libraries=timescaledb,postgis
+      -c max_connections=200
+      -c shared_buffers=512MB
+      -c effective_cache_size=2GB
+      -c work_mem=16MB
+
+  # ============================================
+  # Redis Cluster
+  # ============================================
+  redis:
+    image: redis:7.4-alpine
+    container_name: daryasagar-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - daryasagar-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ============================================
+  # Apache Kafka + Zookeeper
+  # ============================================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.9.0
+    container_name: daryasagar-zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zk_data:/var/lib/zookeeper/data
+    networks:
+      - daryasagar-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.9.0
+    container_name: daryasagar-kafka
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168  # 7 days
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - daryasagar-net
+
+  # ============================================
+  # Qdrant Vector DB
+  # ============================================
+  qdrant:
+    image: qdrant/qdrant:v1.14.0
+    container_name: daryasagar-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - daryasagar-net
+
+  # ============================================
+  # Nginx Reverse Proxy
+  # ============================================
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: daryasagar-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - api
+    networks:
+      - daryasagar-net
+
+volumes:
+  postgres_data:
+  redis_data:
+  kafka_data:
+  zk_data:
+  qdrant_data:
+  nginx_logs:
+
+networks:
+  daryasagar-net:
+    driver: bridge

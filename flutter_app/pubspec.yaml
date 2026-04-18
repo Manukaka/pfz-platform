@@ -1,0 +1,97 @@
+name: darya_sagar
+description: "DaryaSagar - Real-time PFZ platform for Indian West Coast fishermen"
+publish_to: 'none'
+version: 3.0.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Navigation
+  go_router: ^14.6.3
+
+  # Maps
+  mapbox_maps_flutter: ^2.5.0
+
+  # WebView (INCOIS Samudra)
+  webview_flutter: ^4.10.0
+
+  # Firebase
+  firebase_core: ^3.13.0
+  firebase_messaging: ^15.2.5
+  firebase_analytics: ^11.4.5
+
+  # Auth
+  supabase_flutter: ^2.8.4
+
+  # Real-time
+  web_socket_channel: ^3.0.2
+
+  # HTTP client
+  dio: ^5.8.0+1
+  retry: ^3.1.2
+
+  # Local storage
+  hive_flutter: ^1.1.0
+  shared_preferences: ^2.3.5
+  path_provider: ^2.1.5
+  path: ^1.9.0
+
+  # Localization
+  intl: ^0.20.2
+
+  # Location
+  geolocator: ^13.0.4
+  permission_handler: ^11.3.1
+
+  # Voice I/O
+  speech_to_text: ^7.0.0
+  flutter_tts: ^4.2.3
+
+  # UI
+  cupertino_icons: ^1.0.8
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+  lottie: ^3.3.1
+  fl_chart: ^0.69.2
+
+  # Utilities
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+  collection: ^1.19.1
+  uuid: ^4.5.1
+
+  # Error tracking
+  sentry_flutter: ^8.13.2
+
+  # Image picker (for fish photo)
+  image_picker: ^1.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.14
+  riverpod_generator: ^2.6.3
+  freezed: ^2.5.8
+  json_serializable: ^6.9.3
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/lottie/
+    - assets/data/
+    - assets/translations/

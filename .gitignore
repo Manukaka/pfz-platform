@@ -1,0 +1,60 @@
+# ── Python / Backend ──────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.env
+.env.*
+!.env.example
+*.log
+.venv/
+venv/
+env/
+pip-wheel-metadata/
+
+# ML models (large binary files — store separately)
+backend/models/*.onnx
+backend/models/*.tflite
+backend/models/*.pkl
+
+# ── Flutter / Dart ────────────────────────────────
+flutter_app/.dart_tool/
+flutter_app/.flutter-plugins
+flutter_app/.flutter-plugins-dependencies
+flutter_app/.packages
+flutter_app/.pub-cache/
+flutter_app/.pub/
+flutter_app/build/
+flutter_app/android/.gradle/
+flutter_app/android/captures/
+flutter_app/android/local.properties   # contains personal SDK path + token
+flutter_app/android/GeneratedPluginRegistrant.java
+
+# Firebase — NEVER commit real credentials
+flutter_app/android/app/google-services.json
+flutter_app/ios/Runner/GoogleService-Info.plist
+
+# ── Secrets ───────────────────────────────────────
+*.pem
+*.key
+*.p12
+*.keystore
+*.jks
+service-account*.json
+
+# ── OS / IDE ──────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/settings.json
+*.swp
+*.swo
+
+# ── Docker ────────────────────────────────────────
+docker-compose.override.yml
