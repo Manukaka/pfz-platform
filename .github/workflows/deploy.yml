@@ -205,13 +205,13 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/daryasagar-ml:${{ github.sha }}
 
       - name: Deploy to Render
-        if: secrets.RENDER_DEPLOY_HOOK != ''
+        if: ${{ secrets.RENDER_DEPLOY_HOOK != '' }}
         run: |
           curl -s -o /dev/null -w "%{http_code}" \
             -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
 
       - name: Notify Sentry of release
-        if: secrets.SENTRY_AUTH_TOKEN != ''
+        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
         run: |
           curl -s -X POST "https://sentry.io/api/0/organizations/${{ secrets.SENTRY_ORG }}/releases/" \
             -H "Authorization: Bearer ${{ secrets.SENTRY_AUTH_TOKEN }}" \
