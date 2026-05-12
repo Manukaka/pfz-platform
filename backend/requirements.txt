@@ -38,10 +38,6 @@ scikit-learn==1.6.1
 onnxruntime==1.21.0
 joblib==1.4.2
 
-# Data handling
-pandas==2.2.3
-pyarrow==19.0.1
-
 # HTTP requests (for scraping INCOIS, satellite)
 aiohttp==3.11.14
 requests==2.32.3

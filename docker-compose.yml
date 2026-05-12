@@ -180,20 +180,6 @@ services:
       - daryasagar-net
 
   # ============================================
-  # Qdrant Vector DB
-  # ============================================
-  qdrant:
-    image: qdrant/qdrant:v1.14.0
-    container_name: daryasagar-qdrant
-    restart: unless-stopped
-    ports:
-      - "6333:6333"
-    volumes:
-      - qdrant_data:/qdrant/storage
-    networks:
-      - daryasagar-net
-
-  # ============================================
   # Nginx Reverse Proxy
   # ============================================
   nginx:
@@ -217,7 +203,6 @@ volumes:
   redis_data:
   kafka_data:
   zk_data:
-  qdrant_data:
   nginx_logs:
 
 networks:

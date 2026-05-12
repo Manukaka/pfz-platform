@@ -34,27 +34,30 @@ class PfzZone {
   });
 
   factory PfzZone.fromJson(Map<String, dynamic> json) {
+    final environmentalFactors =
+        (json['environmental_factors'] as Map?)?.cast<String, dynamic>() ?? {};
+    final center = (json['center'] as List?) ?? const [0.0, 0.0];
     return PfzZone(
       id: json['zone_id'] as String,
       state: json['state'] as String,
       confidence: (json['confidence'] as num).toDouble(),
-      source: json['source'] as String,
-      polygon: (json['polygon'] as List)
+      source: (json['source'] as String?) ?? 'unknown',
+      polygon: ((json['polygon'] as List?) ?? const [])
           .map((p) => (p as List).map((v) => (v as num).toDouble()).toList())
           .toList(),
-      centerLat: (json['center'][1] as num).toDouble(),
-      centerLon: (json['center'][0] as num).toDouble(),
+      centerLat: (center[1] as num).toDouble(),
+      centerLon: (center[0] as num).toDouble(),
       speciesProbability: Map<String, double>.from(
-        (json['species_probability'] as Map).map(
+        ((json['species_probability'] as Map?) ?? const {}).map(
           (k, v) => MapEntry(k as String, (v as num).toDouble()),
         ),
       ),
-      sst: (json['environmental_factors']['sst'] as num).toDouble(),
-      chlorophyll: (json['environmental_factors']['chlorophyll'] as num).toDouble(),
+      sst: ((environmentalFactors['sst'] as num?) ?? 0).toDouble(),
+      chlorophyll: ((environmentalFactors['chlorophyll'] as num?) ?? 0).toDouble(),
       validFrom: DateTime.parse(json['valid_from'] as String),
       validUntil: DateTime.parse(json['valid_until'] as String),
-      distanceFromShoreKm: (json['distance_from_shore_km'] as num).toDouble(),
-      safetyStatus: json['safety_status'] as String,
+      distanceFromShoreKm: ((json['distance_from_shore_km'] as num?) ?? 0).toDouble(),
+      safetyStatus: (json['safety_status'] as String?) ?? 'unknown',
       distanceFromUserKm: json['distance_from_user_km'] != null
           ? (json['distance_from_user_km'] as num).toDouble()
           : null,

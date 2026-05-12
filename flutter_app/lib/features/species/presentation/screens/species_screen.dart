@@ -38,7 +38,7 @@ class SpeciesScreen extends ConsumerWidget {
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: _speciesData.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        separatorBuilder: (_, _) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
           final s = _speciesData[index];
           return Card(
@@ -48,7 +48,7 @@ class SpeciesScreen extends ConsumerWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: s.color.withOpacity(0.1),
+                  color: s.color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(s.icon, color: s.color),

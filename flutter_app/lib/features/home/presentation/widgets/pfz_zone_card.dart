@@ -26,7 +26,7 @@ class PfzZoneCard extends StatelessWidget {
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: AppTheme.oceanBlue.withOpacity(0.1),
+                  color: AppTheme.oceanBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -68,7 +68,7 @@ class PfzZoneCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.safeGreen.withOpacity(0.1),
+                      color: AppTheme.safeGreen.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(

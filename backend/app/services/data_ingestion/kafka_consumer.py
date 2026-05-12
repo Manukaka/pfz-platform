@@ -101,12 +101,22 @@ class PfzZoneConsumer:
                 state = msg.value.get("state")
 
                 # Update cache
-                await redis.setex(
-                    f"pfz:latest:{state}" if state else "pfz:latest",
-                    settings.redis_pfz_ttl,
-                    json.dumps(zones),
-                )
-                await pfz_service.invalidate_cache(redis, f"pfz:nearby:*")
+                if state:
+                    await redis.setex(
+                        f"pfz:latest:{state}",
+                        settings.redis_pfz_ttl,
+                        json.dumps(zones),
+                    )
+                    all_zones = []
+                    for key in await redis.keys("pfz:latest:*"):
+                        cached = await redis.get(key)
+                        if cached:
+                            all_zones.extend(json.loads(cached))
+                    await redis.setex("pfz:latest", settings.redis_pfz_ttl, json.dumps(all_zones))
+                else:
+                    await redis.setex("pfz:latest", settings.redis_pfz_ttl, json.dumps(zones))
+                await pfz_service.invalidate_cache(redis, "pfz:nearby:*")
+                await pfz_service.invalidate_cache(redis, "pfz:state:*")
 
                 # Broadcast to WebSocket clients
                 await broadcast_pfz_update(zones)

@@ -37,12 +37,6 @@ class AppConstants {
     defaultValue: '',
   );
 
-  // Anthropic / Claude
-  static const String claudeApiKey = String.fromEnvironment(
-    'CLAUDE_API_KEY',
-    defaultValue: '',
-  );
-
   // App config
   static const Duration wsReconnectDelay = Duration(seconds: 5);
   static const Duration apiTimeout = Duration(seconds: 30);

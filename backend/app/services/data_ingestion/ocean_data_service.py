@@ -6,10 +6,14 @@ Runs every hour via APScheduler.
 import asyncio
 import json
 import structlog
+import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy import text
+
 from ...core.config import settings
+from ...core.database import AsyncSessionLocal
 from ...core.redis_client import get_redis
 from .sources.copernicus import copernicus_ingester
 from .sources.nasa_earthdata import nasa_ingester, ecmwf_ingester
@@ -56,14 +60,20 @@ class OceanDataService:
                     3600,
                     json.dumps(state_summary),
                 )
-                # Update safety cache
+                # Update safety cache (include SST for Flutter display)
                 from ..safety.safety_service import safety_service
                 safety = safety_service.compute_safety(
                     wave_height=state_summary.get("wave_height", 1.2),
                     wind_speed=state_summary.get("wind_speed", 18.0),
                     current_strength=abs(state_summary.get("current_u", 0.1)),
                 )
+                safety["sst"] = state_summary.get("sst", 29.0)
                 await safety_service.update_safety_cache(redis, state, safety)
+
+            # Persist per-state summaries to ocean_data table
+            await self._persist_to_db(
+                {state: self._summarize_state(merged, state) for state in WEST_COAST_STATES}
+            )
 
             logger.info("Ocean data refresh complete", states=len(WEST_COAST_STATES), records=len(merged))
             return merged
@@ -136,6 +146,45 @@ class OceanDataService:
             "wind_direction": 225,
             "source": "default_fallback",
         }
+
+    async def _persist_to_db(self, state_summaries: dict):
+        """Insert hourly ocean summaries into the ocean_data table."""
+        try:
+            async with AsyncSessionLocal() as session:
+                for state, summary in state_summaries.items():
+                    center_lat, center_lon = STATE_CENTERS[state]
+                    await session.execute(
+                        text(
+                            "INSERT INTO ocean_data "
+                            "(id, timestamp, state, location, sst, chlorophyll, "
+                            "current_u, current_v, wave_height, wave_period, "
+                            "wind_speed, wind_direction, source) "
+                            "VALUES (:id, :ts, :state, "
+                            "ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), "
+                            ":sst, :chlorophyll, :current_u, :current_v, "
+                            ":wave_height, :wave_period, :wind_speed, :wind_direction, :source)"
+                        ),
+                        {
+                            "id": str(uuid.uuid4()),
+                            "ts": datetime.now(timezone.utc),
+                            "state": state,
+                            "lat": center_lat,
+                            "lon": center_lon,
+                            "sst": summary.get("sst"),
+                            "chlorophyll": summary.get("chlorophyll"),
+                            "current_u": summary.get("current_u"),
+                            "current_v": summary.get("current_v"),
+                            "wave_height": summary.get("wave_height"),
+                            "wave_period": summary.get("wave_period"),
+                            "wind_speed": summary.get("wind_speed"),
+                            "wind_direction": summary.get("wind_direction"),
+                            "source": summary.get("source", "copernicus+ecmwf"),
+                        },
+                    )
+                await session.commit()
+            logger.info("Ocean data persisted to DB", states=list(state_summaries.keys()))
+        except Exception as e:
+            logger.error("Ocean data DB persist failed", error=str(e))
 
     async def get_state_conditions(self, state: str) -> dict:
         """Get cached ocean conditions for a state."""

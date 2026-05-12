@@ -1,9 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+import datetime
+
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
+from ....core.database import get_db
 from ....core.redis_client import get_redis
 from ....core.config import settings
+from ....core.auth import AuthenticatedUser, get_current_user
+from ....models.user import User
 from ....services.ai.claude_agent import claude_agent
 
 router = APIRouter(prefix="/ai", tags=["AI Assistant"])
@@ -20,33 +27,40 @@ class AiQueryRequest(BaseModel):
 @router.post("/query")
 async def query_ai(
     request: AiQueryRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
     redis=Depends(get_redis),
+    db: AsyncSession = Depends(get_db),
 ):
     """Query the Claude AI assistant."""
     if not request.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
-    # Rate limiting for free tier
-    if request.user_id:
-        key = f"ai_queries:{request.user_id}:{__import__('datetime').date.today()}"
-        queries_today = await redis.incr(key)
-        await redis.expire(key, 86400)
-        # Pro users: check subscription (simplified)
-        is_free = True  # TODO: check subscription from DB
-        if is_free and queries_today > settings.free_tier_ai_queries_per_day:
-            raise HTTPException(
-                status_code=429,
-                detail=f"Free tier limit: {settings.free_tier_ai_queries_per_day} queries/day",
-            )
+    # Check subscription tier from DB; default to free if user not in DB yet
+    tier_row = await db.execute(
+        select(User.subscription_tier).where(User.id == current_user.id)
+    )
+    row = tier_row.first()
+    is_free = row is None or row[0] == "free"
 
-    result = await claude_agent.query(
+    # Rate limiting for free tier
+    today = datetime.date.today().isoformat()
+    key = f"ai_queries:{current_user.id}:{today}"
+    queries_today = await redis.incr(key)
+    await redis.expire(key, 86400)
+    if is_free and queries_today > settings.free_tier_ai_queries_per_day:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Free tier limit: {settings.free_tier_ai_queries_per_day} queries/day",
+        )
+
+    ai_result = await claude_agent.query(
         user_query=request.query,
         language=request.language,
         context=request.context,
         user_state=request.user_state,
         redis=redis,
     )
-    return result
+    return ai_result
 
 
 @router.get("/languages")

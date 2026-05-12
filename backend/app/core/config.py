@@ -1,3 +1,4 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 from typing import List
 
@@ -58,6 +59,24 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+
+    @model_validator(mode="after")
+    def validate_production_security(self):
+        if self.environment.lower() in {"production", "prod"}:
+            insecure_values = {
+                "jwt_secret": self.jwt_secret == "change-me-in-production",
+                "database_url": "password@" in self.database_url,
+                "database_sync_url": "password@" in self.database_sync_url,
+            }
+            insecure = [name for name, failed in insecure_values.items() if failed]
+            if insecure:
+                raise ValueError(
+                    "Production configuration contains insecure defaults: "
+                    + ", ".join(insecure)
+                )
+            if "*" in self.cors_origins:
+                raise ValueError("Production CORS origins must not use '*'")
+        return self
 
 
 settings = Settings()

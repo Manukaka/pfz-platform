@@ -19,6 +19,7 @@ class SafetyStatus {
   final double waveHeight;
   final double windSpeed;
   final double currentStrength;
+  final double sst;
 
   const SafetyStatus({
     required this.score,
@@ -27,6 +28,7 @@ class SafetyStatus {
     required this.waveHeight,
     required this.windSpeed,
     required this.currentStrength,
+    this.sst = 29.0,
   });
 
   factory SafetyStatus.fromJson(Map<String, dynamic> json) {
@@ -37,6 +39,7 @@ class SafetyStatus {
       waveHeight: (json['wave_height'] as num).toDouble(),
       windSpeed: (json['wind_speed'] as num).toDouble(),
       currentStrength: (json['current_strength'] as num).toDouble(),
+      sst: (json['sst'] as num?)?.toDouble() ?? 29.0,
     );
   }
 
@@ -47,5 +50,6 @@ class SafetyStatus {
         waveHeight: 0.8,
         windSpeed: 12.0,
         currentStrength: 0.4,
+        sst: 29.0,
       );
 }

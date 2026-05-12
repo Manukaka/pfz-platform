@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
@@ -62,5 +64,5 @@ async def get_pfz_geojson(
     return {
         "type": "FeatureCollection",
         "features": features,
-        "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }

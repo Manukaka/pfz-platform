@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../shared/models/pfz_zone.dart';
 import '../../providers/home_providers.dart';
 import '../widgets/pfz_zone_card.dart';
 import '../widgets/safety_status_widget.dart';

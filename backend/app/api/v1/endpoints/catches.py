@@ -7,6 +7,7 @@ from datetime import datetime
 import uuid
 
 from ....core.database import get_db
+from ....core.auth import AuthenticatedUser, get_current_user
 from ....models.user import CatchLog
 
 router = APIRouter(prefix="/catch", tags=["Catch Logger"])
@@ -27,6 +28,7 @@ class CatchRequest(BaseModel):
 @router.post("")
 async def log_catch(
     request: CatchRequest,
+    current_user: AuthenticatedUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Log a fish catch."""
@@ -34,7 +36,7 @@ async def log_catch(
 
     catch = CatchLog(
         id=request.id or str(uuid.uuid4()),
-        user_id=request.user_id or "anonymous",
+        user_id=current_user.id,
         species=request.species,
         quantity_kg=request.quantity_kg,
         location=WKTElement(f"POINT({request.lon} {request.lat})", srid=4326)
@@ -51,14 +53,14 @@ async def log_catch(
 
 @router.get("/history")
 async def get_catch_history(
-    user_id: str,
     limit: int = 50,
+    current_user: AuthenticatedUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get catch history for a user."""
     result = await db.execute(
         select(CatchLog)
-        .where(CatchLog.user_id == user_id)
+        .where(CatchLog.user_id == current_user.id)
         .order_by(CatchLog.timestamp.desc())
         .limit(limit)
     )

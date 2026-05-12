@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -34,7 +35,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     final prefs = await SharedPreferences.getInstance();
     final hasLanguage = prefs.containsKey('selected_locale');
-    final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+    // Use Supabase session as source of truth — no manual flag needed
+    final isLoggedIn = Supabase.instance.client.auth.currentSession != null;
 
     if (!mounted) return;
     if (!hasLanguage) {
@@ -66,7 +68,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 width: 100,
                 height: 100,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: const Icon(

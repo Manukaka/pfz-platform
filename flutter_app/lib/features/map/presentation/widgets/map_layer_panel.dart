@@ -114,7 +114,7 @@ class _LayerToggle extends StatelessWidget {
             value: active,
             onChanged: onToggle,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            activeColor: Colors.cyan,
+            activeThumbColor: Colors.cyan,
           ),
         ],
       ),

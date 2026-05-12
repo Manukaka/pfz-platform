@@ -215,12 +215,12 @@ async def _handle_pfz_zones(inp: dict, db=None, redis=None) -> dict:
     radius_km = inp.get("radius_km", 100)
 
     if redis:
-        cached = await redis.get(f"pfz:latest:{state}")
+        cached = await redis.get(f"pfz:latest:{state}") or await redis.get("pfz:latest")
         if cached:
-            zones = json.loads(cached)
-            if lat and lon:
+            zones = [z for z in json.loads(cached) if z.get("state") == state]
+            if lat is not None and lon is not None:
                 zones = [z for z in zones if _within_radius(z, lat, lon, radius_km)]
-            return {"state": state, "zones": zones[:5], "count": len(zones[:5])}
+            return {"state": state, "zones": zones[:5], "count": len(zones[:5]), "source": "live_cache"}
 
     # Fallback: well-known fishing banks per state
     heritage_zones = {
