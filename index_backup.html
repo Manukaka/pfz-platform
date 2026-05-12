@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PFZ Platform - अरबी समुद्र</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Tiro+Devanagari+Marathi&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0a0f1a;
+            --panel: rgba(10, 20, 40, 0.92);
+            --border: rgba(0, 200, 255, 0.2);
+            --accent: #00c8ff;
+            --accent2: #00ff88;
+            --danger: #ff4444;
+            --warn: #ffaa00;
+            --text: #e0f0ff;
+            --text-dim: #7090a0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Space Mono', monospace;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* TOP BAR */
+        #topbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 52px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            z-index: 1000;
+            gap: 16px;
+            backdrop-filter: blur(12px);
+        }
+
+        #topbar .logo {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        #topbar .logo span {
+            color: var(--accent2);
+        }
+
+        .update-badge {
+            font-size: 10px;
+            color: var(--text-dim);
+            border: 1px solid var(--border);
+            padding: 2px 8px;
+            border-radius: 20px;
+        }
+
+        .update-badge .dot {
+            display: inline-block;
+            width: 6px; height: 6px;
+            background: var(--accent2);
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* LANG SWITCHER */
+        .lang-switch {
+            margin-left: auto;
+            display: flex;
+            gap: 4px;
+        }
+
+        .lang-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            transition: all 0.2s;
+        }
+
+        .lang-btn.active, .lang-btn:hover {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+
+        /* MAP */
+        #map {
+            position: fixed;
+            top: 52px; left: 0; right: 0; bottom: 0;
+            z-index: 1;
+        }
+
+        /* LEFT PANEL - Base Layers */
+        #layer-panel {
+            position: fixed;
+            top: 62px;
+            left: 10px;
+            width: 200px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            z-index: 500;
+            backdrop-filter: blur(12px);
+            overflow: hidden;
+        }
+
+        #layer-panel .panel-header {
+            padding: 10px 14px;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: var(--accent);
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+        }
+
+        .layer-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-size: 11px;
+            color: var(--text-dim);
+            transition: all 0.2s;
+            gap: 8px;
+        }
+
+        .layer-item:hover { background: rgba(0,200,255,0.05); color: var(--text); }
+        .layer-item.active { color: var(--accent); }
+
+        .layer-radio {
+            width: 12px; height: 12px;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .layer-item.active .layer-radio {
+            border-color: var(--accent);
+            background: var(--accent);
+            box-shadow: 0 0 6px var(--accent);
+        }
+
+        /* HAMBURGER MENU */
+        #hamburger {
+            position: fixed;
+            top: 62px;
+            right: 10px;
+            z-index: 500;
+        }
+
+        .ham-btn {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            color: var(--accent);
+            width: 40px; height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            backdrop-filter: blur(12px);
+        }
+
+        .ham-btn span {
+            width: 18px; height: 2px;
+            background: var(--accent);
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+
+        #side-menu {
+            position: fixed;
+            top: 52px; right: -280px;
+            width: 260px;
+            bottom: 0;
+            background: var(--panel);
+            border-left: 1px solid var(--border);
+            z-index: 600;
+            backdrop-filter: blur(16px);
+            transition: right 0.3s ease;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        #side-menu.open { right: 0; }
+
+        .menu-section {
+            margin-bottom: 20px;
+        }
+
+        .menu-section-title {
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .toggle-switch {
+            width: 36px; height: 20px;
+            background: var(--border);
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.on { background: var(--accent); }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 14px; height: 14px;
+            background: white;
+            border-radius: 50%;
+            top: 3px; left: 3px;
+            transition: left 0.3s;
+        }
+
+        .toggle-switch.on::after { left: 19px; }
+
+        /* BOTTOM INFO BAR */
+        #info-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 36px;
+            background: var(--panel);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 24px;
+            z-index: 500;
+            backdrop-filter: blur(12px);
+            font-size: 10px;
+            color: var(--text-dim);
+        }
+
+        #info-bar .info-item { display: flex; gap: 6px; align-items: center; }
+        #info-bar .info-label { color: var(--accent); }
+
+        /* CLICK POPUP */
+        .pfz-popup {
+            background: #0a1628 !important;
+            border: 1px solid var(--accent) !important;
+            border-radius: 8px !important;
+            color: var(--text) !important;
+            font-family: 'Space Mono', monospace !important;
+            min-width: 220px;
+        }
+
+        .pfz-popup .leaflet-popup-content-wrapper {
+            background: #0a1628 !important;
+            border: 1px solid rgba(0,200,255,0.4) !important;
+            border-radius: 8px !important;
+            color: #e0f0ff !important;
+        }
+
+        .pfz-popup .leaflet-popup-tip {
+            background: #0a1628 !important;
+        }
+
+        .popup-title {
+            font-size: 11px;
+            letter-spacing: 1px;
+            color: #00c8ff;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(0,200,255,0.2);
+        }
+
+        .popup-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            padding: 3px 0;
+            color: #e0f0ff;
+        }
+
+        .popup-label { color: #7090a0; }
+        .popup-value { color: #00ff88; font-weight: bold; }
+
+        .zone-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-top: 6px;
+        }
+
+        .zone-high { background: rgba(255,68,68,0.2); color: #ff4444; border: 1px solid #ff4444; }
+        .zone-med { background: rgba(255,170,0,0.2); color: #ffaa00; border: 1px solid #ffaa00; }
+        .zone-low { background: rgba(0,255,136,0.2); color: #00ff88; border: 1px solid #00ff88; }
+
+        /* SOS BUTTON */
+        #sos-btn {
+            position: fixed;
+            bottom: 46px;
+            right: 10px;
+            z-index: 500;
+            background: #ff0000;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            letter-spacing: 2px;
+            font-family: 'Space Mono', monospace;
+            box-shadow: 0 0 20px rgba(255,0,0,0.5);
+            animation: sos-pulse 3s infinite;
+        }
+
+        @keyframes sos-pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255,0,0,0.5); }
+            50% { box-shadow: 0 0 35px rgba(255,0,0,0.9); }
+        }
+
+        /* GPS BUTTON */
+        #gps-btn {
+            position: fixed;
+            bottom: 90px;
+            right: 10px;
+            z-index: 500;
+            background: var(--panel);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            width: 40px; height: 40px;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(12px);
+        }
+
+        /* LEGEND */
+        #legend {
+            position: fixed;
+            bottom: 46px;
+            left: 10px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            z-index: 500;
+            backdrop-filter: blur(12px);
+        }
+
+        #legend .leg-title {
+            font-size: 9px;
+            letter-spacing: 2px;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .leg-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+        }
+
+        .leg-color {
+            width: 24px; height: 10px;
+            border-radius: 3px;
+        }
+
+        /* PFZ ANIMATION */
+        @keyframes pfz-flow {
+            0% { stroke-dashoffset: 100; opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { stroke-dashoffset: 0; opacity: 0.6; }
+        }
+
+        .leaflet-overlay-pane svg path.pfz-animated {
+            stroke-dasharray: 8 4;
+            animation: pfz-flow 3s linear infinite;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+    <div class="logo">PFZ <span>PLATFORM</span></div>
+    <div class="update-badge">
+        <span class="dot"></span>
+        <span id="update-time">अपडेट होत आहे...</span>
+    </div>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="setLang('mr')">मराठी</button>
+        <button class="lang-btn" onclick="setLang('hi')">हिंदी</button>
+        <button class="lang-btn" onclick="setLang('en')">EN</button>
+    </div>
+</div>
+
+<!-- MAP -->
+<div id="map"></div>
+
+<!-- BASE LAYER PANEL -->
+<div id="layer-panel" style="display:none;">
+    <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;">🗺️ Base Layers <span onclick="document.getElementById('layer-panel').style.display='none'" style="cursor:pointer;color:#7090a0;">✕</span></div>
+    <div class="layer-item active" onclick="switchLayer('esri-imagery', this)">
+        <div class="layer-radio"></div> ESRI Imagery
+    </div>
+    <div class="layer-item" onclick="switchLayer('osm', this)">
+        <div class="layer-radio"></div> OSM Topographic
+    </div>
+    <div class="layer-item" onclick="switchLayer('usgs-imagery', this)">
+        <div class="layer-radio"></div> USGS Imagery
+    </div>
+    <div class="layer-item" onclick="switchLayer('carto-dark', this)">
+        <div class="layer-radio"></div> Carto Dark
+    </div>
+    <div class="layer-item" onclick="switchLayer('carto-light', this)">
+        <div class="layer-radio"></div> Carto Light
+    </div>
+    <div class="layer-item" onclick="switchLayer('esri-street', this)">
+        <div class="layer-radio"></div> ESRI Street Map
+    </div>
+    <div class="layer-item" onclick="switchLayer('osm-bright', this)">
+        <div class="layer-radio"></div> OSM BrightGray
+    </div>
+    <div class="layer-item" onclick="switchLayer('usgs-topo', this)">
+        <div class="layer-radio"></div> USGS Topographic
+    </div>
+</div>
+
+<!-- LAYERS TOGGLE -->
+<button onclick="toggleLayers()" style="position:fixed;top:62px;left:10px;z-index:600;background:rgba(10,20,40,0.92);border:1px solid rgba(0,200,255,0.2);color:#00c8ff;padding:6px 12px;border-radius:8px;font-size:11px;cursor:pointer;font-family:Space Mono,monospace;backdrop-filter:blur(12px);">🗺️ Layers</button>
+
+<!-- HAMBURGER -->
+<div id="hamburger">
+    <button class="ham-btn" onclick="toggleMenu()">
+        <span></span><span></span><span></span>
+    </button>
+</div>
+
+<!-- SIDE MENU -->
+<div id="side-menu">
+    <div class="menu-section">
+        <div class="menu-section-title">🌤️ Optional Layers</div>
+        <div class="toggle-item">
+            <span id="lbl-wind">वारा (Wind)</span>
+            <div class="toggle-switch" id="toggle-wind" onclick="toggleLayer('wind', this)"></div>
+        </div>
+        <div class="toggle-item">
+            <span id="lbl-waves">लाटा (Waves)</span>
+            <div class="toggle-switch" id="toggle-waves" onclick="toggleLayer('waves', this)"></div>
+        </div>
+        <div class="toggle-item">
+            <span id="lbl-weather">हवामान (Weather)</span>
+            <div class="toggle-switch" id="toggle-weather" onclick="toggleLayer('weather', this)"></div>
+        </div>
+        <div class="toggle-item">
+            <span id="lbl-currents">प्रवाह (Currents)</span>
+            <div class="toggle-switch" id="toggle-currents" onclick="toggleLayer('currents', this)"></div>
+        </div>
+    </div>
+
+    <div class="menu-section">
+        <div class="menu-section-title">📓 Fishing Log</div>
+        <div style="font-size:11px; color: var(--text-dim); margin-bottom:8px;" id="lbl-date"></div>
+        <textarea id="fish-log" placeholder="आजचे मासे नोंदवा..." style="width:100%; height:80px; background: rgba(0,200,255,0.05); border: 1px solid var(--border); border-radius:6px; color: var(--text); padding:8px; font-size:11px; font-family:'Space Mono',monospace; resize:none;"></textarea>
+        <button onclick="saveLog()" style="width:100%; margin-top:6px; background: rgba(0,200,255,0.1); border: 1px solid var(--accent); color: var(--accent); padding:6px; border-radius:6px; cursor:pointer; font-size:11px; font-family:'Space Mono',monospace;" id="lbl-save">💾 Save करा</button>
+    </div>
+
+    <div class="menu-section">
+        <div class="menu-section-title">📡 Share Location</div>
+        <button onclick="shareLocation()" style="width:100%; background: rgba(0,255,136,0.1); border: 1px solid var(--accent2); color: var(--accent2); padding:8px; border-radius:6px; cursor:pointer; font-size:11px; font-family:'Space Mono',monospace;" id="lbl-share">📤 Location Share करा</button>
+    </div>
+
+    <div class="menu-section">
+        <div class="menu-section-title">ℹ️ About</div>
+        <div style="font-size:10px; color: var(--text-dim); line-height:1.6;">
+            Data Sources:<br>
+            • INCOIS (India)<br>
+            • Copernicus CMEMS<br>
+            • NASA Earthdata<br>
+            • NOAA CoastWatch<br>
+            • GEBCO (Bathymetry)
+        </div>
+    </div>
+</div>
+
+<!-- LEGEND -->
+<div id="legend">
+    <div class="leg-title">PFZ Zones</div>
+    <div class="leg-item">
+        <div class="leg-color" style="background:rgba(255,68,68,0.7)"></div>
+        <span id="lbl-high">उच्च संभाव्य</span>
+    </div>
+    <div class="leg-item">
+        <div class="leg-color" style="background:rgba(255,170,0,0.7)"></div>
+        <span id="lbl-med">मध्यम संभाव्य</span>
+    </div>
+    <div class="leg-item">
+        <div class="leg-color" style="background:rgba(0,255,136,0.5)"></div>
+        <span id="lbl-low">कमी संभाव्य</span>
+    </div>
+</div>
+
+<!-- GPS BUTTON -->
+<button id="gps-btn" onclick="locateMe()" title="माझं स्थान">📍</button>
+
+<!-- SOS BUTTON -->
+<button id="sos-btn" onclick="sendSOS()">🆘 SOS</button>
+
+<!-- INFO BAR -->
+<div id="info-bar">
+    <div class="info-item">
+        <span class="info-label">LAT</span>
+        <span id="bar-lat">--</span>
+    </div>
+    <div class="info-item">
+        <span class="info-label">LNG</span>
+        <span id="bar-lng">--</span>
+    </div>
+    <div class="info-item">
+        <span class="info-label">खोली</span>
+        <span id="bar-depth">-- m</span>
+    </div>
+    <div class="info-item">
+        <span class="info-label">SST</span>
+        <span id="bar-sst">--°C</span>
+    </div>
+</div>
+
+<!-- INFO PANEL -->
+<div id="info-panel" style="display:none; position:fixed; top:62px; right:60px; width:260px; background:rgba(10,20,40,0.95); border:1px solid rgba(0,200,255,0.3); border-radius:8px; padding:14px; z-index:500; backdrop-filter:blur(12px); font-family:Space Mono,monospace;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid rgba(0,200,255,0.2);">
+        <span style="font-size:11px; letter-spacing:1px; color:#00c8ff;" id="panel-title">📍 स्थान माहिती</span>
+        <span onclick="document.getElementById('info-panel').style.display='none'" style="cursor:pointer; color:#7090a0; font-size:14px;">✕</span>
+    </div>
+    <div id="panel-content"></div>
+</div>
+
+<!-- LEAFLET JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// ==================== MAP INIT ====================
+const map = L.map('map', {
+    center: [15.0, 65.0],  // Arabian Sea center
+    zoom: 6,
+    zoomControl: false
+});
+
+// Add zoom control to bottom right
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+// ==================== BASE LAYERS ====================
+const baseLayers = {
+    'esri-imagery': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'ESRI World Imagery', maxZoom: 18
+    }),
+    'osm': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: 'OSM', maxZoom: 19
+    }),
+    'usgs-imagery': L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'USGS Imagery', maxZoom: 16
+    }),
+    'carto-dark': L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: 'Carto Dark', maxZoom: 19
+    }),
+    'carto-light': L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: 'Carto Light', maxZoom: 19
+    }),
+    'esri-street': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'ESRI Street', maxZoom: 18
+    }),
+    'osm-bright': L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: 'OSM Bright', maxZoom: 19
+    }),
+    'usgs-topo': L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'USGS Topo', maxZoom: 16
+    })
+};
+
+// Default layer
+let currentLayer = baseLayers['esri-imagery'].addTo(map);
+
+function switchLayer(name, el) {
+    map.removeLayer(currentLayer);
+    currentLayer = baseLayers[name].addTo(map);
+    document.querySelectorAll('.layer-item').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+}
+
+// ==================== PFZ DEMO ZONES ====================
+// Sample PFZ zones for Arabian Sea (will be replaced with real API data)
+const pfzZones = [
+    { latlngs: [[18.5, 63.0], [18.5, 65.0], [17.0, 65.0], [17.0, 63.0]], type: 'high', fish_mr: 'बांगडा, सुरमई', fish_hi: 'बांगड़ा, सुरमई', fish_en: 'Indian Mackerel, Seerfish' },
+    { latlngs: [[15.0, 66.0], [15.0, 68.5], [13.5, 68.5], [13.5, 66.0]], type: 'high', fish_mr: 'रावस, टुना', fish_hi: 'रावास, टूना', fish_en: 'Indian Salmon, Tuna' },
+    { latlngs: [[20.0, 62.0], [20.0, 64.0], [18.5, 64.0], [18.5, 62.0]], type: 'medium', fish_mr: 'पापलेट, हलवा', fish_hi: 'पापलेट, हलवा', fish_en: 'Pomfret, Butterfish' },
+    { latlngs: [[12.0, 70.0], [12.0, 72.0], [10.5, 72.0], [10.5, 70.0]], type: 'medium', fish_mr: 'झिंगे, खेकडा', fish_hi: 'झींगा, केकड़ा', fish_en: 'Prawns, Crab' },
+    { latlngs: [[22.0, 60.0], [22.0, 62.5], [20.5, 62.5], [20.5, 60.0]], type: 'low', fish_mr: 'छोटे मासे', fish_hi: 'छोटी मछलियाँ', fish_en: 'Small Pelagics' },
+];
+
+const zoneColors = {
+    high: { color: '#ff4444', fillColor: '#ff4444', fillOpacity: 0.25 },
+    medium: { color: '#ffaa00', fillColor: '#ffaa00', fillOpacity: 0.2 },
+    low: { color: '#00ff88', fillColor: '#00ff88', fillOpacity: 0.12 }
+};
+
+let lang = 'mr';
+
+const zoneLabels = {
+    high: { mr: 'उच्च संभाव्य क्षेत्र', hi: 'उच्च संभावित क्षेत्र', en: 'High Potential Zone' },
+    medium: { mr: 'मध्यम संभाव्य क्षेत्र', hi: 'मध्यम संभावित क्षेत्र', en: 'Medium Potential Zone' },
+    low: { mr: 'कमी संभाव्य क्षेत्र', hi: 'कम संभावित क्षेत्र', en: 'Low Potential Zone' }
+};
+
+pfzZones.forEach(zone => {
+    const style = { ...zoneColors[zone.type], weight: 2, dashArray: '8 4' };
+    const poly = L.polygon(zone.latlngs, style).addTo(map);
+
+    // Animate border
+    poly.on('add', function() {
+        if (this._path) this._path.classList.add('pfz-animated');
+    });
+
+    poly.on('click', function(e) {
+        const center = this.getBounds().getCenter();
+        showZonePopup(e.latlng, zone, center);
+    });
+});
+
+// ==================== CLICK INFO ====================
+map.on('click', function(e) {
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
+    updateInfoBar(lat, lng);
+    showInfoPanel(lat, lng);
+});
+
+function updateInfoBar(lat, lng) {
+    document.getElementById('bar-lat').textContent = lat.toFixed(4) + '°N';
+    document.getElementById('bar-lng').textContent = lng.toFixed(4) + '°E';
+    // Simulated depth from GEBCO (will be real API call)
+    document.getElementById('bar-depth').textContent = '-- m';
+    document.getElementById('bar-sst').textContent = (27 + Math.random() * 3).toFixed(1) + '°C';
+}
+
+function toDMS(dd, isLat) {
+    const dir = isLat ? (dd >= 0 ? 'N' : 'S') : (dd >= 0 ? 'E' : 'W');
+    const d = Math.floor(Math.abs(dd));
+    const m = Math.floor((Math.abs(dd) - d) * 60);
+    const s = ((Math.abs(dd) - d - m / 60) * 3600).toFixed(1);
+    return d + '°' + m + "'" + s + '"' + dir;
+}
+
+function checkIfOcean(lat, lng) {
+    // Arabian Sea strict ocean bounds
+    if (lat > 28 || lat < 5) return false;
+    if (lng < 52 || lng > 78) return false;
+    // India mainland
+    if (lng > 72 && lat > 8) return false;
+    // Gujarat coast
+    if (lng > 68 && lat > 21) return false;
+    // Arabian peninsula
+    if (lng < 57 && lat > 22) return false;
+    if (lng < 54 && lat > 16) return false;
+    // Pakistan coast
+    if (lng > 61 && lat > 24) return false;
+    return true;
+}
+function showClickPopup(lat, lng) {
+        if (!checkIfOcean(lat, lng)) {
+            showInfoPanel(lat, lng, true);
+            return;
+        }
+        const content = `
+        <div style="font-family:'Space Mono',monospace; background:#0a1628; color:#e0f0ff; padding:4px;">
+            <div style="font-size:11px; letter-spacing:1px; color:#00c8ff; text-transform:uppercase; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(0,200,255,0.2);">
+                📍 स्थान माहिती
+            </div>
+            <div style="font-size:11px; padding:3px 0; display:flex; justify-content:space-between;">
+                <span style="color:#7090a0;">DD</span>
+                <span style="color:#00ff88;">${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E</span>
+            </div>
+            <div style="font-size:11px; padding:3px 0; display:flex; justify-content:space-between;">
+                <span style="color:#7090a0;">DMS</span>
+                <span style="color:#00ff88;">${toDMS(lat, true)}, ${toDMS(lng, false)}</span>
+            </div>
+            <div style="font-size:11px; padding:3px 0; display:flex; justify-content:space-between;">
+                <span style="color:#7090a0;">🌊 खोली</span>
+                <span style="color:#00c8ff;">${depth} मीटर</span>
+            </div>
+            <div style="font-size:11px; padding:3px 0; display:flex; justify-content:space-between;">
+                <span style="color:#7090a0;">🌡️ SST</span>
+                <span style="color:#ffaa00;">${sst}°C</span>
+            </div>
+        </div>
+    `;
+
+    L.popup({ className: 'pfz-popup', maxWidth: 280 })
+        .setLatLng([lat, lng])
+        .setContent(content)
+        .openOn(map);
+}
+
+function showZonePopup(latlng, zone, center) {
+    const fishKey = 'fish_' + lang;
+    const fish = zone[fishKey] || zone.fish_en;
+    const label = zoneLabels[zone.type][lang];
+    const badgeClass = zone.type === 'high' ? 'zone-high' : zone.type === 'medium' ? 'zone-med' : 'zone-low';
+
+    const content = `
+        <div style="font-family:'Space Mono',monospace; background:#0a1628; color:#e0f0ff; padding:4px;">
+            <div style="font-size:11px; letter-spacing:1px; color:#00c8ff; text-transform:uppercase; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(0,200,255,0.2);">
+                🐟 PFZ माहिती
+            </div>
+            <div style="font-size:11px; padding:3px 0;">
+                <span style="color:#7090a0;">क्षेत्र: </span>
+                <span style="color:#00ff88; font-weight:bold;">${label}</span>
+            </div>
+            <div style="font-size:11px; padding:3px 0;">
+                <span style="color:#7090a0;">मासे: </span>
+                <span style="color:#ffaa00;">${fish}</span>
+            </div>
+            <div style="font-size:11px; padding:3px 0;">
+                <span style="color:#7090a0;">DD: </span>
+                <span style="color:#00ff88;">${center.lat.toFixed(3)}°N, ${center.lng.toFixed(3)}°E</span>
+            </div>
+            <div style="font-size:11px; padding:3px 0;">
+                <span style="color:#7090a0;">DMS: </span>
+                <span style="color:#00ff88;">${toDMS(center.lat, true)}</span>
+            </div>
+        </div>
+    `;
+
+    L.popup({ className: 'pfz-popup', maxWidth: 280 })
+        .setLatLng(latlng)
+        .setContent(content)
+        .openOn(map);
+}
+
+// ==================== HAMBURGER ====================
+function toggleMenu() {
+    document.getElementById('side-menu').classList.toggle('open');
+}
+function toggleLayers() {
+    const p = document.getElementById('layer-panel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+// Close menu on map click
+map.on('click', function() {
+    document.getElementById('side-menu').classList.remove('open');
+});
+
+// ==================== TOGGLE LAYERS ====================
+function toggleLayer(name, el) {
+    el.classList.toggle('on');
+    // Actual layer integration will happen with API
+    console.log(name + ' toggled');
+}
+
+// ==================== LANGUAGE ====================
+const translations = {
+    mr: {
+        wind: 'वारा (Wind)', waves: 'लाटा (Waves)', weather: 'हवामान (Weather)',
+        currents: 'प्रवाह (Currents)', save: '💾 Save करा', share: '📤 Location Share करा',
+        high: 'उच्च संभाव्य', med: 'मध्यम संभाव्य', low: 'कमी संभाव्य',
+        date: 'आजची तारीख'
+    },
+    hi: {
+        wind: 'हवा (Wind)', waves: 'लहरें (Waves)', weather: 'मौसम (Weather)',
+        currents: 'प्रवाह (Currents)', save: '💾 सेव करें', share: '📤 लोकेशन शेयर करें',
+        high: 'उच्च संभावित', med: 'मध्यम संभावित', low: 'कम संभावित',
+        date: 'आज की तारीख'
+    },
+    en: {
+        wind: 'Wind', waves: 'Waves', weather: 'Weather',
+        currents: 'Currents', save: '💾 Save', share: '📤 Share Location',
+        high: 'High Potential', med: 'Medium Potential', low: 'Low Potential',
+        date: "Today's Date"
+    }
+};
+
+function setLang(l) {
+    lang = l;
+    const t = translations[l];
+    document.getElementById('lbl-wind').textContent = t.wind;
+    document.getElementById('lbl-waves').textContent = t.waves;
+    document.getElementById('lbl-weather').textContent = t.weather;
+    document.getElementById('lbl-currents').textContent = t.currents;
+    document.getElementById('lbl-save').textContent = t.save;
+    document.getElementById('lbl-share').textContent = t.share;
+    document.getElementById('lbl-high').textContent = t.high;
+    document.getElementById('lbl-med').textContent = t.med;
+    document.getElementById('lbl-low').textContent = t.low;
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+}
+
+// ==================== GPS ====================
+let gpsMarker = null;
+
+function locateMe() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            if (gpsMarker) map.removeLayer(gpsMarker);
+            gpsMarker = L.circleMarker([lat, lng], {
+                radius: 10, fillColor: '#00c8ff', color: '#fff',
+                weight: 2, fillOpacity: 0.9
+            }).addTo(map).bindPopup('📍 तुमचं स्थान');
+            map.setView([lat, lng], 10);
+        }, function() {
+            alert('GPS चालू करा!');
+        });
+    }
+}
+
+// ==================== SOS ====================
+function sendSOS() {
+    if (confirm('🆘 SOS पाठवायचं आहे का? Coast Guard ला तुमचं location जाईल.')) {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                alert('SOS पाठवला!\nLat: ' + pos.coords.latitude.toFixed(4) + '\nLng: ' + pos.coords.longitude.toFixed(4) + '\n\nCoast Guard: 1554');
+            });
+        } else {
+            alert('Coast Guard: 1554\n(National Maritime Search and Rescue)');
+        }
+    }
+}
+
+// ==================== SHARE LOCATION ====================
+function shareLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            const lat = pos.coords.latitude.toFixed(4);
+            const lng = pos.coords.longitude.toFixed(4);
+            const text = `माझं स्थान:\nDD: ${lat}°N, ${lng}°E\nDMS: ${toDMS(parseFloat(lat), true)}, ${toDMS(parseFloat(lng), false)}\nGoogle Maps: https://maps.google.com/?q=${lat},${lng}`;
+            if (navigator.share) {
+                navigator.share({ title: 'PFZ Platform - माझं स्थान', text: text });
+            } else {
+                navigator.clipboard.writeText(text);
+                alert('Location copied! WhatsApp वर paste करा.');
+            }
+        });
+    }
+}
+
+// ==================== FISHING LOG ====================
+function saveLog() {
+    const log = document.getElementById('fish-log').value;
+    const date = new Date().toLocaleDateString('mr-IN');
+    localStorage.setItem('pfz-log-' + date, log);
+    alert('✅ नोंद Save झाली!');
+}
+
+// ==================== UPDATE TIME ====================
+function updateTime() {
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(now.getHours() + 3, 0, 0, 0);
+    document.getElementById('update-time').textContent =
+        'Last: ' + now.toLocaleTimeString('mr-IN', { hour: '2-digit', minute: '2-digit' });
+}
+
+// ==================== INFO PANEL ====================
+function showInfoPanel(lat, lng, isLand=false) {
+    const panel = document.getElementById('info-panel');
+    const title = document.getElementById('panel-title');
+    const body = document.getElementById('panel-content');
+
+    if (isLand) {
+        title.innerHTML = '🏔️ जमीन';
+        body.innerHTML = '<div style="color:#ffaa00;font-size:12px;">हे समुद्र क्षेत्र नाही</div>';
+        panel.style.display = 'block';
+        return;
+    }
+
+    const depth = Math.floor(Math.random() * 2000 + 50);
+    const sst = (27 + Math.random() * 3).toFixed(1);
+
+    title.innerHTML = '📍 स्थान माहिती';
+    body.innerHTML = `
+        <div style="font-size:11px; padding:3px 0; display:flex; justify-content:space-between;">
+            <span style="color:#7090a0;">DD</span>
+            <span style="color:#00ff88;">${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E</span>
+        </div>
+        <div style="font-size:11px; padding:3px 0; display:flex; justify-content:space-between;">
+            <span style="color:#7090a0;">DMS</span>
+            <span style="color:#00ff88;">${toDMS(lat,true)}, ${toDMS(lng,false)}</span>
+        </div>
+        <div style="font-size:11px; padding:3px 0; display:flex; justify-content:space-between;">
+            <span style="color:#7090a0;">🌊 खोली</span>
+            <span style="color:#00c8ff;">${depth} मीटर</span>
+        </div>
+        <div style="font-size:11px; padding:3px 0; display:flex; justify-content:space-between;">
+            <span style="color:#7090a0;">🌡️ SST</span>
+            <span style="color:#ffaa00;">${sst}°C</span>
+        </div>`;
+    panel.style.display = 'block';
+}
+
+// ==================== INIT ====================
+updateTime();
+setInterval(updateTime, 180000); // 3 hours
+
+const today = new Date().toLocaleDateString('mr-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+document.getElementById('lbl-date').textContent = today;
+
+</script>
+</body>
+</html>

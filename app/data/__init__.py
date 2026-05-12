@@ -1,0 +1,3 @@
+"""
+SAMUDRA AI Data Module
+"""

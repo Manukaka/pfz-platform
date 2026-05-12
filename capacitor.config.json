@@ -1,0 +1,27 @@
+{
+  "appId": "com.samudra.pfz",
+  "appName": "दर्यासागर",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "cleartext": true,
+    "androidScheme": "http",
+    "allowNavigation": ["samudra-ai.onrender.com"]
+  },
+  "android": {
+    "backgroundColor": "#0a0f1a",
+    "allowMixedContent": true,
+    "webContentsDebuggingEnabled": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "launchShowDuration": 2000,
+      "backgroundColor": "#0a0f1a",
+      "showSpinner": false,
+      "androidSplashResourceName": "splash",
+      "splashFullScreen": true,
+      "splashImmersive": true
+    }
+  }
+}

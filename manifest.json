@@ -1,0 +1,44 @@
+{
+  "name": "दर्यासागर",
+  "short_name": "दर्यासागर",
+  "description": "महाराष्ट्र मच्छिमारांसाठी AI आधारित मासेमारी क्षेत्र अंदाज | AI-powered Potential Fishing Zone advisory for Maharashtra fishermen",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0f1a",
+  "theme_color": "#00c8ff",
+  "lang": "mr",
+  "dir": "ltr",
+  "categories": ["navigation", "weather", "productivity"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "PFZ नकाशा",
+      "short_name": "नकाशा",
+      "description": "Potential Fishing Zone Map",
+      "url": "/?view=map",
+      "icons": [{"src": "https://img.icons8.com/fluency/96/map.png", "sizes": "96x96"}]
+    },
+    {
+      "name": "AI सल्लागार",
+      "short_name": "AI",
+      "description": "AI Agent Analysis",
+      "url": "/?view=agents",
+      "icons": [{"src": "https://img.icons8.com/fluency/96/artificial-intelligence.png", "sizes": "96x96"}]
+    }
+  ]
+}

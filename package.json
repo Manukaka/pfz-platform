@@ -1,0 +1,29 @@
+{
+  "name": "samudra-ai",
+  "version": "1.0.0",
+  "description": "SAMUDRA AI - PFZ Platform for Maharashtra Fishermen",
+  "main": "index.js",
+  "scripts": {
+    "start": "python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload",
+    "android": "npx cap run android",
+    "android:build": "npx cap build android",
+    "android:open": "npx cap open android",
+    "sync": "npx cap sync android"
+  },
+  "keywords": [
+    "fishing",
+    "pfz",
+    "maharashtra",
+    "ocean"
+  ],
+  "author": "SAMUDRA AI",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/share": "^8.0.1"
+  }
+}

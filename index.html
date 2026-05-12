@@ -1,0 +1,3839 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SAMUDRA">
+    <meta name="theme-color" content="#00c8ff">
+    <meta name="description" content="महाराष्ट्र मच्छिमारांसाठी AI आधारित मासेमारी क्षेत्र अंदाज">
+    <link rel="manifest" href="/manifest.json">
+    <title>SAMUDRA AI - PFZ Platform</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        :root {
+            --bg:#0a0f1a; --panel:rgba(8,18,38,0.98);
+            --border:rgba(0,200,255,0.3); --accent:#00c8ff;
+            --accent2:#00ff88; --warn:#ffaa00; --danger:#ff4444;
+            --text:#e0f0ff; --dim:#7090a0;
+            --glow-accent: 0 0 15px rgba(0,200,255,0.4);
+            --glow-accent2: 0 0 15px rgba(0,255,136,0.4);
+        }
+        body { background:var(--bg); color:var(--text); font-family:'Space Mono',monospace; height:100vh; overflow:hidden; }
+        #topbar {
+            position:fixed; top:0; left:0; right:0; height:48px;
+            background:var(--panel);
+            border-bottom:2px solid var(--border);
+            display:flex; align-items:center; padding:0 12px; gap:10px;
+            z-index:1000;
+            backdrop-filter:blur(16px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .logo {
+            font-size:14px; font-weight:700;
+            color:var(--accent); letter-spacing:2px;
+            text-shadow: var(--glow-accent);
+            transition: all 0.3s;
+        }
+        .logo:hover { transform: scale(1.05); }
+        .logo span {
+            color:var(--accent2);
+            text-shadow: var(--glow-accent2);
+        }
+        .auth-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(5, 10, 20, 0.95);
+            z-index: 9999; display: flex; align-items: center; justify-content: center;
+            backdrop-filter: blur(20px);
+        }
+        .auth-card {
+            background: var(--panel); border: 1px solid var(--border);
+            padding: 30px; border-radius: 12px; width: 90%; max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .auth-card h2 { color: var(--accent); margin-bottom: 20px; font-size: 20px; letter-spacing: 2px; }
+        .auth-input {
+            width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+            color: white; padding: 12px; margin-bottom: 15px; font-family: inherit; border-radius: 4px;
+        }
+        .auth-btn {
+            width: 100%; padding: 12px; background: var(--accent); color: #000;
+            border: none; font-weight: bold; cursor: pointer; border-radius: 4px;
+            margin-bottom: 10px; transition: 0.3s;
+        }
+        .auth-btn:hover { background: var(--accent2); transform: translateY(-2px); }
+        .auth-btn.secondary { background: transparent; border: 1px solid var(--border); color: var(--accent); }
+        .auth-error { color: var(--danger); font-size: 12px; margin-top: 10px; min-height: 18px; }
+        .request-status { color: var(--accent2); font-size: 14px; margin-top: 15px; display: none; }
+
+        #admin-btn {
+            position: fixed; bottom: 80px; right: 20px; z-index: 1001;
+            width: 44px; height: 44px; border-radius: 50%; background: var(--panel);
+            border: 1px solid var(--border); color: var(--accent);
+            display: none; align-items: center; justify-content: center; cursor: pointer;
+        }
+
+        .admin-panel {
+            position: fixed; top: 50px; left: 10px; right: 10px; bottom: 60px;
+            background: var(--panel); border: 1px solid var(--border);
+            z-index: 2000; border-radius: 12px; display: none; flex-direction: column;
+            overflow: hidden; backdrop-filter: blur(10px);
+        }
+        .admin-header { padding: 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .admin-body { flex: 1; overflow-y: auto; padding: 15px; }
+        .admin-tab { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .admin-item { background: rgba(255,255,255,0.03); margin-bottom: 10px; padding: 12px; border-radius: 6px; border-left: 3px solid var(--accent); }
+        .admin-item-title { font-weight: bold; font-size: 14px; margin-bottom: 5px; }
+        .admin-item-meta { font-size: 11px; color: var(--dim); }
+        .admin-actions { margin-top: 10px; display: flex; gap: 8px; }
+        .mini-btn { padding: 5px 10px; font-size: 11px; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--text); border-radius: 3px; }
+        .mini-btn.approve { color: var(--accent2); border-color: var(--accent2); }
+        .mini-btn.kill { color: var(--danger); border-color: var(--danger); }
+
+        #session-timer {
+            position: fixed; top: 10px; right: 120px; font-size: 10px; color: var(--warn);
+            z-index: 1001; background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 3px;
+            display: none;
+        }
+
+        @keyframes pulse-dot { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.6; } 100% { transform: scale(1); opacity: 1; } }
+
+        .eez-pulse {
+            animation: eez-pulse-anim 1.5s infinite;
+        }
+        @keyframes eez-pulse-anim {
+            0% { stroke-opacity: 0.8; stroke-width: 2; r: 10; }
+            100% { stroke-opacity: 0; stroke-width: 10; r: 30; }
+        }
+        @keyframes pulse-dot {
+            0%,100% { opacity:1; transform:scale(1); box-shadow: 0 0 8px var(--accent2); }
+            50% { opacity:0.6; transform:scale(0.9); box-shadow: 0 0 4px var(--accent2); }
+        }
+        #update-time { font-size:10px; color:var(--dim); }
+        .lang-switch { margin-left:auto; display:flex; gap:4px; }
+        .lang-btn { background:transparent; border:1px solid var(--border); color:var(--dim); padding:3px 9px; border-radius:4px; font-size:10px; cursor:pointer; font-family:'Space Mono',monospace; }
+        .lang-btn.active { background:var(--accent); color:#000; border-color:var(--accent); }
+        #map { position:fixed; top:48px; left:0; right:0; bottom:32px; z-index:1; }
+        #layers-btn { display:none; }
+        #layer-panel {
+            display:none;
+            position:fixed; top:90px; left:10px;
+            width:195px;
+            background:var(--panel);
+            border:2px solid var(--border);
+            border-radius:10px;
+            z-index:600;
+            backdrop-filter:blur(16px);
+            overflow:hidden;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+            animation:slideInLeft 0.3s ease;
+        }
+        @keyframes slideInLeft {
+            from { opacity:0; transform:translateX(-20px); }
+            to { opacity:1; transform:translateX(0); }
+        }
+        #data-layers-panel { display:none; }
+        .dlp-header { font-size:8px; letter-spacing:2px; color:var(--accent); text-transform:uppercase; margin-bottom:6px; padding-bottom:4px; border-bottom:1px solid var(--border); }
+        .dlp-header { font-size:8px; letter-spacing:2px; color:var(--accent); text-transform:uppercase; margin-bottom:6px; padding-bottom:4px; border-bottom:1px solid var(--border); }
+        .dlp-item {
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            padding:5px 4px;
+            font-size:10px;
+            color:var(--text);
+            border-radius:6px;
+            transition:background 0.2s ease;
+            margin:2px 0;
+        }
+        .dlp-item:hover {
+            background:rgba(0,200,255,0.05);
+        }
+        .dlp-item-name { display:flex; align-items:center; gap:6px; }
+        .dlp-tog {
+            width:38px; height:20px;
+            background:rgba(255,255,255,0.08);
+            border-radius:10px;
+            position:relative;
+            cursor:pointer;
+            transition:all 0.3s ease;
+            border:2px solid var(--border);
+        }
+        .dlp-tog.on {
+            background:var(--accent);
+            border-color:var(--accent);
+            box-shadow: 0 0 12px rgba(0,200,255,0.5);
+        }
+        .dlp-tog::after {
+            content:'';
+            position:absolute;
+            width:14px; height:14px;
+            background:#fff;
+            border-radius:50%;
+            top:1px; left:1px;
+            transition:all 0.3s ease;
+            box-shadow:0 2px 4px rgba(0,0,0,0.3);
+        }
+        .dlp-tog.on::after {
+            left:19px;
+            box-shadow:0 2px 8px rgba(0,0,0,0.5);
+        }
+        /* ── 6-Day Forecast Panel ───────────────────────────────────── */
+        #forecast-panel {
+            display:none;
+            position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+            width:320px;
+            background:var(--panel);
+            border:2px solid var(--border);
+            border-radius:12px;
+            z-index:1100;
+            backdrop-filter:blur(24px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            overflow:hidden;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .fc-header {
+            display:flex; justify-content:space-between; align-items:center;
+            padding:6px 10px; cursor:pointer;
+            font-size:9px; letter-spacing:1px; color:var(--accent); text-transform:uppercase;
+            border-bottom:1px solid var(--border);
+        }
+        .fc-toggle { font-size:8px; transition:transform 0.3s; }
+        #forecast-panel.collapsed .fc-body { display:none; }
+        #forecast-panel.collapsed .fc-toggle { transform:rotate(-90deg); }
+        .fc-body { padding:4px 6px; max-height:320px; overflow-y:auto; }
+        .fc-tile {
+            display:grid; grid-template-columns:28px 1fr 44px;
+            align-items:center; gap:4px;
+            padding:5px 4px;
+            border-bottom:1px solid rgba(0,200,255,0.06);
+            font-size:9px;
+        }
+        .fc-tile:last-child { border-bottom:none; }
+        .fc-tile-icon { font-size:16px; text-align:center; }
+        .fc-tile-info { min-width:0; }
+        .fc-tile-day { color:var(--text); font-weight:600; font-size:9px; }
+        .fc-tile-desc { color:var(--dim); font-size:8px; }
+        .fc-tile-detail { color:var(--dim); font-size:7px; margin-top:1px; }
+        .fc-tile-fish { font-size:8px; font-weight:600; text-align:right; }
+        #agent-btn {
+            position:fixed; top:58px; left:50%; transform:translateX(-50%);
+            z-index:600;
+            background:linear-gradient(135deg, var(--accent2), var(--accent));
+            border:2px solid var(--accent2);
+            color:#000;
+            padding:10px 24px;
+            border-radius:10px;
+            font-size:13px;
+            font-weight:700;
+            cursor:pointer;
+            font-family:'Space Mono',monospace;
+            box-shadow:0 6px 20px rgba(0,255,136,0.5);
+            transition:all 0.3s ease;
+        }
+        #agent-btn:hover {
+            transform:translateX(-50%) scale(1.08) translateY(-2px);
+            box-shadow:0 8px 24px rgba(0,255,136,0.7);
+        }
+        #agent-btn:active {
+            transform:translateX(-50%) scale(1.02);
+        }
+        #agent-btn.loading {
+            opacity:0.8;
+            pointer-events:none;
+            animation:pulse-btn 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-btn {
+            0%,100% { box-shadow:0 6px 20px rgba(0,255,136,0.5); }
+            50% { box-shadow:0 6px 28px rgba(0,255,136,0.8); }
+        }
+        #agent-btn .spin { display:inline-block; animation:spin 1s linear infinite; margin-left:6px; }
+        .lp-header { padding:8px 12px; font-size:10px; color:var(--accent); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; }
+        .layer-item {
+            display:flex; align-items:center;
+            padding:8px 12px;
+            cursor:pointer;
+            font-size:11px;
+            color:var(--dim);
+            gap:8px;
+            transition:all 0.2s ease;
+            border-radius:6px;
+            margin:2px 4px;
+        }
+        .layer-item:hover {
+            background:rgba(0,200,255,0.08);
+            color:var(--accent);
+        }
+        .layer-item.active {
+            color:var(--accent);
+            background:rgba(0,200,255,0.12);
+        }
+        .lr { width:11px; height:11px; border:2px solid var(--border); border-radius:50%; flex-shrink:0; }
+        .layer-item.active .lr { border-color:var(--accent); background:var(--accent); }
+        #vel-status { position:fixed; top:98px; left:10px; z-index:599; background:var(--panel); border:1px solid var(--border); border-radius:6px; padding:4px 10px; font-size:10px; color:var(--dim); display:none; }
+        #vel-status.active { color:var(--accent2); border-color:var(--accent2); display:block; }
+        #info-panel {
+            display:none;
+            position:fixed; top:58px; right:52px;
+            width:240px;
+            background:var(--panel);
+            border:2px solid var(--border);
+            border-radius:10px;
+            padding:12px 14px;
+            z-index:600;
+            backdrop-filter:blur(16px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+            animation:slideInRight 0.3s ease;
+        }
+        @keyframes slideInRight {
+            from { opacity:0; transform:translateX(20px); }
+            to { opacity:1; transform:translateX(0); }
+        }
+        .ip-header { display:flex; justify-content:space-between; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+        .ip-title { font-size:10px; color:var(--accent); }
+        .ip-row { display:flex; justify-content:space-between; padding:3px 0; font-size:10px; }
+        .ip-lbl { color:var(--dim); }
+        .ip-val { color:var(--accent2); }
+        #bottom-drawer {
+            position:fixed; bottom:32px; left:0; right:0;
+            height:0;
+            overflow:hidden;
+            background:var(--panel);
+            border-top:2px solid var(--border);
+            z-index:800;
+            transition:height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 -6px 20px rgba(0,0,0,0.3);
+        }
+        #bottom-drawer.open {
+            height:175px;
+            border-top-color:var(--accent);
+        }
+        #drawer-inner { padding:10px 16px; }
+        .drawer-header { display:flex; justify-content:space-between; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+        .drawer-title { font-size:11px; }
+        .drawer-close { cursor:pointer; color:var(--dim); font-size:18px; }
+        .drawer-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+        .d-col-title { font-size:9px; color:var(--dim); text-transform:uppercase; margin-bottom:4px; }
+        .d-col-val { font-size:11px; color:var(--accent2); line-height:1.6; }
+        #bearing-panel {
+            display:none;
+            position:fixed; bottom:200px; left:50%; transform:translateX(-50%);
+            width:340px;
+            background:var(--panel);
+            border:2px solid var(--accent);
+            border-radius:12px;
+            padding:16px;
+            z-index:900;
+            backdrop-filter:blur(20px);
+            box-shadow: 0 8px 32px rgba(0,200,255,0.3);
+            animation:slideInUp 0.3s ease;
+        }
+        @keyframes slideInUp {
+            from { opacity:0; transform:translate(-50%, 30px); }
+            to { opacity:1; transform:translate(-50%, 0); }
+        }
+        .bp-title { font-size:11px; color:var(--accent); margin-bottom:10px; display:flex; justify-content:space-between; }
+        .bp-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+        .bp-input { background:rgba(0,200,255,0.08); border:1px solid var(--border); color:var(--text); padding:6px 8px; border-radius:5px; font-size:10px; font-family:'Space Mono',monospace; width:100%; }
+        .bp-result { background:rgba(0,255,136,0.08); border:1px solid rgba(0,255,136,0.3); border-radius:6px; padding:8px; margin-top:6px; }
+        .bp-res-row { display:flex; justify-content:space-between; font-size:11px; padding:2px 0; }
+        .bp-res-lbl { color:var(--dim); }
+        .bp-res-val { color:var(--accent2); font-weight:700; }
+        .bp-btn { width:100%; margin-top:8px; background:var(--accent); color:#000; border:none; padding:7px; border-radius:5px; font-size:11px; font-weight:700; cursor:pointer; font-family:'Space Mono',monospace; }
+        .bp-btn-use { background:rgba(0,200,255,0.15); color:var(--accent); border:1px solid var(--border); width:100%; margin-top:4px; padding:5px; border-radius:5px; font-size:10px; cursor:pointer; font-family:'Space Mono',monospace; }
+        #flc-search { position:fixed; top:58px; left:50%; transform:translateX(-50%); width:280px; z-index:700; display:none; }
+        #flc-input { width:100%; background:var(--panel); border:1px solid var(--accent); color:var(--text); padding:8px 12px; border-radius:6px; font-size:11px; font-family:'Space Mono',monospace; }
+        #flc-results { background:var(--panel); border:1px solid var(--border); border-radius:6px; margin-top:4px; max-height:180px; overflow-y:auto; }
+        .flc-item { padding:8px 12px; font-size:10px; cursor:pointer; border-bottom:1px solid var(--border); }
+        .flc-item:hover { background:rgba(0,200,255,0.1); }
+        .flc-name { color:var(--text); }
+        .flc-state { color:var(--dim); font-size:9px; }
+        #ham-btn { position:fixed; top:58px; right:10px; z-index:600; background:var(--panel); border:1px solid var(--border); width:36px; height:36px; border-radius:6px; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
+        #ham-btn span { width:16px; height:2px; background:var(--accent); border-radius:2px; }
+        #side-menu { position:fixed; top:48px; right:-270px; width:255px; bottom:32px; background:var(--panel); border-left:1px solid var(--border); z-index:700; backdrop-filter:blur(16px); transition:right 0.3s; overflow-y:auto; padding:12px; }
+        #side-menu.open { right:0; }
+        .ms-title { font-size:9px; letter-spacing:2px; color:var(--accent); text-transform:uppercase; margin:14px 0 8px; padding-bottom:5px; border-bottom:1px solid var(--border); }
+        .ms-title:first-child { margin-top:0; }
+        .tog-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; font-size:11px; color:var(--dim); }
+        .tog { width:32px; height:17px; background:var(--border); border-radius:9px; position:relative; cursor:pointer; transition:background 0.3s; flex-shrink:0; }
+        .tog.on { background:var(--accent); }
+        .tog::after { content:''; position:absolute; width:11px; height:11px; background:#fff; border-radius:50%; top:3px; left:3px; transition:left 0.3s; }
+        .tog.on::after { left:18px; }
+        .menu-btn { width:100%; margin-top:6px; background:rgba(0,200,255,0.08); border:1px solid var(--border); color:var(--accent); padding:7px; border-radius:6px; cursor:pointer; font-size:11px; font-family:'Space Mono',monospace; }
+        .menu-btn.green { border-color:var(--accent2); color:var(--accent2); background:rgba(0,255,136,0.08); }
+        .menu-btn.warn { border-color:var(--warn); color:var(--warn); background:rgba(255,170,0,0.08); }
+        textarea { width:100%; height:70px; background:rgba(0,200,255,0.05); border:1px solid var(--border); border-radius:5px; color:var(--text); padding:7px; font-size:10px; font-family:'Space Mono',monospace; resize:none; }
+        #legend { position:fixed; bottom:42px; left:10px; background:var(--panel); border:1px solid var(--border); border-radius:7px; padding:8px 12px; z-index:500; }
+        .leg-title { font-size:9px; letter-spacing:2px; color:var(--accent); margin-bottom:6px; }
+        .leg-row { display:flex; align-items:center; gap:7px; font-size:10px; color:var(--dim); margin-bottom:3px; }
+        .leg-line { width:24px; border-top:3px dashed; }
+        #anchor-panel { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:280px; background:var(--panel); border:2px solid var(--warn); border-radius:10px; padding:16px; z-index:1000; text-align:center; }
+        @keyframes anchor-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,68,68,0.4)}50%{box-shadow:0 0 0 15px rgba(255,68,68,0)} }
+        .anchor-active { border-color:#ff4444!important; animation:anchor-pulse 1s infinite; }
+        #gps-btn { position:fixed; bottom:80px; right:52px; z-index:500; background:var(--panel); border:1px solid var(--accent); color:var(--accent); width:36px; height:36px; border-radius:6px; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+        #sos-btn { position:fixed; bottom:42px; right:52px; z-index:500; background:#cc0000; color:#fff; border:2px solid #ff4444; padding:6px 10px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; letter-spacing:1px; font-family:'Space Mono',monospace; box-shadow:0 0 12px rgba(255,0,0,0.5); }
+        #statusbar { position:fixed; bottom:0; left:0; right:0; height:32px; background:var(--panel); border-top:1px solid var(--border); display:flex; align-items:center; padding:0 12px; gap:16px; z-index:500; font-size:10px; color:var(--dim); }
+        .sb-item { display:flex; gap:5px; }
+        .sb-lbl { color:var(--accent); }
+        @keyframes dash { to { stroke-dashoffset:-20; } }
+        .pfz-line {
+            animation:dash 1.2s linear infinite;
+            stroke-dasharray: 10 5 !important;
+            filter: drop-shadow(0 0 3px currentColor);
+        }
+        .agent-pfz-line {
+            animation:dash 1.5s linear infinite, glow-pulse 2s ease-in-out infinite;
+            stroke-dasharray: 12 6 !important;
+        }
+        @keyframes glow-pulse {
+            0%, 100% { opacity: 1; filter: drop-shadow(0 0 6px currentColor); }
+            50% { opacity: 0.7; filter: drop-shadow(0 0 2px currentColor); }
+        }
+        /* PFZ Pulsing center marker */
+        .pfz-center-marker {
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; cursor: pointer;
+            animation: pfzMarkerPulse 2s ease-in-out infinite;
+            position: relative;
+            z-index: 400;
+        }
+        .pfz-center-marker::before {
+            content: '';
+            position: absolute;
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            animation: pfzRipple 2s ease-out infinite;
+        }
+        .pfz-center-marker.high { background: rgba(255,68,68,0.3); }
+        .pfz-center-marker.high::before { border: 2px solid #ff4444; }
+        .pfz-center-marker.medium { background: rgba(255,170,0,0.3); }
+        .pfz-center-marker.medium::before { border: 2px solid #ffaa00; }
+        .pfz-center-marker.low { background: rgba(0,255,136,0.3); }
+        .pfz-center-marker.low::before { border: 2px solid #00ff88; }
+
+        @keyframes pfzMarkerPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+        @keyframes pfzRipple {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(3); opacity: 0; }
+        }
+
+        /* ── PFZ POPUP CARD ─────────────────────────────────────── */
+        .leaflet-popup-content-wrapper {
+            background: rgba(8,18,38,0.98) !important;
+            border: 2px solid var(--border) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 8px 32px rgba(0,200,255,0.3), 0 0 60px rgba(0,200,255,0.1) !important;
+            backdrop-filter: blur(20px);
+            color: var(--text) !important;
+            padding: 0 !important;
+            min-width: 320px;
+        }
+        .leaflet-popup-content { margin: 0 !important; width: auto !important; min-width: 300px; }
+        .leaflet-popup-tip { background: rgba(8,18,38,0.98) !important; border: 1px solid var(--border) !important; }
+        .leaflet-popup-close-button {
+            color: var(--dim) !important;
+            font-size: 20px !important;
+            top: 8px !important; right: 10px !important;
+            z-index: 10;
+        }
+        .leaflet-popup-close-button:hover { color: var(--accent) !important; }
+
+        /* ── PFZ DETAIL RIGHT PANEL ─────────────────────────── */
+        #pfz-detail-panel {
+            position: fixed;
+            top: 48px;
+            right: -380px;
+            width: 360px;
+            bottom: 32px;
+            background: rgba(8,18,38,0.98);
+            border-left: 2px solid var(--border);
+            z-index: 650;
+            backdrop-filter: blur(20px);
+            overflow-y: auto;
+            transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
+            box-shadow: -4px 0 24px rgba(0,200,255,0.15);
+        }
+        #pfz-detail-panel.open { right: 0; }
+        #pfz-detail-panel::-webkit-scrollbar { width: 4px; }
+        #pfz-detail-panel::-webkit-scrollbar-track { background: transparent; }
+        #pfz-detail-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+        .pfz-panel-close {
+            position: sticky;
+            top: 0;
+            right: 0;
+            z-index: 10;
+            display: flex;
+            justify-content: flex-end;
+            padding: 8px 10px 0 0;
+            background: linear-gradient(to bottom, rgba(8,18,38,0.98) 60%, transparent);
+        }
+        .pfz-panel-close-btn {
+            background: rgba(0,200,255,0.1);
+            border: 1px solid var(--border);
+            color: var(--dim);
+            width: 28px; height: 28px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .pfz-panel-close-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+        .pfz-popup { font-family: 'Space Mono', monospace; }
+        .pfz-popup-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items:center;
+        }
+        .pfz-popup-header .badge {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .pfz-popup-header .badge.high { background: rgba(255,68,68,0.2); color: #ff4444; border: 1px solid #ff4444; }
+        .pfz-popup-header .badge.medium { background: rgba(255,170,0,0.2); color: #ffaa00; border: 1px solid #ffaa00; }
+        .pfz-popup-header .badge.low { background: rgba(0,255,136,0.2); color: #00ff88; border: 1px solid #00ff88; }
+        .pfz-popup-header .score { font-size: 11px; color: var(--accent); }
+
+        .pfz-popup-section {
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(0,200,255,0.1);
+        }
+        .pfz-popup-section:last-child { border-bottom: none; }
+        .pfz-section-title {
+            font-size: 9px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+
+        .fish-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .fish-item:last-child { border-bottom: none; }
+        .fish-icon { font-size: 16px; width: 22px; }
+        .fish-name { flex: 1; font-size: 11px; color: var(--text); }
+        .fish-name .sub { font-size: 9px; color: var(--dim); display: block; }
+        .fish-prob-wrap { width: 60px; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow:hidden; }
+        .fish-prob-bar { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+        .fish-prob-bar.high { background: linear-gradient(90deg, #00ff88, #00cc66); }
+        .fish-prob-bar.medium { background: linear-gradient(90deg, #ffaa00, #ff8800); }
+        .fish-prob-bar.low { background: linear-gradient(90deg, #ff6666, #ff4444); }
+        .fish-prob-val { font-size: 10px; font-weight: 700; min-width: 30px; text-align:right; }
+
+        .pfz-data-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+        .pfz-data-item {
+            background: rgba(0,200,255,0.04);
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(0,200,255,0.08);
+        }
+        .pfz-data-label { font-size: 9px; color: var(--dim); margin-bottom: 2px; }
+        .pfz-data-value { font-size: 12px; font-weight: 700; }
+
+        .pfz-popup-footer {
+            padding: 10px 16px;
+            display: flex; gap: 8px;
+        }
+        .pfz-popup-btn {
+            flex: 1; padding: 7px; border-radius: 6px;
+            font-size: 10px; font-weight: 700; cursor: pointer;
+            font-family: 'Space Mono', monospace; border: none; text-align: center;
+        }
+        .pfz-popup-btn.primary { background: var(--accent); color: #000; }
+        .pfz-popup-btn.secondary { background: rgba(0,200,255,0.1); color: var(--accent); border: 1px solid var(--border); }
+
+        /* ── INCOIS ADVISORY PANEL ──────────────────────────── */
+        #incois-panel {
+            position: fixed;
+            top: 48px;
+            left: -420px;
+            width: 400px;
+            bottom: 32px;
+            background: rgba(8,18,38,0.98);
+            border-right: 2px solid var(--border);
+            z-index: 650;
+            backdrop-filter: blur(20px);
+            overflow-y: auto;
+            transition: left 0.35s cubic-bezier(0.4,0,0.2,1);
+            box-shadow: 4px 0 24px rgba(0,200,255,0.15);
+        }
+        #incois-panel.open { left: 0; }
+        #incois-panel::-webkit-scrollbar { width: 4px; }
+        #incois-panel::-webkit-scrollbar-track { background: transparent; }
+        #incois-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+        .incois-header {
+            position: sticky; top: 0; z-index: 10;
+            background: rgba(8,18,38,0.98);
+            padding: 12px 16px;
+            border-bottom: 2px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .incois-header-title {
+            font-size: 11px; font-weight: 700; color: var(--accent);
+            letter-spacing: 1px;
+        }
+        .incois-header-sub { font-size: 9px; color: var(--dim); margin-top: 2px; }
+        .incois-sector {
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(0,200,255,0.1);
+        }
+        .incois-sector-title {
+            font-size: 10px; font-weight: 700; letter-spacing: 1px;
+            color: var(--warn); margin-bottom: 8px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .incois-sector-count {
+            font-size: 9px; background: rgba(255,170,0,0.15);
+            padding: 2px 8px; border-radius: 10px; color: var(--warn);
+        }
+        .incois-zone {
+            background: rgba(0,200,255,0.04);
+            border: 1px solid rgba(0,200,255,0.08);
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            font-size: 10px;
+        }
+        .incois-zone-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+        .incois-zone-label { color: var(--dim); }
+        .incois-zone-val { color: var(--accent2); font-weight: 600; }
+        .incois-meta {
+            padding: 10px 16px; font-size: 9px; color: var(--dim); line-height: 1.6;
+            border-top: 1px solid var(--border);
+        }
+        .incois-loading {
+            padding: 40px; text-align: center; color: var(--dim); font-size: 11px;
+        }
+
+        /* Live indicator on status bar */
+        .pfz-live-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 1px 6px;
+            background: rgba(0,255,136,0.1);
+            border: 1px solid rgba(0,255,136,0.3);
+            border-radius: 4px;
+            font-size: 9px; color: var(--accent2);
+        }
+        .pfz-live-dot {
+            width: 5px; height: 5px;
+            background: var(--accent2);
+            border-radius: 50%;
+            animation: pulse-dot 1.5s ease-in-out infinite;
+        }
+        /* Loading overlay for PFZ refresh */
+        .pfz-loading-overlay {
+            position: fixed; top: 48px; left: 0; right: 0;
+            height: 3px; z-index: 999;
+            background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), var(--accent), transparent);
+            background-size: 200% 100%;
+            animation: pfzLoadBar 1.5s linear infinite;
+        }
+        @keyframes pfzLoadBar {
+            0% { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+        .leaflet-velocity-color-legend { display:none; }
+        /* Fix velocity canvas background - must be transparent */
+        .leaflet-overlay-pane canvas {
+            background:transparent !important;
+            mix-blend-mode:normal !important;
+        }
+        canvas.leaflet-zoom-animated {
+            background:transparent !important;
+            opacity:1 !important;
+        }
+        /* Ensure tile layer shows through */
+        .leaflet-tile-pane { z-index:100 !important; }
+        .leaflet-overlay-pane { z-index:200 !important; pointer-events:none; }
+        .leaflet-overlay-pane canvas { pointer-events:auto; }
+        /* Loading spinner */
+        .spin { display:inline-block; animation:spin 1s linear infinite; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+
+        /* ═══ SAMSUNG A55 / MOBILE RESPONSIVE (412px × 892px) ═══════════════ */
+        @media screen and (max-width: 500px) {
+            body { height: 100dvh; }
+            /* Topbar — compact, no overflow */
+            #topbar { height: 44px; padding: 0 8px; gap: 6px; }
+            .logo { font-size: 11px; letter-spacing: 1px; }
+            #update-time { display: none; }
+            .lang-btn { padding: 2px 6px; font-size: 9px; }
+            /* Map — fill space between topbar and statusbar */
+            #map { top: 44px; bottom: 40px; }
+            .pfz-loading-overlay { top: 44px; }
+            /* Statusbar — scrollable, taller touch target */
+            #statusbar {
+                height: 40px; overflow-x: auto; overflow-y: hidden;
+                gap: 10px; padding: 0 10px; white-space: nowrap;
+                -webkit-overflow-scrolling: touch; scrollbar-width: none;
+            }
+            #statusbar::-webkit-scrollbar { display: none; }
+            .sb-item { flex-shrink: 0; }
+            /* Side menu — full width on mobile */
+            #side-menu { width: 85%; right: -85%; }
+            #side-menu.open { right: 0; }
+            /* Ham button */
+            #ham-btn { top: 50px; right: 8px; width: 40px; height: 40px; }
+            /* Data layers panel */
+            #data-layers-panel { left: 8px; top: 50px; width: 148px; }
+            /* Layer panel */
+            #layer-panel { left: 8px; top: 92px; width: 175px; }
+            /* Info panel */
+            #info-panel { width: calc(100vw - 24px); max-width: 360px; }
+            /* PFZ detail panel — full width */
+            #pfz-detail-panel { width: 100%; right: -100%; left: auto; max-height: 72vh; border-radius: 16px 16px 0 0; }
+            #pfz-detail-panel.open { right: 0; }
+            /* INCOIS panel */
+            #incois-panel { width: 100%; left: -100%; right: auto; }
+            #incois-panel.open { left: 0; }
+            /* Bearing panel */
+            #bearing-panel { width: calc(100% - 16px); left: 8px; transform: none; right: 8px; }
+            /* Anchor panel */
+            #anchor-panel { width: calc(100% - 32px); }
+            /* Legend */
+            #legend { bottom: 46px; padding: 6px 10px; }
+            .leg-title { font-size: 8px; }
+            .leg-row { font-size: 9px; }
+            /* GPS + SOS buttons */
+            #gps-btn { bottom: 88px; right: 60px; width: 40px; height: 40px; font-size: 18px; }
+            #sos-btn { bottom: 46px; right: 60px; font-size: 10px; padding: 5px 8px; }
+            /* Agent button */
+            #agent-btn { font-size: 10px; padding: 6px 10px; }
+            /* Forecast panel — stays small, collapsed by default on mobile */
+            #forecast-panel { width: 155px; left: 8px; }
+            #forecast-panel .fc-body { display: none; }
+            #forecast-panel.expanded .fc-body { display: block; }
+        }
+        /* Safe area insets for notch/punch-hole cameras */
+        @supports (padding: env(safe-area-inset-top)) {
+            #topbar { padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
+            #statusbar { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); padding-bottom: env(safe-area-inset-bottom); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SAMUDRA AI — SPLASH SCREEN
+     Shows on every app open for 2.8s, then fades out.
+     Developer: Manoj Dhamdhere
+════════════════════════════════════════════════════════════════════════════ -->
+<div id="auth-overlay" class="auth-overlay">
+    <div id="login-card" class="auth-card">
+        <h2 id="login-title">SAMUDRA ACCESS 🔐</h2>
+        <div id="login-form">
+            <input type="text" id="username_input" class="auth-input" placeholder="USERNAME" required autofocus>
+            <input type="password" id="password_input" class="auth-input" placeholder="PASS / ACCESS KEY" required>
+            <button id="login-btn" class="auth-btn">ENTER SYSTEM</button>
+            <button id="request-toggle" class="auth-btn secondary">REQUEST ACCESS</button>
+            <div id="login-error" class="auth-error"></div>
+        </div>
+        <div id="request-form" style="display:none;">
+            <input type="text" id="req-name" class="auth-input" placeholder="YOUR FULL NAME">
+            <input type="text" id="req-boat" class="auth-input" placeholder="BOAT NAME / REGISTRATION">
+            <input type="tel" id="req-phone" class="auth-input" placeholder="WHATSAPP PHONE NUMBER">
+            <button id="submit-request" class="auth-btn">SUBMIT REQUEST</button>
+            <button id="back-to-login" class="auth-btn secondary">BACK TO LOGIN</button>
+            <div id="request-error" class="auth-error"></div>
+            <div id="request-success" class="request-status">Request Sent. Wait for Approval!</div>
+        </div>
+    </div>
+</div>
+<div id="session-timer">00:00:00</div>
+<button id="admin-btn" title="Admin Command Center" style="position: fixed; bottom: 80px; right: 20px; z-index: 1001; width: 44px; height: 44px; border-radius: 50%; background: var(--panel); border: 1px solid var(--border); color: var(--accent); display: none; align-items: center; justify-content: center; cursor: pointer;">⚓</button>
+<div id="admin-panel" class="admin-panel">
+    <div class="admin-header">
+        <span style="color:var(--accent);font-weight:700;">ADMIN COMMAND CENTER</span>
+        <button class="mini-btn kill" onclick="closeAdmin()">CLOSE</button>
+    </div>
+    <div class="admin-body">
+        <h3 style="font-size:12px;color:var(--dim);margin-bottom:10px;">PENDING ACCESS REQUESTS</h3>
+        <div id="admin-requests"></div>
+        <h3 style="font-size:12px;color:var(--dim);margin:20px 0 10px 0;">ACTIVE SESSIONS</h3>
+        <div id="admin-sessions"></div>
+        <h3 style="font-size:12px;color:var(--dim);margin:20px 0 10px 0;">FLEET TRACKING</h3>
+        <div class="tog-row"><span>Show Fleet on Map</span><div class="tog" id="tog-fleet" onclick="toggleFleet(this)"></div></div>
+        <button class="auth-btn" style="margin-top:20px;background:var(--warn);color:#000;" onclick="showBroadcast()">📢 SEND EMERGENCY BROADCAST</button>
+        <button class="auth-btn" style="margin-top:10px;" onclick="handleLogout()">LOGOUT</button>
+    </div>
+</div>
+
+<div id="samudra-splash">
+    <style>
+    #samudra-splash {
+        position:fixed; inset:0; z-index:99999;
+        background:linear-gradient(160deg,#050c1a 0%,#0a1628 60%,#071220 100%);
+        display:flex; flex-direction:column; align-items:center; justify-content:center;
+        gap:0; font-family:'Space Mono',monospace;
+        transition:opacity 0.9s ease, transform 0.9s ease;
+    }
+    #samudra-splash.fadeout { opacity:0; transform:scale(1.04); pointer-events:none; }
+    .spl-logo-wrap {
+        position:relative; width:120px; height:120px; margin-bottom:24px;
+        animation:splLogoIn 0.8s cubic-bezier(.34,1.56,.64,1) 0.2s both;
+    }
+    @keyframes splLogoIn {
+        from { opacity:0; transform:scale(0.5) rotate(-15deg); }
+        to   { opacity:1; transform:scale(1) rotate(0deg); }
+    }
+    .spl-ring {
+        position:absolute; inset:0; border-radius:50%;
+        border:2px solid rgba(0,200,255,0.3);
+        animation:splRingPulse 2s ease-in-out infinite;
+    }
+    .spl-ring:nth-child(2) { inset:-10px; border-color:rgba(0,200,255,0.15); animation-delay:0.4s; }
+    @keyframes splRingPulse {
+        0%,100%{ transform:scale(1); opacity:1; }
+        50%{ transform:scale(1.06); opacity:0.5; }
+    }
+    .spl-title {
+        font-size:28px; font-weight:700; letter-spacing:6px;
+        color:#00c8ff; text-shadow:0 0 30px rgba(0,200,255,0.6), 0 0 60px rgba(0,200,255,0.2);
+        animation:splTextIn 0.6s ease 0.7s both;
+        margin-bottom:4px;
+    }
+    .spl-subtitle {
+        font-size:11px; letter-spacing:3px; color:rgba(0,200,255,0.5);
+        animation:splTextIn 0.6s ease 0.9s both;
+        margin-bottom:32px;
+    }
+    @keyframes splTextIn {
+        from { opacity:0; transform:translateY(12px); }
+        to   { opacity:1; transform:translateY(0); }
+    }
+    .spl-tagline {
+        font-size:12px; color:rgba(224,240,255,0.7); letter-spacing:1px;
+        animation:splTextIn 0.6s ease 1.1s both;
+        margin-bottom:6px;
+    }
+    .spl-dev {
+        font-size:10px; color:rgba(0,255,136,0.7);
+        letter-spacing:2px; text-transform:uppercase;
+        animation:splTextIn 0.6s ease 1.3s both;
+        margin-bottom:40px;
+    }
+    .spl-dots { display:flex; gap:8px; animation:splTextIn 0.6s ease 1.5s both; }
+    .spl-dot {
+        width:6px; height:6px; border-radius:50%; background:#00c8ff;
+        animation:splDotBounce 1.2s ease-in-out infinite;
+    }
+    .spl-dot:nth-child(2) { animation-delay:0.2s; background:#00ff88; }
+    .spl-dot:nth-child(3) { animation-delay:0.4s; }
+    @keyframes splDotBounce {
+        0%,80%,100%{ transform:scale(0.6); opacity:0.4; }
+        40%{ transform:scale(1.2); opacity:1; }
+    }
+    .spl-version {
+        position:absolute; bottom:24px;
+        font-size:9px; color:rgba(112,144,160,0.5); letter-spacing:1px;
+        animation:splTextIn 0.6s ease 1.7s both;
+    }
+    </style>
+
+    <!-- Pulsing rings -->
+    <div class="spl-logo-wrap">
+        <div class="spl-ring"></div>
+        <div class="spl-ring"></div>
+        <!-- SAMUDRA AI Logo SVG -->
+        <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" width="120" height="120">
+            <!-- Background circle -->
+            <circle cx="60" cy="60" r="56" fill="#0a1628" stroke="#00c8ff" stroke-width="2.5"/>
+            <!-- Deep ocean gradient fill -->
+            <defs>
+                <radialGradient id="oceanGrad" cx="50%" cy="80%" r="60%">
+                    <stop offset="0%" stop-color="rgba(0,200,255,0.18)"/>
+                    <stop offset="100%" stop-color="transparent"/>
+                </radialGradient>
+                <clipPath id="circleClip">
+                    <circle cx="60" cy="60" r="54"/>
+                </clipPath>
+            </defs>
+            <circle cx="60" cy="60" r="54" fill="url(#oceanGrad)"/>
+            <!-- Ocean waves -->
+            <g clip-path="url(#circleClip)">
+                <path d="M6 82 Q18 72 30 82 Q42 92 54 82 Q66 72 78 82 Q90 92 114 82"
+                      fill="none" stroke="#00c8ff" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+                <path d="M4 94 Q18 84 32 94 Q46 104 60 94 Q74 84 88 94 Q102 104 116 94"
+                      fill="none" stroke="rgba(0,200,255,0.35)" stroke-width="1.8" stroke-linecap="round"/>
+                <!-- Water fill under waves -->
+                <path d="M6 82 Q18 72 30 82 Q42 92 54 82 Q66 72 78 82 Q90 92 114 82 L114 120 L6 120 Z"
+                      fill="rgba(0,200,255,0.08)"/>
+            </g>
+            <!-- Fish body -->
+            <ellipse cx="56" cy="52" rx="19" ry="10" fill="#00c8ff"/>
+            <!-- Fish tail -->
+            <path d="M75 52 L90 41 L92 52 L90 63 Z" fill="#00ff88"/>
+            <!-- Fish eye -->
+            <circle cx="43" cy="49" r="3" fill="#0a1628"/>
+            <circle cx="42.2" cy="48.2" r="1" fill="rgba(255,255,255,0.9)"/>
+            <!-- Dorsal fin -->
+            <path d="M52 42 Q58 32 65 42" fill="rgba(0,200,255,0.5)" stroke="#00c8ff" stroke-width="1"/>
+            <!-- Pectoral fin -->
+            <path d="M56 54 Q50 62 44 58" fill="rgba(0,200,255,0.3)" stroke="#00c8ff" stroke-width="0.8"/>
+            <!-- Radar / AI signal arcs -->
+            <path d="M44 28 Q60 16 76 28" fill="none" stroke="#00ff88" stroke-width="2.2"
+                  stroke-linecap="round" opacity="0.9"/>
+            <path d="M38 22 Q60 7 82 22" fill="none" stroke="#00ff88" stroke-width="1.4"
+                  stroke-linecap="round" opacity="0.55"/>
+            <path d="M32 16 Q60 -2 88 16" fill="none" stroke="#00ff88" stroke-width="0.8"
+                  stroke-linecap="round" opacity="0.25"/>
+            <!-- Signal source dot -->
+            <circle cx="60" cy="33" r="3" fill="#00ff88"/>
+            <circle cx="60" cy="33" r="5" fill="rgba(0,255,136,0.2)"/>
+        </svg>
+    </div>
+
+    <div class="spl-title">SAMUDRA</div>
+    <div class="spl-subtitle">A I &nbsp;•&nbsp; समुद्र</div>
+    <div class="spl-tagline">मच्छिमारांसाठी बुद्धिमान मार्गदर्शन</div>
+    <div class="spl-dev">Dev: Manoj Dhamdhere</div>
+    <div class="spl-dots">
+        <div class="spl-dot"></div>
+        <div class="spl-dot"></div>
+        <div class="spl-dot"></div>
+    </div>
+    <div class="spl-version">v2.0 &nbsp;|&nbsp; India West Coast (Kerala → Gujarat)</div>
+</div>
+
+<div id="topbar">
+    <div class="logo">PFZ <span>PLATFORM</span></div>
+    <div class="live-dot"></div>
+    <div id="update-time">--:--</div>
+    <div class="lang-switch">
+        <button id="fleet-view-btn" title="Toggle Fleet View" onclick="toggleFleetShortcut(this)" style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);color:#00ff88;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-family:'Space Mono',monospace;margin-right:8px;display:none;">🚢 FLEET</button>
+        <button class="lang-btn active" onclick="setLang('mr',this)">मराठी</button>
+        <button class="lang-btn" onclick="setLang('hi',this)">हिंदी</button>
+        <button class="lang-btn" onclick="setLang('en',this)">EN</button>
+    </div>
+</div>
+
+<div id="map"></div>
+<div id="vel-status"></div>
+
+<!-- data-layers-panel removed as requested -->
+
+<!-- 6-Day Forecast Panel -->
+<div id="forecast-panel">
+    <div class="fc-header" onclick="toggleForecast()">
+        <span>⛅ 6-Day Forecast</span>
+        <span class="fc-toggle">✕</span>
+    </div>
+    <div id="forecast-tiles" class="fc-body">
+        <div style="color:var(--dim);font-size:9px;padding:8px;">Loading forecast…</div>
+    </div>
+</div>
+
+<div id="flc-search">
+    <input id="flc-input" placeholder="🔍 Fish Landing Center शोधा..." oninput="searchFLC(this.value)" onblur="setTimeout(()=>document.getElementById('flc-results').innerHTML='',200)">
+    <div id="flc-results"></div>
+</div>
+
+<div id="info-panel">
+    <div class="ip-header">
+        <span class="ip-title" id="ip-title">📍 स्थान माहिती</span>
+        <span style="cursor:pointer;color:var(--dim)" onclick="document.getElementById('info-panel').style.display='none'">✕</span>
+    </div>
+    <div id="ip-body"></div>
+</div>
+
+<div id="bottom-drawer">
+    <div id="drawer-inner">
+        <div class="drawer-header">
+            <span class="drawer-title" id="drawer-title">🐟 PFZ माहिती</span>
+            <span class="drawer-close" onclick="closeDrawer()">✕</span>
+        </div>
+        <div class="drawer-grid" id="drawer-grid"></div>
+    </div>
+</div>
+
+<div id="pfz-detail-panel">
+    <div class="pfz-panel-close"><button class="pfz-panel-close-btn" onclick="closePFZDetail()" title="Close">✕</button></div>
+    <div id="pfz-detail-content"></div>
+</div>
+
+<div id="bearing-panel">
+    <div class="bp-title">
+        <span>📐 Bearing Calculator</span>
+        <span style="cursor:pointer;color:var(--dim)" onclick="toggleBearing()">✕</span>
+    </div>
+    <div class="bp-row">
+        <div><div style="font-size:9px;color:var(--dim);margin-bottom:3px;">FROM Lat</div><input class="bp-input" id="from-lat" placeholder="18.9322" type="number" step="0.0001"></div>
+        <div><div style="font-size:9px;color:var(--dim);margin-bottom:3px;">FROM Lng</div><input class="bp-input" id="from-lng" placeholder="72.8347" type="number" step="0.0001"></div>
+    </div>
+    <div class="bp-row">
+        <div><div style="font-size:9px;color:var(--dim);margin-bottom:3px;">TO Lat</div><input class="bp-input" id="to-lat" placeholder="17.500" type="number" step="0.0001"></div>
+        <div><div style="font-size:9px;color:var(--dim);margin-bottom:3px;">TO Lng</div><input class="bp-input" id="to-lng" placeholder="68.500" type="number" step="0.0001"></div>
+    </div>
+    <button class="bp-btn" onclick="calculateBearing()">📐 Calculate करा</button>
+    <div class="bp-result" id="bp-result" style="display:none">
+        <div class="bp-res-row"><span class="bp-res-lbl">Bearing</span><span class="bp-res-val" id="res-bearing">--°</span></div>
+        <div class="bp-res-row"><span class="bp-res-lbl">Direction</span><span class="bp-res-val" id="res-dir">--</span></div>
+        <div class="bp-res-row"><span class="bp-res-lbl">Distance</span><span class="bp-res-val" id="res-dist">-- km</span></div>
+    </div>
+    <button class="bp-btn-use" onclick="useMyLocation()">📍 माझी location वापरा</button>
+</div>
+
+<div id="anchor-panel">
+    <div style="font-size:24px;margin-bottom:8px;">⚓</div>
+    <div style="font-size:12px;color:var(--accent);letter-spacing:2px;margin-bottom:12px;">ANCHOR ALARM</div>
+    <div id="anchor-status" style="font-size:11px;color:var(--dim);margin-bottom:10px;">GPS वापरून anchor set करेल</div>
+    <div><div style="font-size:9px;color:var(--dim);margin-bottom:3px;">Radius (meters)</div><input class="bp-input" id="anchor-radius" value="100" type="number" min="10" max="500"></div>
+    <button class="bp-btn" style="margin-top:10px;" onclick="setAnchor()">⚓ Anchor Set करा</button>
+    <button class="bp-btn-use" onclick="document.getElementById('anchor-panel').style.display='none'">बंद करा</button>
+</div>
+
+<div id="ham-btn" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+
+<div id="side-menu">
+    <div class="ms-title">🗺️ Map Base Layers</div>
+    <select class="menu-btn" onchange="switchLayer(this.value, this)" style="background:var(--panel);color:var(--accent);width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);">
+        <option value="esri-img">ESRI Imagery</option>
+        <option value="osm">OSM Topographic</option>
+        <option value="carto-dark">Carto Dark</option>
+        <option value="carto-light">Carto Light</option>
+        <option value="esri-street">ESRI Street</option>
+        <option value="osm-bright">OSM Voyager</option>
+    </select>
+
+    <div class="ms-title">🗺️ Map Overlays</div>
+    <div class="tog-row"><span>EEZ Boundary</span><div class="tog on" id="tog-eez" onclick="toggleEEZ(this)"></div></div>
+    <div class="tog-row"><span>FLC Ports</span><div class="tog on" id="tog-flc" onclick="toggleFLC(this)"></div></div>
+    <div class="tog-row"><span>PFZ Zones</span><div class="tog on" id="tog-pfz" onclick="togglePFZ(this)"></div></div>
+    <div class="tog-row"><span>🌡️ SST Heatmap</span><div class="tog" id="tog-sst" onclick="toggleSST(this)"></div></div>
+    <div class="tog-row"><span>🌊 Bathymetry</span><div class="tog" id="tog-bathy" onclick="toggleBathymetry(this)"></div></div>
+    <div class="tog-row"><span>⚓ Sea Marks</span><div class="tog" id="tog-seamark" onclick="toggleSeaMarks(this)"></div></div>
+
+    <div class="ms-title">🌊 Animated Layers</div>
+    <div class="tog-row"><span>🌬️ वारा (Wind)</span><div class="tog" id="tog-wind" onclick="toggleWind(this)"></div></div>
+    <div class="tog-row"><span>🌊 लाटा (Waves)</span><div class="tog" id="tog-wave" onclick="toggleWave(this)"></div></div>
+    <div class="tog-row"><span>🔄 प्रवाह (Currents)</span><div class="tog" id="tog-current" onclick="toggleCurrent(this)"></div></div>
+
+    <div class="ms-title">🧭 Navigation & Analysis</div>
+    <button class="menu-btn green" onclick="runAgentAnalysis();toggleMenu();">🤖 Run Agent Analysis</button>
+    <button class="menu-btn" onclick="showBroadcastHistory();toggleMenu();">📢 Broadcast History</button>
+    <button class="menu-btn" onclick="toggleForecast();toggleMenu();">⛅ 6-Day Forecast</button>
+    <button class="menu-btn" onclick="toggleBearing()">📐 Bearing Calculator</button>
+    <button class="menu-btn" onclick="toggleFLCSearch()">🔍 FLC Search</button>
+    <button class="menu-btn" onclick="toggleINCOIS()">🏛️ INCOIS Advisory</button>
+    <button class="menu-btn warn" onclick="document.getElementById('anchor-panel').style.display='block';toggleMenu()">⚓ Anchor Alarm</button>
+    <button class="menu-btn" onclick="toggleRouteMode()">🗺️ Route Planning</button>
+    <div class="ms-title">📤 Export & Share</div>
+    <button class="menu-btn" onclick="exportPDF();toggleMenu();">📄 PDF Report</button>
+    <button class="menu-btn" onclick="exportGeoJSON();toggleMenu();">🗺️ GeoJSON Export</button>
+    <button class="menu-btn green" onclick="shareLocation()">📤 Location Share</button>
+    <div class="ms-title">⚙️ Settings</div>
+    <div class="tog-row"><span>🔄 Auto-Refresh PFZ</span><div class="tog on" id="tog-autorefresh" onclick="toggleAutoRefresh(this)"></div></div>
+    <div class="tog-row"><span>🌬️ Auto Wind Layer</span><div class="tog" id="tog-autowind" onclick="toggleAutoWind(this)"></div></div>
+    <div class="tog-row"><span>🌙 Dark Theme</span><div class="tog on" id="tog-theme" onclick="toggleDarkTheme(this)"></div></div>
+    <div class="tog-row"><span>📐 Show Legend</span><div class="tog on" id="tog-legend" onclick="toggleLegendVis(this)"></div></div>
+    <div class="tog-row"><span>🔔 Notifications</span><div class="tog on" id="tog-notif" onclick="toggleNotif(this)"></div></div>
+    <div class="tog-row"><span>💾 Offline Cache</span><div class="tog on" id="tog-cache" onclick="toggleCache(this)"></div></div>
+    <div style="margin-top:8px;">
+        <span style="font-size:9px;color:var(--dim);">Refresh interval (min)</span>
+        <select id="refresh-interval" onchange="setRefreshInterval(this.value)" style="background:var(--panel);color:var(--accent);border:1px solid var(--border);border-radius:4px;padding:4px;font-family:inherit;font-size:10px;margin-left:4px;">
+            <option value="15">15</option>
+            <option value="30" selected>30</option>
+            <option value="60">60</option>
+        </select>
+    </div>
+    <div class="ms-title">📓 Fishing Log</div>
+    <div id="log-date" style="font-size:10px;color:var(--dim);margin-bottom:6px;"></div>
+    <textarea id="fish-log" placeholder="आजचे मासे नोंदवा..."></textarea>
+    <button class="menu-btn" onclick="saveLog()">💾 Save करा</button>
+    <div class="ms-title">ℹ️ Samudra 2.0</div>
+    <div style="font-size:10px;color:var(--dim);line-height:1.8;">
+        • INCOIS SAMUDRA methodology<br>• Copernicus CMEMS SST<br>• Open-Meteo Marine API<br>• NASA ERDDAP Chlorophyll-a<br>• ETOPO1 Bathymetry<br>• ECMWF IFS Open Data
+    </div>
+    <div style="font-size:9px;color:var(--accent2);margin-top:8px;letter-spacing:1px;">v2.0 — Full West Coast</div>
+</div>
+
+<div id="incois-panel">
+    <div class="incois-header">
+        <div>
+            <div class="incois-header-title">🏛️ INCOIS PFZ Advisory</div>
+            <div class="incois-header-sub">Sector-wise Potential Fishing Zone Analysis</div>
+        </div>
+        <button class="pfz-panel-close-btn" onclick="toggleINCOIS()" title="Close">✕</button>
+    </div>
+    <div id="incois-content">
+        <div class="incois-loading">Click to load INCOIS advisory...</div>
+    </div>
+</div>
+
+<div id="legend">
+    <div class="leg-title">MAP LEGEND</div>
+    <div class="leg-row"><div class="leg-line" style="border-color:#ff4444;"></div><span data-i18n="leg_high">उच्च PFZ</span></div>
+    <div class="leg-row"><div class="leg-line" style="border-color:#ffaa00;"></div><span data-i18n="leg_med">मध्यम PFZ</span></div>
+    <div class="leg-row"><div class="leg-line" style="border-color:#00ff88;"></div><span data-i18n="leg_low">कमी PFZ</span></div>
+    <div class="leg-row"><div style="width:24px;height:2px;border-top:2px dashed #ffaa00;"></div><span>🤖 Agent AI</span></div>
+    <div class="leg-row"><div style="width:8px;height:8px;border-radius:50%;background:#ff44ff;border:2px solid #fff;"></div><span>🏛️ INCOIS</span></div>
+    <div class="leg-row"><div style="width:8px;height:8px;border-radius:50%;background:#00e5ff;border:2px solid #fff;"></div><span>🌊 Samudra</span></div>
+    <div class="leg-row"><div style="width:24px;height:2px;background:#ff3333;"></div><span>EEZ</span></div>
+    <div class="leg-row"><div style="width:8px;height:8px;border-radius:50%;background:#00aaff;border:2px solid #fff;"></div><span>FLC Port</span></div>
+</div>
+
+<button id="gps-btn" onclick="locateMe()">📍</button>
+<button id="sos-btn" onclick="sendSOS()">🆘 SOS</button>
+<button id="agent-btn" onclick="runAgentAnalysis()" title="AI Agent Analysis" style="position:fixed;bottom:128px;right:20px;z-index:1001;width:44px;height:44px;border-radius:50%;background:var(--panel);border:2px solid var(--warn);color:var(--warn);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;box-shadow:0 0 12px rgba(255,170,0,0.3);transition:all 0.3s;">🤖</button>
+<button id="layers-toggle-btn" onclick="toggleDataLayersPanel()" title="Data Layers" style="position:fixed;bottom:176px;right:20px;z-index:1001;width:44px;height:44px;border-radius:50%;background:var(--panel);border:1px solid var(--border);color:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;box-shadow:0 0 8px rgba(0,200,255,0.2);transition:all 0.3s;">🗂️</button>
+
+<!-- FLOATING DATA LAYERS PANEL -->
+<div id="data-layers-panel" style="display:none;position:fixed;bottom:230px;right:20px;width:260px;background:var(--panel);border:1px solid var(--border);border-radius:12px;z-index:1002;padding:14px;backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,0.5);max-height:70vh;overflow-y:auto;">
+    <div style="font-size:11px;color:var(--accent);letter-spacing:2px;margin-bottom:10px;font-weight:700;">DATA LAYERS</div>
+    <div style="font-size:9px;color:var(--dim);margin-bottom:8px;">🌊 Ocean Data</div>
+    <div class="tog-row"><span>🌬️ Wind</span><div class="tog" onclick="toggleWind(this)"></div></div>
+    <div class="tog-row"><span>🌊 Waves</span><div class="tog" onclick="toggleWave(this)"></div></div>
+    <div class="tog-row"><span>🔄 Currents</span><div class="tog" onclick="toggleCurrent(this)"></div></div>
+    <div class="tog-row"><span>🌡️ SST Heatmap</span><div class="tog" onclick="toggleSST(this)"></div></div>
+    <div class="tog-row"><span>🌿 Chlorophyll</span><div class="tog" onclick="toggleCHL(this)"></div></div>
+    <div style="font-size:9px;color:var(--dim);margin:8px 0 6px;">🐟 PFZ Sources</div>
+    <div class="tog-row"><span>📊 Algorithm PFZ</span><div class="tog on" onclick="togglePFZ(this)"></div></div>
+    <div class="tog-row"><span>🤖 Agent AI PFZ</span><div class="tog" onclick="toggleAgentPFZ(this)"></div></div>
+    <div class="tog-row"><span>🏛️ INCOIS PFZ</span><div class="tog" onclick="toggleINCOISMarkers(this)"></div></div>
+    <div class="tog-row"><span>🌊 Samudra 2.0</span><div class="tog" onclick="toggleSamudraPFZ(this)"></div></div>
+    <div style="font-size:9px;color:var(--dim);margin:8px 0 6px;">🗺️ Overlays</div>
+    <div class="tog-row"><span>EEZ Boundary</span><div class="tog on" onclick="toggleEEZ(this)"></div></div>
+    <div class="tog-row"><span>FLC Ports</span><div class="tog on" onclick="toggleFLC(this)"></div></div>
+    <div class="tog-row"><span>🌊 Bathymetry</span><div class="tog" onclick="toggleBathymetry(this)"></div></div>
+    <div class="tog-row"><span>⚓ Sea Marks</span><div class="tog" onclick="toggleSeaMarks(this)"></div></div>
+</div>
+
+<div id="statusbar">
+    <div class="sb-item"><span class="sb-lbl">LAT</span><span id="sb-lat">--</span></div>
+    <div class="sb-item"><span class="sb-lbl">LNG</span><span id="sb-lng">--</span></div>
+    <div class="sb-item"><span class="sb-lbl">खोली</span><span id="sb-depth">-- m</span></div>
+    <div class="sb-item"><span class="sb-lbl">SST</span><span id="sb-sst">--°C</span></div>
+    <div class="sb-item"><span class="sb-lbl">CHL</span><span id="sb-chl">-- mg/m³</span></div>
+    <div class="sb-item" id="conn-item" style="margin-left:auto;gap:4px;cursor:pointer;" onclick="checkConnectivity()">
+        <span id="conn-dot" style="width:6px;height:6px;border-radius:50%;background:#7090a0;display:inline-block;"></span>
+        <span id="conn-text" style="font-size:8px;color:var(--dim);">...</span>
+    </div>
+    <div class="sb-item" style="gap:8px;">
+        <span class="sb-lbl">DATA</span>
+        <span id="sb-refresh" style="color:var(--dim);">—</span>
+        <span id="sb-next" style="color:var(--accent2);font-size:9px;"></span>
+    </div>
+</div>
+
+<div id="broadcast-panel" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:300px;background:var(--panel);border:2px solid var(--warn);border-radius:12px;padding:20px;z-index:2000;box-shadow:0 0 40px rgba(0,0,0,0.8);">
+    <h3 style="color:var(--warn);margin-bottom:12px;font-size:14px;">📢 EMERGENCY BROADCAST</h3>
+    <textarea id="broadcast-msg" placeholder="Enter emergency message for all fishermen..." style="height:100px;margin-bottom:12px;"></textarea>
+    <div style="display:flex;gap:10px;">
+        <button class="auth-btn" style="flex:1;background:var(--warn);color:#000;" onclick="sendBroadcast()">SEND</button>
+        <button class="auth-btn secondary" style="flex:1;" onclick="document.getElementById('broadcast-panel').style.display='none'">CANCEL</button>
+    </div>
+</div>
+
+    <div id="broadcast-display" style="display:none;position:fixed;top:60px;left:50%;transform:translateX(-50%);width:90%;max-width:400px;background:rgba(255,68,68,0.95);color:#fff;padding:15px;border-radius:8px;z-index:1500;box-shadow:0 0 20px rgba(255,0,0,0.5);animation:slideDown 0.5s ease;">
+        <div style="font-weight:700;margin-bottom:5px;display:flex;justify-content:space-between;">
+            <span>📢 EMERGENCY ADVISORY</span>
+            <button onclick="this.parentElement.parentElement.style.display='none'" style="background:none;border:none;color:#fff;cursor:pointer;">✕</button>
+        </div>
+        <div id="broadcast-content" style="font-size:12px;line-height:1.4;margin-bottom:10px;"></div>
+        <button onclick="showBroadcastHistory()" style="background:rgba(255,255,255,0.2);border:none;color:#fff;padding:4px 8px;border-radius:4px;font-size:10px;cursor:pointer;width:100%;">View Broadcast History</button>
+    </div>
+
+    <div id="history-panel" style="display:none;position:fixed;top:10%;left:50%;transform:translateX(-50%);width:90%;max-width:400px;max-height:80%;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;z-index:2000;box-shadow:0 0 40px rgba(0,0,0,0.8);overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;border-bottom:1px solid var(--border);padding-bottom:10px;">
+            <h3 style="color:var(--accent2);margin:0;font-size:16px;">📢 Broadcast History</h3>
+            <button onclick="document.getElementById('history-panel').style.display='none'" style="background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;">✕</button>
+        </div>
+        <div id="history-content"></div>
+    </div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet-velocity@1.9.0/dist/leaflet-velocity.min.js"></script>
+<script>
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MAP INIT
+// ══════════════════════════════════════════════════════════════════════════════
+const map = L.map('map',{center:[15.0,72.0],zoom:6,minZoom:5,maxZoom:14,zoomControl:false});
+
+// ── API BASE URL — all backend calls go to Render ────────────────────────────
+const API_BASE = 'https://samudra-ai.onrender.com';
+function apiUrl(path) { return API_BASE + path; }
+L.control.zoom({position:'bottomright'}).addTo(map);
+
+// Fix canvas transparency continuously
+function fixCanvasTransparency() {
+    const canvases = document.querySelectorAll('.leaflet-overlay-pane canvas');
+    canvases.forEach(canvas => {
+        if (canvas.style.background !== 'transparent') {
+            canvas.style.background = 'transparent';
+            canvas.style.backgroundColor = 'transparent';
+        }
+    });
+}
+// Run on every map interaction
+map.on('movestart zoom zoomend moveend layeradd', fixCanvasTransparency);
+setInterval(fixCanvasTransparency, 1000); // Check every second
+
+const baseLayers = {
+    'esri-img':   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'),
+    'osm':        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+    'carto-dark': L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'),
+    'carto-light':L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'),
+    'esri-street':L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'),
+    'osm-bright': L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png')
+};
+let currentBaseLayer = baseLayers['esri-img'].addTo(map);
+
+function switchLayer(name,el){
+    map.removeLayer(currentBaseLayer);
+    currentBaseLayer=baseLayers[name].addTo(map);
+    document.querySelectorAll('.layer-item').forEach(i=>i.classList.remove('active'));
+    el.classList.add('active');
+    toggleLayerPanel();
+}
+function toggleLayerPanel(){
+    const p=document.getElementById('layer-panel');
+    p.style.display=p.style.display==='block'?'none':'block';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// EEZ
+// ══════════════════════════════════════════════════════════════════════════════
+const eezCoords = [
+    // Coastline side (south Kerala to north Gujarat)
+    [8.0,77.2],[8.5,76.9],[9.0,76.4],[9.5,76.2],[10.0,76.1],
+    [10.5,75.9],[11.0,75.7],[11.5,75.4],[12.0,75.1],[12.5,74.8],
+    [13.0,74.7],[13.5,74.5],[14.0,74.3],[14.5,74.1],[15.0,74.0],
+    [15.5,73.9],[16.0,73.7],[16.5,73.6],[17.0,73.4],[17.5,73.2],
+    [18.0,73.0],[18.5,72.9],[19.0,72.9],[19.5,72.8],[20.0,72.8],
+    [20.5,72.7],[21.0,72.5],[21.5,72.0],[22.0,71.0],[22.5,70.0],
+    [23.0,69.0],[23.5,68.5],
+    // EEZ outer boundary (going back south)
+    [23.5,64.0],[23.0,63.5],[22.5,63.0],[22.0,63.0],
+    [21.5,63.5],[21.0,64.0],[20.5,64.5],[20.0,65.0],
+    [19.5,65.5],[19.0,65.8],[18.5,66.0],[18.0,66.0],
+    [17.5,66.0],[17.0,66.0],[16.5,66.0],[16.0,66.0],
+    [15.5,66.5],[15.0,67.0],[14.5,67.5],[14.0,68.0],
+    [13.5,68.5],[13.0,69.0],[12.5,69.5],[12.0,70.0],
+    [11.5,70.5],[11.0,71.0],[10.5,71.5],[10.0,72.0],
+    [9.5,72.5],[9.0,73.0],[8.5,73.5],[8.0,74.0],[8.0,77.2]
+];
+const eezLayer = L.polyline(eezCoords,{color:'#ff3333',weight:2.5,opacity:0.9}).addTo(map);
+eezLayer.bindTooltip('India West Coast EEZ Boundary',{sticky:true,opacity:0.8});
+function toggleEEZ(el){ el.classList.toggle('on'); el.classList.contains('on')?map.addLayer(eezLayer):map.removeLayer(eezLayer); }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FLC PORTS
+// ══════════════════════════════════════════════════════════════════════════════
+const flcData=[
+    // Kerala
+    {name:'Thiruvananthapuram',state:'Kerala',lat:8.524,lng:76.936},
+    {name:'Kollam',state:'Kerala',lat:8.887,lng:76.590},
+    {name:'Alappuzha',state:'Kerala',lat:9.494,lng:76.338},
+    {name:'Kochi (Cochin)',state:'Kerala',lat:9.966,lng:76.267},
+    {name:'Kozhikode (Calicut)',state:'Kerala',lat:11.258,lng:75.780},
+    {name:'Kannur',state:'Kerala',lat:11.869,lng:75.371},
+    {name:'Kasaragod',state:'Kerala',lat:12.499,lng:74.989},
+    // Karnataka
+    {name:'Mangalore',state:'Karnataka',lat:12.866,lng:74.842},
+    {name:'Udupi/Malpe',state:'Karnataka',lat:13.348,lng:74.703},
+    {name:'Bhatkal',state:'Karnataka',lat:13.961,lng:74.555},
+    {name:'Karwar',state:'Karnataka',lat:14.812,lng:74.129},
+    {name:'Honnavar',state:'Karnataka',lat:14.281,lng:74.443},
+    // Goa
+    {name:'Panaji',state:'Goa',lat:15.499,lng:73.831},
+    {name:'Vasco da Gama',state:'Goa',lat:15.395,lng:73.809},
+    {name:'Margao/Cutbona',state:'Goa',lat:15.272,lng:73.919},
+    // Maharashtra
+    {name:'Vengurla',state:'Maharashtra',lat:15.861,lng:73.633},
+    {name:'Malvan',state:'Maharashtra',lat:16.060,lng:73.467},
+    {name:'Sindhudurg',state:'Maharashtra',lat:16.049,lng:73.466},
+    {name:'Vijaydurg',state:'Maharashtra',lat:16.556,lng:73.333},
+    {name:'Ratnagiri',state:'Maharashtra',lat:16.994,lng:73.301},
+    {name:'Jaigad',state:'Maharashtra',lat:17.316,lng:73.213},
+    {name:'Dabhol',state:'Maharashtra',lat:17.588,lng:73.178},
+    {name:'Harnai',state:'Maharashtra',lat:17.802,lng:73.089},
+    {name:'Kelshi',state:'Maharashtra',lat:17.671,lng:73.063},
+    {name:'Velas',state:'Maharashtra',lat:17.956,lng:73.012},
+    {name:'Murud',state:'Maharashtra',lat:18.323,lng:72.958},
+    {name:'Alibag',state:'Maharashtra',lat:18.648,lng:72.872},
+    {name:'Sassoon Dock (Mumbai)',state:'Maharashtra',lat:18.899,lng:72.823},
+    {name:'Versova (Mumbai)',state:'Maharashtra',lat:19.126,lng:72.815},
+    {name:'Vasai',state:'Maharashtra',lat:19.367,lng:72.823},
+    // Gujarat
+    {name:'Daman',state:'Gujarat',lat:20.414,lng:72.832},
+    {name:'Diu',state:'Gujarat',lat:20.714,lng:70.987},
+    {name:'Veraval',state:'Gujarat',lat:20.906,lng:70.368},
+    {name:'Porbandar',state:'Gujarat',lat:21.633,lng:69.609},
+    {name:'Dwarka',state:'Gujarat',lat:22.238,lng:68.967},
+    {name:'Okha',state:'Gujarat',lat:22.467,lng:69.069},
+    {name:'Jakhau',state:'Gujarat',lat:23.222,lng:68.614},
+    {name:'Mundra',state:'Gujarat',lat:22.839,lng:69.705},
+];
+const flcIcon=L.divIcon({className:'',html:'<div style="width:10px;height:10px;background:#00aaff;border:2px solid #fff;border-radius:50%;box-shadow:0 0 6px #00aaff;margin:-5px 0 0 -5px;"></div>',iconSize:[10,10]});
+let flcGroup=L.layerGroup();
+flcData.forEach(f=>{
+    const m=L.marker([f.lat,f.lng],{icon:flcIcon});
+    m.bindTooltip('<b>'+f.name+'</b><br>'+f.state,{direction:'top',offset:[0,-5]});
+    m.on('click',()=>{
+        showPanel('🚢 '+f.name,[['State',f.state,'var(--accent2)'],['Lat',toDMS(f.lat,true),'var(--accent)'],['Lng',toDMS(f.lng,false),'var(--accent)']]);
+        document.getElementById('from-lat').value=f.lat.toFixed(4);
+        document.getElementById('from-lng').value=f.lng.toFixed(4);
+    });
+    flcGroup.addLayer(m);
+});
+flcGroup.addTo(map);
+function toggleFLC(el){ el.classList.toggle('on'); el.classList.contains('on')?flcGroup.addTo(map):map.removeLayer(flcGroup); }
+function searchFLC(q){
+    const res=document.getElementById('flc-results');
+    if(!q||q.length<2){res.innerHTML='';return;}
+    const matches=flcData.filter(f=>f.name.toLowerCase().includes(q.toLowerCase())||f.state.toLowerCase().includes(q.toLowerCase())).slice(0,6);
+    res.innerHTML=matches.map(f=>'<div class="flc-item" onclick="goToFLC('+f.lat+','+f.lng+',\''+f.name+'\',\''+f.state+'\')"><div class="flc-name">'+f.name+'</div><div class="flc-state">'+f.state+'</div></div>').join('');
+}
+function goToFLC(lat,lng,name,state){
+    map.setView([lat,lng],11);
+    document.getElementById('flc-results').innerHTML='';
+    document.getElementById('flc-input').value='';
+    document.getElementById('flc-search').style.display='none';
+    showPanel('🚢 '+name,[['State',state,'var(--accent2)'],['Lat',toDMS(lat,true),'var(--accent)'],['Lng',toDMS(lng,false),'var(--accent)']]);
+}
+function toggleFLCSearch(){
+    const el=document.getElementById('flc-search');
+    el.style.display=el.style.display==='block'?'none':'block';
+    if(el.style.display==='block') document.getElementById('flc-input').focus();
+    toggleMenu();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CHLOROPHYLL DATA — Load from backend (NASA ERDDAP via fetch_weather.py)
+// ══════════════════════════════════════════════════════════════════════════════
+let chlGrid = [];   // [{lat, lon, chl}, ...]
+
+fetch(API_BASE + '/chl_data.json')
+    .then(r => r.json())
+    .then(data => {
+        chlGrid = data.points || [];
+        console.log(`✅ CHL grid loaded: ${chlGrid.length} points — ${data.source}`);
+    })
+    .catch(e => console.warn('CHL data not available:', e));
+
+/**
+ * Nearest-neighbour interpolation for chlorophyll at any lat/lon.
+ * Returns value string or '--' if no data nearby.
+ */
+function getCHL(lat, lon) {
+    if (!chlGrid.length) return '--';
+    let best = null, bestDist = Infinity;
+    for (const pt of chlGrid) {
+        const d = (pt.lat - lat) ** 2 + (pt.lon - lon) ** 2;
+        if (d < bestDist) { bestDist = d; best = pt; }
+    }
+    // Only use if within ~3 degrees (~330 km)
+    if (bestDist > 9) return '--';
+    return best ? best.chl.toFixed(3) : '--';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SST DATA — Load from backend
+// ══════════════════════════════════════════════════════════════════════════════
+let sstGrid = [];
+
+fetch(API_BASE + '/sst_data.json')
+    .then(r => r.json())
+    .then(data => { sstGrid = data.points || []; console.log(`✅ SST grid: ${sstGrid.length} pts`); })
+    .catch(e => console.warn('SST data not available:', e));
+
+function getSST(lat, lon) {
+    if (!sstGrid.length) return '--';
+    let best = null, bestDist = Infinity;
+    for (const pt of sstGrid) {
+        const d = (pt.lat - lat) ** 2 + (pt.lon - lon) ** 2;
+        if (d < bestDist) { bestDist = d; best = pt; }
+    }
+    if (bestDist > 25) return '--';
+    return best ? best.sst.toFixed(1) : '--';
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// REAL DEPTH — via backend proxy → ETOPO1
+// ══════════════════════════════════════════════════════════════════════════════
+let depthCache = {};   // "lat,lon" → depth string
+
+async function fetchDepth(lat, lon) {
+    const key = lat.toFixed(2) + ',' + lon.toFixed(2);
+    if (depthCache[key] !== undefined) return depthCache[key];
+
+    try {
+        const r = await fetch(API_BASE + `/api/depth?lat=${lat}&lon=${lon}`);
+        const data = await r.json();
+        let val;
+        if (data.is_land) {
+            val = '— (Land)';
+        } else if (data.depth_m != null) {
+            val = Math.abs(data.depth_m).toFixed(0) + ' m';
+        } else {
+            val = '--';
+        }
+        depthCache[key] = val;
+        return val;
+    } catch (e) {
+        console.warn('Depth fetch failed:', e);
+        return '--';
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// VELOCITY LAYERS — Wind / Wave / Currents
+// KEY FIX: async callback pattern — only addLayer AFTER data is loaded
+// ══════════════════════════════════════════════════════════════════════════════
+let windLayer    = null, windLoading    = false;
+let waveLayer    = null, waveLoading    = false;
+let currentLayer = null, currentLoading = false;
+
+// ── Maharashtra coastline longitude lookup (for ocean masking velocity data) ─
+const COAST_LNG = {
+    21.0:72.68, 20.8:72.65, 20.6:72.65, 20.4:72.68, 20.2:72.70,
+    20.0:72.72, 19.8:72.75, 19.6:72.80, 19.4:72.82, 19.2:72.84,
+    19.0:72.90, 18.8:72.95, 18.6:72.98, 18.4:73.00, 18.2:73.02,
+    18.0:73.05, 17.8:73.08, 17.6:73.12, 17.4:73.15, 17.2:73.18,
+    17.0:73.22, 16.8:73.28, 16.6:73.32, 16.4:73.38, 16.2:73.42,
+    16.0:73.50, 15.8:73.55, 15.6:73.62, 15.4:73.68, 15.2:73.75,
+    15.0:73.85, 14.8:73.95, 14.6:74.05, 14.4:74.15, 14.2:74.22,
+    14.0:74.30
+};
+function isLand(lat, lng) {
+    // North of 21.5 and east of 72 is Gujarat land
+    if (lat > 21.5 && lng > 72.0) return true;
+    // South of 14 and east of 74.3 is Karnataka land
+    if (lat < 14.0 && lng > 74.3) return true;
+    // Interpolate coast longitude for this latitude
+    const lats = Object.keys(COAST_LNG).map(Number).sort((a,b)=>a-b);
+    if (lat < lats[0] || lat > lats[lats.length-1]) return lng > 74.0;
+    for (let i = 0; i < lats.length - 1; i++) {
+        if (lat >= lats[i] && lat <= lats[i+1]) {
+            const t = (lat - lats[i]) / (lats[i+1] - lats[i]);
+            const coastLng = COAST_LNG[lats[i]] + t * (COAST_LNG[lats[i+1]] - COAST_LNG[lats[i]]);
+            return lng >= coastLng;  // East of coastline = land
+        }
+    }
+    return false;
+}
+
+/**
+ * Zero out velocity data at land grid points so particles don't render on land.
+ * Modifies the data arrays in-place before passing to leaflet-velocity.
+ */
+function maskLandFromVelocityData(data) {
+    if (!Array.isArray(data) || data.length < 2) return data;
+    const hdr = data[0].header;
+    const nx = hdr.nx, ny = hdr.ny;
+    const la1 = hdr.la1, la2 = hdr.la2;  // top and bottom latitudes
+    const lo1 = hdr.lo1, lo2 = hdr.lo2;  // left and right longitudes
+    const dlat = (la1 - la2) / (ny - 1);  // lat step (north→south so positive)
+    const dlon = (lo2 - lo1) / (nx - 1);  // lon step
+
+    for (let iy = 0; iy < ny; iy++) {
+        for (let ix = 0; ix < nx; ix++) {
+            const lat = la1 - iy * dlat;
+            const lon = lo1 + ix * dlon;
+            if (isLand(lat, lon)) {
+                const idx = iy * nx + ix;
+                data[0].data[idx] = 0;
+                data[1].data[idx] = 0;
+            }
+        }
+    }
+    return data;
+}
+
+function makeVelocityLayer(data, colorScale, velScale, name, maxVel) {
+    const layer = L.velocityLayer({
+        displayValues    : false,       // Hide display to avoid clutter
+        displayOptions   : {
+            velocityType       : name,
+            displayPosition    : 'bottomleft',
+            displayEmptyString : 'No data',
+            speedUnit          : 'm/s'
+        },
+        data             : data,
+        maxVelocity      : maxVel,
+        velocityScale    : velScale,
+        colorScale       : colorScale,
+        opacity          : 1.0,          // Set to full, control transparency via canvas
+        lineWidth        : 2.5,
+        particleAge      : 75,
+        particleMultiplier: 0.008,       // More particles for better visibility
+        frameRate        : 30            // Smooth 30 FPS animation
+    });
+
+    // Fix canvas transparency after layer is added to map
+    layer.on('add', function() {
+        setTimeout(function() {
+            const canvases = document.querySelectorAll('.leaflet-overlay-pane canvas');
+            canvases.forEach(function(canvas) {
+                canvas.style.background = 'transparent';
+                canvas.style.backgroundColor = 'transparent';
+                // Get context and clear with transparency
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.globalCompositeOperation = 'source-over';
+                }
+            });
+        }, 100);
+    });
+
+    return layer;
+}
+
+function loadVelocity(url, colorScale, velScale, name, maxVel, toggleId, cb) {
+    // Add cache-busting timestamp for fresh data
+    const bustUrl = url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now();
+    fetch(bustUrl)
+        .then(r => r.json())
+        .then(data => {
+            // Validate: must have 2 items with data arrays
+            if (!Array.isArray(data) || data.length < 2 || !data[0].data || !data[1].data) {
+                console.error(name + ': invalid data format', data);
+                cb(null);
+                return;
+            }
+            // Zero out land grid points so particles only appear on ocean
+            maskLandFromVelocityData(data);
+            const vel = makeVelocityLayer(data, colorScale, velScale, name, maxVel);
+            cb(vel);
+        })
+        .catch(e => {
+            console.error(name + ' fetch error:', e);
+            cb(null);
+        });
+}
+
+function setVelStatus(msg) {
+    const s = document.getElementById('vel-status');
+    if (msg) { s.textContent = msg; s.classList.add('active'); }
+    else      { s.classList.remove('active'); }
+}
+
+// ── WIND ──────────────────────────────────────────────────────────────────────
+function toggleWind(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        if (windLayer) {
+            map.addLayer(windLayer);
+            setVelStatus('🌬️ Wind Active — Live');
+            return;
+        }
+        if (windLoading) { setVelStatus('🌬️ Wind लोड होत आहे…'); return; }
+        windLoading = true;
+        setVelStatus('🌬️ Wind लोड होत आहे…');
+        loadVelocity(API_BASE + '/api/wind/live',
+            ['#d4e6f1','#85c1e9','#3498db','#1a5276','#0d47a1'],
+            0.012, 'Wind', 15, 'tog-wind',
+            function(vel) {
+                windLoading = false;
+                if (!vel) { setVelStatus('⚠️ Wind data error'); return; }
+                windLayer = vel;
+                if (document.getElementById('tog-wind').classList.contains('on')) {
+                    map.addLayer(windLayer);
+                    setVelStatus('🌬️ Wind Active — Live');
+                } else { setVelStatus(null); }
+            }
+        );
+    } else {
+        if (windLayer) map.removeLayer(windLayer);
+        setVelStatus(null);
+    }
+}
+
+// ── WAVES ─────────────────────────────────────────────────────────────────────
+// FIX: wave_data.json आता U/V format मध्ये आहे (fetch_weather.py updated)
+function toggleWave(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        if (waveLayer) {
+            map.addLayer(waveLayer);
+            setVelStatus('🌊 Waves Active — Live');
+            return;
+        }
+        if (waveLoading) { setVelStatus('🌊 Waves लोड होत आहे…'); return; }
+        waveLoading = true;
+        setVelStatus('🌊 Waves लोड होत आहे…');
+        loadVelocity(API_BASE + '/api/wave/live?_t='+Date.now(),
+            ['#1a9850','#91cf60','#d9ef8b','#fee08b','#fc8d59','#d73027'],
+            0.025, 'Waves', 5, 'tog-wave',
+            function(vel) {
+                waveLoading = false;
+                if (!vel) { setVelStatus('⚠️ Wave data error'); return; }
+                waveLayer = vel;
+                if (document.getElementById('tog-wave').classList.contains('on')) {
+                    map.addLayer(waveLayer);
+                    setVelStatus('🌊 Waves Active — Live');
+                } else { setVelStatus(null); }
+            }
+        );
+    } else {
+        if (waveLayer) map.removeLayer(waveLayer);
+        setVelStatus(null);
+    }
+}
+
+// ── CURRENTS ──────────────────────────────────────────────────────────────────
+function toggleCurrent(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        if (currentLayer) {
+            map.addLayer(currentLayer);
+            setVelStatus('🔄 Currents Active — Live');
+            return;
+        }
+        if (currentLoading) { setVelStatus('🔄 Currents लोड होत आहे…'); return; }
+        currentLoading = true;
+        setVelStatus('🔄 Currents लोड होत आहे…');
+        loadVelocity(API_BASE + '/api/current/live?_t='+Date.now(),
+            ['#00ff88','#00cc66','#009944','#006622','#003311'],
+            0.035, 'Currents', 3, 'tog-current',
+            function(vel) {
+                currentLoading = false;
+                if (!vel) { setVelStatus('⚠️ Current data error'); return; }
+                currentLayer = vel;
+                if (document.getElementById('tog-current').classList.contains('on')) {
+                    map.addLayer(currentLayer);
+                    setVelStatus('🔄 Currents Active — Live');
+                } else { setVelStatus(null); }
+            }
+        );
+    } else {
+        if (currentLayer) map.removeLayer(currentLayer);
+        setVelStatus(null);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// WIND AUTO-REFRESH — Poll every 5 minutes for live data
+// ══════════════════════════════════════════════════════════════════════════════
+function refreshWindLayer() {
+    if (!windLayer || !map.hasLayer(windLayer)) return;
+    console.log('♻️ Refreshing wind data…');
+    map.removeLayer(windLayer);
+    windLayer = null;
+    windLoading = true;
+    loadVelocity(API_BASE + '/api/wind/live',
+        ['#d4e6f1','#85c1e9','#3498db','#1a5276','#0d47a1'],
+        0.012, 'Wind', 15, 'tog-wind',
+        function(vel) {
+            windLoading = false;
+            if (!vel) return;
+            windLayer = vel;
+            map.addLayer(windLayer);
+            setVelStatus('🌬️ Wind Active — refreshed ' + new Date().toLocaleTimeString());
+        }
+    );
+}
+function refreshWaveLayer() {
+    if (!waveLayer || !map.hasLayer(waveLayer)) return;
+    map.removeLayer(waveLayer);
+    waveLayer = null;
+    waveLoading = true;
+    loadVelocity(API_BASE + '/api/wave/live?_t='+Date.now(),
+        ['#1a9850','#91cf60','#d9ef8b','#fee08b','#fc8d59','#d73027'],
+        0.025, 'Waves', 5, 'tog-wave',
+        function(vel) { waveLoading = false; if (!vel) return; waveLayer = vel; map.addLayer(waveLayer); }
+    );
+}
+function refreshCurrentLayer() {
+    if (!currentLayer || !map.hasLayer(currentLayer)) return;
+    map.removeLayer(currentLayer);
+    currentLayer = null;
+    currentLoading = true;
+    loadVelocity(API_BASE + '/api/current/live?_t='+Date.now(),
+        ['#00ff88','#00cc66','#009944','#006622','#003311'],
+        0.035, 'Currents', 3, 'tog-current',
+        function(vel) { currentLoading = false; if (!vel) return; currentLayer = vel; map.addLayer(currentLayer); }
+    );
+}
+// Auto-refresh every 5 minutes if layer is active
+setInterval(refreshWindLayer, 5 * 60 * 1000);
+setInterval(refreshWaveLayer, 5 * 60 * 1000);
+setInterval(refreshCurrentLayer, 5 * 60 * 1000);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PFZ ZONES — SST + CHL from GeoJSON properties
+// ══════════════════════════════════════════════════════════════════════════════
+let pfzGroup = L.featureGroup();
+let pfzMarkerGroup = L.featureGroup();
+const lineColors = {high:'#ff4444', medium:'#ffaa00', low:'#00ff88'};
+const zoneNames = {
+    high  : {mr:'उच्च संभाव्य',  hi:'उच्च संभावित',  en:'High Potential'},
+    medium: {mr:'मध्यम संभाव्य', hi:'मध्यम संभावित', en:'Medium Potential'},
+    low   : {mr:'कमी संभाव्य',   hi:'कम संभावित',    en:'Low Potential'}
+};
+let lang = 'mr';
+let pfzRefreshTimer = null;
+let pfzLoadCount = 0;
+let pfzZonesData = [];
+
+// ── Build beautiful popup HTML for PFZ zone ──────────────────────────────────
+function buildPFZPopup(props, coords) {
+    const type = props.type || 'medium';
+    const color = lineColors[type] || '#ffaa00';
+    const zoneName = zoneNames[type] ? zoneNames[type][lang] : type;
+    const score = props.score || 0;
+    const sst = props.sst != null ? parseFloat(props.sst).toFixed(1) : '--';
+    const chl = props.chl != null ? parseFloat(props.chl).toFixed(3) : '--';
+    const depth = props.depth_m || '--';
+    const bestTime = props.best_fishing_time || 'Dawn 4-7 AM';
+    const timestamp = props.timestamp || '--';
+    const nextUpdate = props.next_update || '--';
+    const lunar = props.lunar || {};
+
+    // Fish species section
+    let fishHTML = '';
+    const fishSpecies = props.fish_species || [];
+    if (fishSpecies.length > 0) {
+        fishSpecies.forEach(f => {
+            const prob = Math.round((f.probability || 0.5) * 100);
+            const probClass = prob >= 65 ? 'high' : (prob >= 40 ? 'medium' : 'low');
+            const probColor = prob >= 65 ? 'var(--accent2)' : (prob >= 40 ? 'var(--warn)' : '#ff6666');
+            const nameField = lang === 'mr' ? f.name_mr : (lang === 'hi' ? f.name_hi : f.name_en);
+            const subName = lang !== 'en' ? f.name_en : f.name_mr;
+            fishHTML += `
+                <div class="fish-item">
+                    <span class="fish-icon">${f.icon || '🐟'}</span>
+                    <span class="fish-name">${nameField}<span class="sub">${subName}</span></span>
+                    <div class="fish-prob-wrap"><div class="fish-prob-bar ${probClass}" style="width:${prob}%"></div></div>
+                    <span class="fish-prob-val" style="color:${probColor}">${prob}%</span>
+                </div>`;
+        });
+    } else {
+        // Fallback to text fish names
+        const fishText = lang === 'mr' ? props.fish_mr : (lang === 'hi' ? props.fish_hi : props.fish_en);
+        if (fishText) {
+            fishText.split(',').forEach(name => {
+                fishHTML += `<div class="fish-item"><span class="fish-icon">🐟</span><span class="fish-name">${name.trim()}</span></div>`;
+            });
+        }
+    }
+
+    // Lunar section
+    let lunarHTML = '';
+    if (lunar.lunar_phase) {
+        const lunarConf = lunar.lunar_confidence || 0;
+        const confColor = lunarConf >= 75 ? '#00ff88' : (lunarConf >= 50 ? '#ffaa00' : '#ff6666');
+        const confLabel = lunarConf >= 75 ? (lang==='mr'?'उत्तम':'Excellent') : (lunarConf >= 50 ? (lang==='mr'?'चांगले':'Good') : (lang==='mr'?'सामान्य':'Fair'));
+        const phaseDisplay = lang === 'mr' ? (lunar.lunar_phase_mr || lunar.lunar_phase) : (lunar.lunar_phase_en || lunar.lunar_phase);
+        const tidalCoeff = lunar.tidal_coefficient || 0;
+        const biolum = lunar.bioluminescence || 0;
+
+        // Best window
+        const bw = lunar.best_window || {};
+        const bwTime = bw.time || bestTime;
+        const bwLabel = lang === 'mr' ? (bw.label_mr || '') : (bw.label_en || '');
+        const bwReason = lang === 'mr' ? (bw.reason_mr || '') : (bw.reason_en || '');
+        const bwScore = bw.score || 0;
+
+        // All windows
+        let windowsHTML = '';
+        const windows = lunar.optimal_windows || [];
+        windows.forEach((w, i) => {
+            const wScore = w.score || 0;
+            const wColor = wScore >= 75 ? '#00ff88' : (wScore >= 50 ? '#ffaa00' : '#ff6666');
+            const wLabel = lang === 'mr' ? (w.label_mr || '') : (w.label_en || '');
+            const wReason = lang === 'mr' ? (w.reason_mr || '') : (w.reason_en || '');
+            windowsHTML += `
+                <div style="display:flex;align-items:center;gap:5px;padding:3px 4px;${i>0?'border-top:1px solid rgba(0,200,255,0.06);':''}">
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:10px;color:var(--text);font-weight:600;">${w.start} - ${w.end}</div>
+                        <div style="font-size:8px;color:var(--dim);">${wLabel}</div>
+                        <div style="font-size:7px;color:rgba(255,255,255,0.35);margin-top:1px;">${wReason}</div>
+                    </div>
+                    <div style="text-align:right;min-width:36px;">
+                        <div style="font-size:12px;font-weight:800;color:${wColor};">${wScore}%</div>
+                    </div>
+                </div>`;
+        });
+
+        lunarHTML = `
+        <div class="pfz-popup-section">
+            <div class="pfz-section-title">${lunar.lunar_icon || '🌙'} ${lang==='mr'?'चंद्र मासेमारी विश्लेषण':'Lunar Fishing Analysis'}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:5px 6px;background:rgba(0,200,255,0.04);border-radius:6px;">
+                <div style="font-size:28px;line-height:1;">${lunar.lunar_icon || '🌙'}</div>
+                <div style="flex:1;">
+                    <div style="font-size:11px;color:var(--text);font-weight:600;">${phaseDisplay}</div>
+                    <div style="font-size:8px;color:var(--dim);">${lang==='mr'?'प्रकाश':'Illumination'}: ${lunar.lunar_illumination || 0}%</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-size:20px;font-weight:800;color:${confColor};line-height:1;">${lunarConf}</div>
+                    <div style="font-size:7px;color:${confColor};text-transform:uppercase;font-weight:600;">${confLabel}</div>
+                    <div style="font-size:6px;color:var(--dim);">${lang==='mr'?'चंद्र गुण':'Lunar Pts'}</div>
+                </div>
+            </div>
+            <div class="pfz-data-grid" style="margin-bottom:6px;">
+                <div class="pfz-data-item">
+                    <div class="pfz-data-label">🌊 ${lang==='mr'?'भरती शक्ती':'Tidal Force'}</div>
+                    <div class="pfz-data-value" style="color:var(--accent);">${tidalCoeff}%</div>
+                </div>
+                <div class="pfz-data-item">
+                    <div class="pfz-data-label">✨ ${lang==='mr'?'जैवप्रकाश':'Bioluminescence'}</div>
+                    <div class="pfz-data-value" style="color:#88ffff;">${biolum}%</div>
+                </div>
+            </div>
+            <div class="pfz-data-grid" style="margin-bottom:6px;">
+                <div class="pfz-data-item">
+                    <div class="pfz-data-label">🔼 ${lang==='mr'?'उच्च भरती':'High Tides'}</div>
+                    <div class="pfz-data-value" style="color:var(--accent);font-size:9px;">${lunar.high_tide_1 || '--'}<br>${lunar.high_tide_2 || '--'}</div>
+                </div>
+                <div class="pfz-data-item">
+                    <div class="pfz-data-label">🔽 ${lang==='mr'?'ओहोटी':'Low Tides'}</div>
+                    <div class="pfz-data-value" style="color:var(--warn);font-size:9px;">${lunar.low_tide_1 || '--'}<br>${lunar.low_tide_2 || '--'}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pfz-popup-section">
+            <div class="pfz-section-title">⏰ ${lang==='mr'?'सर्वोत्तम मासेमारी वेळ':'Best Fishing Windows'}</div>
+            ${windowsHTML || '<div style="color:var(--dim);font-size:11px;">No window data</div>'}
+        </div>`
+    }
+
+    const start = coords[0], end = coords[coords.length-1];
+    const midLat = (start[0] + end[0]) / 2;
+    const midLon = (start[1] + end[1]) / 2;
+
+    return `
+    <div class="pfz-popup">
+        <div class="pfz-popup-header">
+            <span class="badge ${type}">● ${zoneName}</span>
+            <span class="score">Score: ${(score * 100).toFixed(0)}%</span>
+        </div>
+
+        <div class="pfz-popup-section">
+            <div class="pfz-section-title">🐟 ${lang==='mr'?'अपेक्षित मासे':'Expected Fish Species'}</div>
+            ${fishHTML || '<div style="color:var(--dim);font-size:11px;">No species data</div>'}
+        </div>
+
+        <div class="pfz-popup-section">
+            <div class="pfz-section-title">🌊 ${lang==='mr'?'समुद्र माहिती':'Ocean Conditions'}</div>
+            <div class="pfz-data-grid">
+                <div class="pfz-data-item">
+                    <div class="pfz-data-label">🌡️ SST</div>
+                    <div class="pfz-data-value" style="color:var(--warn)">${sst}°C</div>
+                </div>
+                <div class="pfz-data-item">
+                    <div class="pfz-data-label">🌿 Chlorophyll</div>
+                    <div class="pfz-data-value" style="color:var(--accent2)">${chl} mg/m³</div>
+                </div>
+                <div class="pfz-data-item">
+                    <div class="pfz-data-label">📏 Depth</div>
+                    <div class="pfz-data-value" style="color:var(--accent)">${depth} m</div>
+                </div>
+                <div class="pfz-data-item">
+                    <div class="pfz-data-label">⏰ Best Time</div>
+                    <div class="pfz-data-value" style="color:#ff88ff;font-size:10px">${bestTime}</div>
+                </div>
+            </div>
+        </div>
+
+        ${lunarHTML}
+
+        <div class="pfz-popup-section">
+            <div class="pfz-section-title">📍 ${lang==='mr'?'स्थान':'Location'}</div>
+            <div class="pfz-data-grid">
+                <div class="pfz-data-item">
+                    <div class="pfz-data-label">Center</div>
+                    <div class="pfz-data-value" style="color:var(--accent);font-size:10px">${toDMS(midLat,true)}</div>
+                    <div class="pfz-data-value" style="color:var(--accent);font-size:10px">${toDMS(midLon,false)}</div>
+                </div>
+                <div class="pfz-data-item">
+                    <div class="pfz-data-label">Updated</div>
+                    <div class="pfz-data-value" style="font-size:9px;color:var(--dim)">${timestamp}</div>
+                    <div style="font-size:8px;color:var(--accent2);margin-top:2px">Next: ${nextUpdate}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pfz-popup-footer">
+            <button class="pfz-popup-btn primary" onclick="document.getElementById('to-lat').value='${midLat.toFixed(4)}';document.getElementById('to-lng').value='${midLon.toFixed(4)}';toggleBearing();">📐 Navigate</button>
+            <button class="pfz-popup-btn secondary" onclick="map.setView([${midLat},${midLon}],10);">🎯 Zoom In</button>
+        </div>
+    </div>`;
+}
+
+// ── Load PFZ zones from LIVE endpoint ────────────────────────────────────────
+function loadPFZLive() {
+    pfzLoadCount++;
+    const isRefresh = pfzLoadCount > 1;
+
+    // Show loading bar
+    let loadBar = document.getElementById('pfz-load-bar');
+    if (!loadBar) {
+        loadBar = document.createElement('div');
+        loadBar.id = 'pfz-load-bar';
+        loadBar.className = 'pfz-loading-overlay';
+        document.body.appendChild(loadBar);
+    }
+    loadBar.style.display = 'block';
+
+    const url = API_BASE + '/api/pfz/live?_t=' + Date.now();
+    fetch(url).then(r => r.json()).then(geojson => {
+        // Clear old PFZ
+        pfzGroup.clearLayers();
+        pfzMarkerGroup.clearLayers();
+        pfzZonesData = [];
+
+        const metadata = geojson.metadata || {};
+        console.log(`🐟 PFZ LIVE: ${geojson.features?.length || 0} zones [${metadata.period || ''}]`);
+
+        (geojson.features || []).forEach(feature => {
+            const props = feature.properties;
+            const type = props.type || 'high';
+            const color = lineColors[type] || '#ff4444';
+            const coords = feature.geometry.coordinates.map(c => [c[1], c[0]]);
+
+            if (!coords.length || coords.some(c => isLand(c[0], c[1]))) return;
+
+            // Store zone data for exports
+            const _mid = Math.floor(coords.length / 2);
+            pfzZonesData.push({ lat: coords[_mid][0], lon: coords[_mid][1], sst: props.sst, score: props.score, type, label: props.label || '' });
+
+            // Animated PFZ line with glow
+            const line = L.polyline(coords, {
+                color, weight: 3.5, opacity: 1, lineCap: 'round',
+                className: 'pfz-line-path'
+            });
+            line.on('add', function(){
+                if(this._path) {
+                    this._path.classList.add('pfz-line');
+                    this._path.style.strokeDasharray = '10 5';
+                    this._path.style.filter = 'drop-shadow(0 0 4px ' + color + ')';
+                }
+            });
+
+            // Invisible wider hit area for easier clicking
+            const hit = L.polyline(coords, {color, weight: 18, opacity: 0});
+
+            // Pulsing center marker (fish icon)
+            const midIdx = Math.floor(coords.length / 2);
+            const midLat = coords[midIdx][0];
+            const midLon = coords[midIdx][1];
+
+            const centerIcon = L.divIcon({
+                className: '',
+                html: `<div class="pfz-center-marker ${type}" title="${zoneNames[type]?zoneNames[type]['en']:type}">🐟</div>`,
+                iconSize: [26, 26],
+                iconAnchor: [13, 13]
+            });
+            const centerMarker = L.marker([midLat, midLon], {icon: centerIcon});
+
+            // Build popup content
+            const popupContent = buildPFZPopup(props, coords);
+
+            // Show in fixed right panel instead of Leaflet popup
+            centerMarker.on('click', function() {
+                showPFZDetail(popupContent);
+                document.getElementById('to-lat').value = midLat.toFixed(4);
+                document.getElementById('to-lng').value = midLon.toFixed(4);
+            });
+
+            const onLineClick = function(e) {
+                L.DomEvent.stopPropagation(e);
+                // Show in fixed right panel
+                showPFZDetail(popupContent);
+
+                // Also fill bottom drawer for mobile
+                const start = coords[0], end = coords[coords.length-1];
+                document.getElementById('drawer-title').innerHTML =
+                    '<span style="color:'+color+'">●</span> PFZ — ' + (zoneNames[type]?zoneNames[type][lang]:'');
+                document.getElementById('drawer-grid').innerHTML =
+                    '<div>' +
+                        '<div class="d-col-title">मासे</div>' +
+                        '<div class="d-col-val" style="color:var(--warn);font-size:10px;">'+(props['fish_'+lang]||props.fish_mr||'--')+'</div>' +
+                    '</div>' +
+                    '<div>' +
+                        '<div class="d-col-title">प्रकार</div>' +
+                        '<div class="d-col-val" style="color:'+color+';font-weight:700;">'+(zoneNames[type]?zoneNames[type][lang]:type)+'</div>' +
+                        '<div class="d-col-val" style="font-size:9px;color:var(--dim);">Score:'+(props.score||'--')+'</div>' +
+                    '</div>' +
+                    '<div>' +
+                        '<div class="d-col-title">🌡️ SST</div>' +
+                        '<div class="d-col-val" style="color:var(--warn);">'+(props.sst||'--')+'°C</div>' +
+                        '<div class="d-col-title" style="margin-top:4px;">🌿 CHL</div>' +
+                        '<div class="d-col-val" style="color:var(--accent2);">'+(props.chl||'--')+' mg/m³</div>' +
+                    '</div>' +
+                    '<div>' +
+                        '<div class="d-col-title">📏 Depth</div>' +
+                        '<div class="d-col-val" style="color:var(--accent);">'+(props.depth_m||'--')+' m</div>' +
+                        '<div class="d-col-title" style="margin-top:4px;">⏰ Best Time</div>' +
+                        '<div class="d-col-val" style="color:#ff88ff;font-size:9px;">'+(props.best_fishing_time||'--')+'</div>' +
+                    '</div>' +
+                    '<div>' +
+                        '<div class="d-col-title">Updated</div>' +
+                        '<div class="d-col-val" style="font-size:9px;">'+(props.timestamp||'--')+'</div>' +
+                    '</div>';
+                document.getElementById('bottom-drawer').classList.add('open');
+
+                document.getElementById('to-lat').value = midLat.toFixed(4);
+                document.getElementById('to-lng').value = midLon.toFixed(4);
+            };
+            line.on('click', onLineClick);
+            hit.on('click', onLineClick);
+
+            pfzGroup.addLayer(line);
+            pfzGroup.addLayer(hit);
+            pfzMarkerGroup.addLayer(centerMarker);
+        });
+
+        pfzGroup.addTo(map);
+        pfzMarkerGroup.addTo(map);
+
+        // Update status
+        const zoneCount = geojson.features?.length || 0;
+        document.getElementById('update-time').innerHTML =
+            new Date().toLocaleTimeString('mr-IN',{hour:'2-digit',minute:'2-digit'}) +
+            ' <span class="pfz-live-badge"><span class="pfz-live-dot"></span>LIVE ' + zoneCount + ' zones</span>';
+        updateRefreshBar();
+
+        // Hide loading bar
+        loadBar.style.display = 'none';
+
+        if (isRefresh) {
+            console.log('♻️ PFZ refreshed: ' + zoneCount + ' zones');
+        }
+    }).catch(e => {
+        console.error('PFZ Live fetch failed, falling back to static:', e);
+        // Fallback: load static geojson
+        loadPFZStatic();
+        const lb = document.getElementById('pfz-load-bar');
+        if (lb) lb.style.display = 'none';
+    });
+}
+
+// Fallback: load static PFZ data
+function loadPFZStatic() {
+    fetch(API_BASE + '/pfz_data.geojson').then(r => r.json()).then(geojson => {
+        pfzGroup.clearLayers();
+        (geojson.features || []).forEach(feature => {
+            const props = feature.properties;
+            const type = props.type || 'high';
+            const color = lineColors[type] || '#ff4444';
+            const coords = feature.geometry.coordinates.map(c => [c[1], c[0]]);
+            if (!coords.length || coords.some(c => isLand(c[0], c[1]))) return;
+
+            const line = L.polyline(coords, {color, weight:3, opacity:1, lineCap:'round'});
+            line.on('add', function(){ if(this._path) { this._path.classList.add('pfz-line'); this._path.style.strokeDasharray='10 5'; }});
+            const hit = L.polyline(coords, {color, weight:14, opacity:0});
+
+            // Still add popup even for static data
+            const popupContent = buildPFZPopup(props, coords);
+            const onLineClick = function(e) {
+                L.DomEvent.stopPropagation(e);
+                L.popup({maxWidth:360,minWidth:300,className:'pfz-custom-popup',closeButton:true,autoPan:true})
+                    .setLatLng(e.latlng).setContent(popupContent).openOn(map);
+            };
+            line.on('click', onLineClick);
+            hit.on('click', onLineClick);
+            pfzGroup.addLayer(line);
+            pfzGroup.addLayer(hit);
+        });
+        pfzGroup.addTo(map);
+    }).catch(e => console.error('GeoJSON static fallback also failed:', e));
+}
+
+// Initial PFZ load from live endpoint
+loadPFZLive();
+
+// Auto-refresh PFZ every 30 minutes for real-time updates
+pfzRefreshTimer = setInterval(loadPFZLive, 30 * 60 * 1000);
+
+function togglePFZ(el){
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        pfzGroup.addTo(map);
+        pfzMarkerGroup.addTo(map);
+    } else {
+        map.removeLayer(pfzGroup);
+        map.removeLayer(pfzMarkerGroup);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// AGENT ARMY ANALYSIS — Real-time PFZ detection
+// ══════════════════════════════════════════════════════════════════════════════
+let agentPFZGroup = L.layerGroup();
+let agentZonesData = [];
+
+async function runAgentAnalysis() {
+    const btn = document.getElementById('agent-btn');
+    btn.classList.add('loading');
+    btn.innerHTML = '🤖 Analyzing<span class="spin">⟳</span>';
+
+    const bounds = map.getBounds();
+    const body = {
+        lat_min: Math.max(bounds.getSouth(), 14.0),
+        lat_max: Math.min(bounds.getNorth(), 21.0),
+        lng_min: Math.max(bounds.getWest(), 67.0),
+        lng_max: Math.min(bounds.getEast(), 74.5)
+    };
+
+    try {
+        const response = await fetch(API_BASE + '/api/agents/army', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+
+        const result = await response.json();
+        const agentData = result.data || {};
+
+        // Handle NO BACKEND SUPPORT error
+        if (agentData.error_type === 'no_backend_support') {
+            btn.innerHTML = '❌ No Backend Support';
+            btn.classList.remove('loading');
+
+            const apisList = Object.entries(agentData.details.apis_status)
+                .map(([name, info]) => `${name}: ${info.configured ? 'OK' : 'NOT CONFIGURED'}`)
+                .join('\n');
+
+            alert(
+                '⚠️ NO BACKEND SUPPORT\n\n' +
+                'External data APIs are not configured!\n\n' +
+                'API Status:\n' + apisList + '\n\n' +
+                'Impact: Cannot fetch real oceanographic data\n\n' +
+                'Solution:\n' +
+                '1. Configure API credentials in .env file\n' +
+                '2. Register for CMEMS: https://data.marine.copernicus.eu/\n' +
+                '3. Get NASA API key: https://api.nasa.gov/\n\n' +
+                'Currently showing STATIC PFZ data only (no AI detection)'
+            );
+            return;
+        }
+
+        // Handle partial success (some APIs working)
+        if (result.status === 'partial_success') {
+            displayAgentZones(agentData);
+            btn.innerHTML = '⚠️ Partial Data';
+            const apisUsed = agentData.apis_used || [];
+            alert(
+                '⚠️ LIMITED DATA SOURCES\n\n' +
+                `Only ${apisUsed.length} API(s) working: ${apisUsed.join(', ')}\n\n` +
+                'Results may be incomplete or less accurate.\n\n' +
+                `Found ${agentData.zone_count} zones with available data.`
+            );
+            setTimeout(() => {
+                btn.innerHTML = '🤖 Run Agent Analysis';
+                btn.classList.remove('loading');
+            }, 3000);
+            return;
+        }
+
+        // Handle success
+        if (result.status === 'success' || agentData.pfz_zones) {
+            displayAgentZones(agentData);
+            const zoneCount = agentData.zone_count || 0;
+
+            if (zoneCount === 0) {
+                btn.innerHTML = '✅ No Zones Found';
+                alert('Analysis Complete\n\nNo high-potential PFZ zones detected in current map view with available data sources.');
+            } else {
+                btn.innerHTML = `✅ Found ${zoneCount} Zones!`;
+            }
+
+            setTimeout(() => {
+                btn.innerHTML = '🤖 Run Agent Analysis';
+                btn.classList.remove('loading');
+            }, 3000);
+        } else {
+            throw new Error(result.message || agentData.message || 'Analysis failed');
+        }
+    } catch (error) {
+        console.error('Agent analysis error:', error);
+        btn.innerHTML = '❌ Error';
+        alert('Agent Analysis Error\n\n' + error.message + '\n\nCheck browser console for details.');
+        setTimeout(() => {
+            btn.innerHTML = '🤖 Run Agent Analysis';
+            btn.classList.remove('loading');
+        }, 3000);
+    }
+}
+
+function displayAgentZones(agentData) {
+    // Clear existing agent zones
+    agentPFZGroup.clearLayers();
+    agentZonesData = [];
+
+    // Extract PFZ zones from all possible response paths
+    let zones = [];
+
+    if (agentData.pfz_zones) {
+        zones = agentData.pfz_zones;
+    }
+
+    // Navigate nested agent_analysis → phases → synthesis → recommendation_agent → final_zones
+    if (!zones.length && agentData.agent_analysis) {
+        const syn = agentData.agent_analysis.phases && agentData.agent_analysis.phases.synthesis;
+        if (syn) {
+            const rec = syn.recommendation_agent || syn.fishing_recommendation || {};
+            if (rec.final_zones) zones = rec.final_zones;
+            else if (rec.zones) zones = rec.zones;
+        }
+        // Also try analysis phase zones
+        if (!zones.length && agentData.agent_analysis.phases && agentData.agent_analysis.phases.analysis) {
+            Object.values(agentData.agent_analysis.phases.analysis).forEach(agent => {
+                if (agent.zones && agent.zones.length) {
+                    zones = zones.concat(agent.zones);
+                }
+            });
+        }
+        // Also try agent_summaries (nested inside agent_analysis)
+        if (!zones.length && agentData.agent_analysis.agent_summaries) {
+            Object.values(agentData.agent_analysis.agent_summaries).forEach(phase => {
+                if (typeof phase === 'object') {
+                    Object.values(phase).forEach(agent => {
+                        if (agent && agent.zones) zones = zones.concat(agent.zones);
+                    });
+                }
+            });
+        }
+    }
+
+    // Also try flat agent_summaries at root
+    if (!zones.length && agentData.agent_summaries) {
+        Object.values(agentData.agent_summaries).forEach(v => {
+            if (v && v.zones) zones = zones.concat(v.zones);
+            else if (typeof v === 'object') {
+                Object.values(v).forEach(agent => {
+                    if (agent && agent.zones) zones = zones.concat(agent.zones);
+                });
+            }
+        });
+    }
+
+    // Validate: reject zones with obviously bad coordinates (integer fallback, origin, etc)
+    const bounds = map.getBounds();
+    zones = zones.filter(z => {
+        const lat = z.center_lat || (z.coordinates && z.coordinates[1]);
+        const lng = z.center_lng || (z.coordinates && z.coordinates[0]);
+        if (lat == null || lng == null) return false;
+        // Reject if coords are small integers (fallback range() values) or clearly on land
+        if (Math.abs(lat) < 5 && Math.abs(lng) < 5) return false;
+        // Must be in Arabian Sea region broadly
+        if (lat < 5 || lat > 26 || lng < 55 || lng > 80) return false;
+        if (isLand(lat, lng)) return false;
+        return true;
+    });
+
+    if (zones.length === 0) {
+        alert('✅ Analysis complete!\n\nNo valid PFZ zones detected in current view.\nThe backend may not have real data connections configured yet.\n\nTip: Ensure CMEMS/NASA API keys are set.');
+        return;
+    }
+
+    // Draw each zone
+    zones.forEach((zone, idx) => {
+        let coords = zone.coordinates || zone.coords || [];
+
+        // If zone has center_lat/center_lng but no line coords, create a small circle area
+        if (coords.length < 2 && zone.center_lat && zone.center_lng) {
+            const clat = zone.center_lat, clng = zone.center_lng;
+            // Create a small polyline around the point to make it visible
+            coords = [
+                [clng - 0.15, clat - 0.1],
+                [clng + 0.15, clat + 0.1]
+            ];
+        }
+        if (coords.length < 2) return;
+
+        // Convert to Leaflet format [lat, lng]
+        const latLngs = coords.map(c => Array.isArray(c) ? [c[1], c[0]] : [c.lat, c.lng]);
+
+        // Validate coordinates are in ocean (not garbage integers)
+        const valid = latLngs.every(ll => ll[0] > 5 && ll[0] < 26 && ll[1] > 55 && ll[1] < 80);
+        if (!valid) return;
+
+        // Determine quality color
+        const quality = zone.quality || zone.type || 'medium';
+        const color = quality.toLowerCase() === 'high' || quality.toLowerCase() === 'good' ? '#ffff00' :
+                     quality.toLowerCase() === 'medium' || quality.toLowerCase() === 'moderate' ? '#ffaa00' :
+                     '#00ff88';
+
+        // Create zone line with glow effect
+        const line = L.polyline(latLngs, {
+            color: color,
+            weight: 3.5,
+            opacity: 1,
+            lineCap: 'round',
+            className: 'agent-zone-line'
+        });
+
+        // Add animation class and glow
+        line.on('add', function(){
+            if(this._path) {
+                this._path.classList.add('agent-pfz-line');
+                this._path.style.strokeDasharray = '12 6';
+                this._path.style.filter = 'drop-shadow(0 0 4px ' + color + ')';
+            }
+        });
+
+        // Create invisible hit area for easier clicking
+        const hit = L.polyline(latLngs, {color: color, weight: 16, opacity: 0});
+
+        // Store zone data — preserve all fish species fields (name_en, name_mr, name_hi, icon, etc)
+        const zoneData = {
+            id: idx,
+            quality: quality,
+            confidence: zone.confidence || zone.score || 0.8,
+            score: zone.score || zone.confidence || 0.8,
+            fish_species: zone.fish_species || zone.species || [],
+            depth_m: zone.depth_m || null,
+            depth_range: zone.depth_range || (zone.depth_m ? {min: zone.depth_m, max: zone.depth_m, avg: zone.depth_m} : {min: 40, max: 60, avg: 48}),
+            sst: zone.sst || parseFloat(getSST(latLngs[0][0], latLngs[0][1])) || 28,
+            chl: zone.chl || null,
+            chlorophyll: zone.chlorophyll || zone.chl || parseFloat(getCHL(latLngs[0][0], latLngs[0][1])) || 0.25,
+            best_fishing_time: zone.best_fishing_time || 'Dawn 4-7 AM',
+            fish_en: zone.fish_en || '',
+            fish_mr: zone.fish_mr || '',
+            lunar: zone.lunar || {},
+            coords: latLngs,
+            center: zone.center || {
+                lat: zone.center_lat || latLngs[Math.floor(latLngs.length / 2)][0],
+                lng: zone.center_lng || latLngs[Math.floor(latLngs.length / 2)][1]
+            }
+        };
+
+        agentZonesData.push(zoneData);
+
+        // Click handler
+        const onClick = function(e) {
+            L.DomEvent.stopPropagation(e);
+            showAgentZonePopup(zoneData);
+        };
+
+        line.on('click', onClick);
+        hit.on('click', onClick);
+
+        agentPFZGroup.addLayer(line);
+        agentPFZGroup.addLayer(hit);
+    });
+
+    agentPFZGroup.addTo(map);
+    alert(`✅ Found ${zones.length} PFZ zones!\n\nClick any yellow zone line for details.`);
+}
+
+function showAgentZonePopup(zone) {
+    // Close bottom drawer
+    closeDrawer();
+
+    // Build fish species list with multilingual names and probabilities
+    let fishHTML = '';
+    if (Array.isArray(zone.fish_species) && zone.fish_species.length > 0) {
+        fishHTML = zone.fish_species.map(fish => {
+            const prob = ((fish.probability || 0.5) * 100).toFixed(0);
+            // Support all name formats: name_en/name_mr/name_hi (live PFZ) or name/species_name (legacy)
+            const nameEn = fish.name_en || fish.name || fish.species_name || '';
+            const nameMr = fish.name_mr || '';
+            const nameHi = fish.name_hi || '';
+            const icon = fish.icon || '🐟';
+            const bestTime = fish.best_time || '';
+            const habitat = fish.habitat || '';
+
+            // Pick display name based on current language
+            const primary = lang === 'mr' ? (nameMr || nameEn) : lang === 'hi' ? (nameHi || nameEn) : nameEn;
+            const secondary = lang === 'mr' ? nameEn : (lang === 'hi' ? nameEn : nameMr);
+
+            const probColor = prob >= 65 ? 'var(--accent2)' : prob >= 40 ? 'var(--warn)' : '#ff6666';
+            const barClass = prob >= 65 ? 'high' : prob >= 40 ? 'medium' : 'low';
+
+            return `<div style="display:flex;align-items:center;gap:6px;padding:4px 2px;border-bottom:1px solid rgba(0,200,255,0.08);">
+                <span style="font-size:14px;">${icon}</span>
+                <div style="flex:1;min-width:0;">
+                    <div style="color:var(--text);font-size:11px;font-weight:600;">${primary}</div>
+                    ${secondary ? '<div style="color:var(--dim);font-size:8px;">'+secondary+'</div>' : ''}
+                    ${bestTime ? '<div style="color:#ff88ff;font-size:7px;">⏰ '+bestTime+'</div>' : ''}
+                </div>
+                <div style="width:50px;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${prob}%;background:${probColor};border-radius:3px;"></div></div>
+                <span style="color:${probColor};font-size:10px;font-weight:700;min-width:28px;text-align:right;">${prob}%</span>
+            </div>`;
+        }).join('');
+    } else {
+        fishHTML = '<div style="color:var(--dim);">Species data not available</div>';
+    }
+
+    // Build depth info
+    const depthInfo = zone.depth_m ? zone.depth_m + 'm' :
+        zone.depth_range ? `${zone.depth_range.min||30}m - ${zone.depth_range.max||60}m` : '40-60m (est.)';
+
+    // Quality stars
+    const qualityStars = zone.confidence >= 0.8 ? '⭐⭐⭐' :
+                        zone.confidence >= 0.6 ? '⭐⭐' : '⭐';
+
+    // Show in info panel
+    const sstVal = typeof zone.sst === 'number' ? zone.sst.toFixed(1) + '°C' : zone.sst || '--';
+    const chlVal = typeof zone.chlorophyll === 'number' ? zone.chlorophyll.toFixed(3) + ' mg/m³' :
+                   typeof zone.chl === 'number' ? zone.chl.toFixed(3) + ' mg/m³' : zone.chlorophyll || '--';
+    const confVal = ((zone.confidence || zone.score || 0.8) * 100).toFixed(0) + '%';
+    const bestFishing = zone.best_fishing_time || 'Dawn 4-7 AM';
+    const lunar = zone.lunar || {};
+
+    // Build lunar section for agent popup
+    let lunarAgentHTML = '';
+    if (lunar.lunar_phase) {
+        const lConf = lunar.lunar_confidence || 0;
+        const lColor = lConf >= 75 ? '#00ff88' : (lConf >= 50 ? '#ffaa00' : '#ff6666');
+        const lLabel = lConf >= 75 ? (lang==='mr'?'उत्तम':'Excellent') : (lConf >= 50 ? (lang==='mr'?'चांगले':'Good') : (lang==='mr'?'सामान्य':'Fair'));
+        const phDisp = lang === 'mr' ? (lunar.lunar_phase_mr || '') : (lunar.lunar_phase_en || '');
+        const bw = lunar.best_window || {};
+        const bwTime = bw.time || bestFishing;
+        const bwLabel = lang === 'mr' ? (bw.label_mr || '') : (bw.label_en || '');
+        const bwScore = bw.score || 0;
+        const bwScoreColor = bwScore >= 75 ? '#00ff88' : (bwScore >= 50 ? '#ffaa00' : '#ff6666');
+
+        // Compact windows list
+        let winsHTML = '';
+        (lunar.optimal_windows || []).forEach(w => {
+            const ws = w.score || 0;
+            const wc = ws >= 75 ? '#00ff88' : (ws >= 50 ? '#ffaa00' : '#ff6666');
+            const wl = lang === 'mr' ? (w.label_mr || '') : (w.label_en || '');
+            winsHTML += `<div style="display:flex;justify-content:space-between;font-size:9px;padding:2px 0;border-bottom:1px solid rgba(0,200,255,0.05);">
+                <span style="color:var(--text);">${w.start}-${w.end}</span>
+                <span style="color:var(--dim);font-size:7px;flex:1;margin:0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${wl}</span>
+                <span style="color:${wc};font-weight:700;">${ws}%</span>
+            </div>`;
+        });
+
+        lunarAgentHTML = `
+        <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:8px;">
+            <div style="font-size:9px;color:var(--dim);text-transform:uppercase;margin-bottom:6px;">${lunar.lunar_icon || '🌙'} ${lang==='mr'?'चंद्र मासेमारी विश्लेषण':'Lunar Fishing Analysis'}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;padding:4px;background:rgba(0,200,255,0.04);border-radius:4px;">
+                <span style="font-size:22px;">${lunar.lunar_icon || '🌙'}</span>
+                <div style="flex:1;">
+                    <div style="font-size:10px;color:var(--text);font-weight:600;">${phDisp}</div>
+                    <div style="font-size:7px;color:var(--dim);">${lang==='mr'?'प्रकाश':'Illum'}: ${lunar.lunar_illumination||0}% | ${lang==='mr'?'भरती':'Tidal'}: ${lunar.tidal_coefficient||0}%</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-size:18px;font-weight:800;color:${lColor};line-height:1;">${lConf}</div>
+                    <div style="font-size:6px;color:${lColor};text-transform:uppercase;">${lLabel}</div>
+                </div>
+            </div>
+            <div class="ip-row"><span class="ip-lbl">🔼 ${lang==='mr'?'उच्च भरती':'High Tides'}</span><span class="ip-val" style="color:var(--accent);font-size:8px;">${lunar.high_tide_1||'--'} / ${lunar.high_tide_2||'--'}</span></div>
+            <div class="ip-row"><span class="ip-lbl">🔽 ${lang==='mr'?'ओहोटी':'Low Tides'}</span><span class="ip-val" style="color:var(--warn);font-size:8px;">${lunar.low_tide_1||'--'} / ${lunar.low_tide_2||'--'}</span></div>
+            <div style="margin-top:6px;font-size:8px;color:var(--dim);text-transform:uppercase;margin-bottom:3px;">⏰ ${lang==='mr'?'मासेमारी वेळ खिडक्या':'Fishing Time Windows'}</div>
+            ${winsHTML}
+        </div>`;
+    }
+
+    document.getElementById('ip-title').innerHTML = '🐟 <span style="color:#ffff00;">Agent PFZ Zone</span>';
+    document.getElementById('ip-body').innerHTML = `
+        <div style="border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:8px;">
+            <div style="font-size:9px;color:var(--dim);text-transform:uppercase;margin-bottom:6px;">🐟 ${lang==='mr'?'अपेक्षित मासे':'Fish Species & Probability'}</div>
+            ${fishHTML}
+        </div>
+        <div class="ip-row"><span class="ip-lbl">📏 Depth</span><span class="ip-val" style="color:var(--accent);">${depthInfo}</span></div>
+        <div class="ip-row"><span class="ip-lbl">🌡️ SST</span><span class="ip-val" style="color:var(--warn);">${sstVal}</span></div>
+        <div class="ip-row"><span class="ip-lbl">🌿 Chlorophyll</span><span class="ip-val" style="color:var(--accent2);">${chlVal}</span></div>
+        <div class="ip-row"><span class="ip-lbl">⏰ Best Time</span><span class="ip-val" style="color:#ff88ff;font-size:9px;">${bestFishing}</span></div>
+        <div class="ip-row"><span class="ip-lbl">Zone Quality</span><span class="ip-val" style="color:var(--accent2);">${zone.quality.toUpperCase()} ${qualityStars}</span></div>
+        <div class="ip-row"><span class="ip-lbl">Confidence</span><span class="ip-val" style="color:var(--accent2);">${confVal}</span></div>
+        <div class="ip-row"><span class="ip-lbl">Center Point</span><span class="ip-val" style="color:var(--accent);">${toDMS(zone.center.lat, true)}</span></div>
+        <div class="ip-row"><span class="ip-lbl"></span><span class="ip-val" style="color:var(--accent);">${toDMS(zone.center.lng, false)}</span></div>
+        ${lunarAgentHTML}
+    `;
+    document.getElementById('info-panel').style.display = 'block';
+
+    // Set bearing calculator target
+    document.getElementById('to-lat').value = zone.center.lat.toFixed(4);
+    document.getElementById('to-lng').value = zone.center.lng.toFixed(4);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DATA LAYER TOGGLES — Main panel controls
+// ══════════════════════════════════════════════════════════════════════════════
+let sstLayer = null;
+let bathymetryLayer = null;
+let seaMarkLayer = null;
+
+function toggleSST(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        // Create SST heatmap visualization
+        if (!sstLayer && sstGrid.length > 0) {
+            // For now, show as colored markers (can upgrade to heatmap.js later)
+            sstLayer = L.layerGroup();
+            sstGrid.forEach(pt => {
+                // Color based on temperature (24-32°C range)
+                const temp = pt.sst;
+                const hue = (32 - temp) / 8 * 240; // blue (cold) to red (hot)
+                const color = `hsl(${hue}, 80%, 50%)`;
+
+                const marker = L.circleMarker([pt.lat, pt.lon], {
+                    radius: 8,
+                    fillColor: color,
+                    color: color,
+                    weight: 1,
+                    opacity: 0.6,
+                    fillOpacity: 0.4
+                });
+                marker.bindTooltip(`SST: ${temp.toFixed(1)}°C`, {sticky: true});
+                sstLayer.addLayer(marker);
+            });
+        }
+        if (sstLayer) map.addLayer(sstLayer);
+    } else {
+        if (sstLayer) map.removeLayer(sstLayer);
+    }
+}
+
+function toggleBathymetry(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        if (!bathymetryLayer) {
+            // ESRI World Ocean Base — real GEBCO/NOAA bathymetry depth tiles (free)
+            bathymetryLayer = L.tileLayer(
+                'https://services.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
+                { attribution: '© ESRI | GEBCO, NOAA, Garmin', maxZoom: 18, opacity: 0.75, zIndex: 5 }
+            );
+        }
+        map.addLayer(bathymetryLayer);
+        if (pfzGroup.bringToFront) pfzGroup.bringToFront();
+        if (pfzMarkerGroup.bringToFront) pfzMarkerGroup.bringToFront();
+    } else {
+        if (bathymetryLayer) map.removeLayer(bathymetryLayer);
+    }
+}
+
+function toggleSeaMarks(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        if (!seaMarkLayer) {
+            // OpenSeaMap — nautical marks: buoys, lighthouses, depth hazards (free)
+            seaMarkLayer = L.tileLayer(
+                'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',
+                { attribution: '© OpenSeaMap', maxZoom: 18, zIndex: 8 }
+            );
+        }
+        map.addLayer(seaMarkLayer);
+        if (pfzGroup.bringToFront) pfzGroup.bringToFront();
+        if (pfzMarkerGroup.bringToFront) pfzMarkerGroup.bringToFront();
+    } else {
+        if (seaMarkLayer) map.removeLayer(seaMarkLayer);
+    }
+}
+
+function toggleWindMain(el) {
+    el.classList.toggle('on');
+    const menuToggle = document.getElementById('tog-wind');
+    if (el.classList.contains('on')) {
+        if (menuToggle) menuToggle.classList.add('on');
+        if (windLayer) {
+            map.addLayer(windLayer);
+            setVelStatus('🌬️ Wind Active — Live');
+        } else if (!windLoading) {
+            windLoading = true;
+            setVelStatus('🌬️ Wind लोड होत आहे…');
+            loadVelocity(API_BASE + '/api/wind/live',
+                ['#d4e6f1','#85c1e9','#3498db','#1a5276','#0d47a1'],
+                0.012, 'Wind', 15, 'tog-wind',
+                function(vel) {
+                    windLoading = false;
+                    if (!vel) { setVelStatus('⚠️ Wind data error'); return; }
+                    windLayer = vel;
+                    if (el.classList.contains('on')) {
+                        map.addLayer(windLayer);
+                        setVelStatus('🌬️ Wind Active — Live');
+                    } else { setVelStatus(null); }
+                }
+            );
+        }
+    } else {
+        if (menuToggle) menuToggle.classList.remove('on');
+        if (windLayer) map.removeLayer(windLayer);
+        setVelStatus(null);
+    }
+}
+
+function toggleWaveMain(el) {
+    el.classList.toggle('on');
+    const menuToggle = document.getElementById('tog-wave');
+    if (el.classList.contains('on')) {
+        if (menuToggle) menuToggle.classList.add('on');
+        if (waveLayer) {
+            map.addLayer(waveLayer);
+            setVelStatus('🌊 Waves Active — Live');
+        } else if (!waveLoading) {
+            waveLoading = true;
+            setVelStatus('🌊 Waves लोड होत आहे…');
+            loadVelocity(API_BASE + '/api/wave/live?_t='+Date.now(),
+                ['#1a9850','#91cf60','#d9ef8b','#fee08b','#fc8d59','#d73027'],
+                0.025, 'Waves', 5, 'tog-wave',
+                function(vel) {
+                    waveLoading = false;
+                    if (!vel) { setVelStatus('⚠️ Wave data error'); return; }
+                    waveLayer = vel;
+                    if (el.classList.contains('on')) {
+                        map.addLayer(waveLayer);
+                        setVelStatus('🌊 Waves Active — Live');
+                    } else { setVelStatus(null); }
+                }
+            );
+        }
+    } else {
+        if (menuToggle) menuToggle.classList.remove('on');
+        if (waveLayer) map.removeLayer(waveLayer);
+        setVelStatus(null);
+    }
+}
+
+function toggleCurrentMain(el) {
+    el.classList.toggle('on');
+    const menuToggle = document.getElementById('tog-current');
+    if (el.classList.contains('on')) {
+        if (menuToggle) menuToggle.classList.add('on');
+        if (currentLayer) {
+            map.addLayer(currentLayer);
+            setVelStatus('🔄 Currents Active — Live');
+        } else if (!currentLoading) {
+            currentLoading = true;
+            setVelStatus('🔄 Currents लोड होत आहे…');
+            loadVelocity(API_BASE + '/api/current/live?_t='+Date.now(),
+                ['#00ff88','#00cc66','#009944','#006622','#003311'],
+                0.035, 'Currents', 3, 'tog-current',
+                function(vel) {
+                    currentLoading = false;
+                    if (!vel) { setVelStatus('⚠️ Current data error'); return; }
+                    currentLayer = vel;
+                    if (el.classList.contains('on')) {
+                        map.addLayer(currentLayer);
+                        setVelStatus('🔄 Currents Active — Live');
+                    } else { setVelStatus(null); }
+                }
+            );
+        }
+    } else {
+        if (menuToggle) menuToggle.classList.remove('on');
+        if (currentLayer) map.removeLayer(currentLayer);
+        setVelStatus(null);
+    }
+}
+
+function togglePFZMain(el) {
+    el.classList.toggle('on');
+    const menuToggle = document.getElementById('tog-pfz');
+    if (el.classList.contains('on')) {
+        if (menuToggle) menuToggle.classList.add('on');
+        pfzGroup.addTo(map);
+        pfzMarkerGroup.addTo(map);
+    } else {
+        if (menuToggle) menuToggle.classList.remove('on');
+        map.removeLayer(pfzGroup);
+        map.removeLayer(pfzMarkerGroup);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+function toDMS(dd, isLat){
+    const dir = isLat?(dd>=0?'N':'S'):(dd>=0?'E':'W');
+    const d = Math.floor(Math.abs(dd)), m = Math.floor((Math.abs(dd)-d)*60);
+    const s = ((Math.abs(dd)-d-m/60)*3600).toFixed(1);
+    return d+"°"+m+"'"+s+'"'+dir;
+}
+function haversine(lat1,lng1,lat2,lng2){
+    const R=6371,r=Math.PI/180;
+    const a=Math.sin((lat2-lat1)*r/2)**2+Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin((lng2-lng1)*r/2)**2;
+    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function bearingCalc(lat1,lng1,lat2,lng2){
+    const r=Math.PI/180,dL=(lng2-lng1)*r;
+    return((Math.atan2(Math.sin(dL)*Math.cos(lat2*r),Math.cos(lat1*r)*Math.sin(lat2*r)-Math.sin(lat1*r)*Math.cos(lat2*r)*Math.cos(dL))*180/Math.PI)+360)%360;
+}
+function bearingToDir(b){
+    return['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'][Math.round(b/22.5)%16];
+}
+
+// BEARING
+function toggleBearing(){
+    const p=document.getElementById('bearing-panel');
+    p.style.display=p.style.display==='block'?'none':'block';
+    document.getElementById('side-menu').classList.remove('open');
+}
+function calculateBearing(){
+    const lat1=parseFloat(document.getElementById('from-lat').value);
+    const lng1=parseFloat(document.getElementById('from-lng').value);
+    const lat2=parseFloat(document.getElementById('to-lat').value);
+    const lng2=parseFloat(document.getElementById('to-lng').value);
+    if([lat1,lng1,lat2,lng2].some(isNaN)){alert('सगळे coordinates टाका!');return;}
+    const dist=haversine(lat1,lng1,lat2,lng2), bear=bearingCalc(lat1,lng1,lat2,lng2);
+    document.getElementById('res-bearing').textContent=bear.toFixed(1)+'°';
+    document.getElementById('res-dir').textContent=bearingToDir(bear);
+    document.getElementById('res-dist').textContent=dist.toFixed(1)+' km ('+(dist*0.5399).toFixed(1)+' nm)';
+    document.getElementById('bp-result').style.display='block';
+    if(window.bearingLine) map.removeLayer(window.bearingLine);
+    window.bearingLine=L.polyline([[lat1,lng1],[lat2,lng2]],{color:'#ffaa00',weight:2,dashArray:'6 4'}).addTo(map);
+}
+function useMyLocation(){
+    navigator.geolocation.getCurrentPosition(pos=>{
+        document.getElementById('from-lat').value=pos.coords.latitude.toFixed(4);
+        document.getElementById('from-lng').value=pos.coords.longitude.toFixed(4);
+    },()=>alert('GPS चालू करा!'));
+}
+
+// ROUTE
+let routeMode=false,routePoints=[],routeLines=[],routeMarkers=[];
+function toggleRouteMode(){
+    routeMode=!routeMode;
+    document.getElementById('side-menu').classList.remove('open');
+    if(routeMode) alert('Route Mode ON!\nMap click: waypoint जोडा\nDouble-click: route finish');
+    else{routeLines.forEach(l=>map.removeLayer(l));routeMarkers.forEach(m=>map.removeLayer(m));routeLines=[];routeMarkers=[];routePoints=[];}
+}
+
+// ANCHOR
+let anchorSet=false,anchorPos=null;
+function setAnchor(){
+    const r=parseFloat(document.getElementById('anchor-radius').value)||100;
+    navigator.geolocation.getCurrentPosition(pos=>{
+        anchorPos={lat:pos.coords.latitude,lng:pos.coords.longitude};
+        anchorSet=true;
+        document.getElementById('anchor-panel').style.display='none';
+        if(window.anchorCircle) map.removeLayer(window.anchorCircle);
+        window.anchorCircle=L.circle([anchorPos.lat,anchorPos.lng],{radius:r,color:'#ffaa00',fillColor:'#ffaa00',fillOpacity:0.1,weight:2}).addTo(map);
+        setInterval(()=>{
+            if(!anchorSet) return;
+            navigator.geolocation.getCurrentPosition(p=>{
+                const dist=haversine(anchorPos.lat,anchorPos.lng,p.coords.latitude,p.coords.longitude)*1000;
+                if(dist>r){
+                    document.getElementById('anchor-panel').classList.add('anchor-active');
+                    document.getElementById('anchor-panel').style.display='block';
+                    document.getElementById('anchor-status').textContent='⚠️ DRIFT! '+Math.round(dist)+'m!';
+                    alert('🚨 ANCHOR ALARM!\n'+Math.round(dist)+'m drift!');
+                }
+            });
+        },15000);
+        alert('⚓ Anchor Set! Radius: '+r+'m');
+    },()=>alert('GPS चालू करा!'));
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// REFRESH INDICATOR — shows last PFZ update time and countdown to next
+// Data uses 6-hour UTC blocks → IST = UTC+5:30
+// ══════════════════════════════════════════════════════════════════════════════
+function updateRefreshBar() {
+    const now = new Date();
+    // IST offset = UTC+5:30
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const ist = new Date(now.getTime() + istOffset - now.getTimezoneOffset() * 60000);
+    const hh = String(ist.getHours()).padStart(2,'0');
+    const mm = String(ist.getMinutes()).padStart(2,'0');
+    document.getElementById('sb-refresh').textContent = hh + ':' + mm + ' IST';
+    document.getElementById('sb-refresh').style.color = 'var(--accent2)';
+
+    // Next 6-hour block boundary in UTC
+    const utcHour = now.getUTCHours();
+    const nextBlockUTC = (Math.floor(utcHour / 6) + 1) * 6;
+    const nextUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), nextBlockUTC % 24, 0, 0));
+    if (nextBlockUTC >= 24) nextUTC.setUTCDate(nextUTC.getUTCDate() + 1);
+    const diffMs = nextUTC - now;
+    const diffH = Math.floor(diffMs / 3600000);
+    const diffM = Math.floor((diffMs % 3600000) / 60000);
+    const nextEl = document.getElementById('sb-next');
+    nextEl.textContent = 'Next: ' + diffH + 'h ' + diffM + 'm';
+}
+// Update countdown every minute
+updateRefreshBar();
+setInterval(updateRefreshBar, 60000);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MAP CLICK — Real depth + SST + CHL from grids
+// ══════════════════════════════════════════════════════════════════════════════
+let clickMarker=null;
+const pinIcon=L.divIcon({className:'',html:'<div style="width:12px;height:12px;background:#00c8ff;border:2px solid #fff;border-radius:50%;box-shadow:0 0 6px #00c8ff;margin:-6px 0 0 -6px;"></div>',iconSize:[12,12]});
+
+map.on('click', async function(e){
+    closePFZDetail();
+    const lat=e.latlng.lat, lng=e.latlng.lng;
+    document.getElementById('sb-lat').textContent=lat.toFixed(4)+'°N';
+    document.getElementById('sb-lng').textContent=lng.toFixed(4)+'°E';
+
+    if(routeMode){
+        routePoints.push([lat,lng]);
+        const wm=L.marker([lat,lng],{icon:L.divIcon({html:'<div style="background:#ffaa00;width:10px;height:10px;border-radius:50%;border:2px solid #fff;margin:-5px 0 0 -5px;"></div>',className:'',iconSize:[10,10]})}).addTo(map);
+        routeMarkers.push(wm);
+        if(routePoints.length>1){
+            const p1=routePoints[routePoints.length-2],p2=routePoints[routePoints.length-1];
+            const rl=L.polyline([p1,p2],{color:'#ffaa00',weight:2,dashArray:'8 4'}).addTo(map);
+            routeLines.push(rl);
+            rl.bindTooltip(haversine(p1[0],p1[1],p2[0],p2[1]).toFixed(1)+' km',{permanent:true,opacity:0.8});
+        }
+        return;
+    }
+
+    if(clickMarker) map.removeLayer(clickMarker);
+    clickMarker=L.marker([lat,lng],{icon:pinIcon}).addTo(map);
+    closeDrawer();
+
+    const onLand = isLand(lat, lng);
+
+    if (onLand) {
+        // Land click — no oceanographic data
+        document.getElementById('sb-sst').textContent = '—';
+        document.getElementById('sb-chl').textContent = '—';
+        document.getElementById('sb-depth').textContent = '— (जमीन)';
+        const popupContent = `
+            <div style="font-family:'Space Mono',monospace;min-width:180px;">
+                <div style="font-size:11px;font-weight:700;color:#ffaa00;margin-bottom:6px;border-bottom:1px solid rgba(255,170,0,0.3);padding-bottom:4px;">🏔️ Land Area</div>
+                <div style="font-size:10px;line-height:1.6;">
+                    <div style="color:#00ff88;font-weight:700;">${toDMS(lat,true)}</div>
+                    <div style="color:#00ff88;font-weight:700;margin-bottom:6px;">${toDMS(lng,false)}</div>
+                    <div style="color:#7090a0;">Depth: <span style="color:#ffaa00;">— (Land)</span></div>
+                    <div style="color:#7090a0;">SST: <span style="color:#7090a0;">N/A</span></div>
+                    <div style="color:#7090a0;">CHL: <span style="color:#7090a0;">N/A</span></div>
+                </div>
+            </div>`;
+        clickMarker.bindPopup(popupContent, {maxWidth: 250}).openPopup();
+        showPanel('🏔️ जमीन क्षेत्र', [
+            ['DMS',       toDMS(lat,true),    'var(--accent2)'],
+            ['',          toDMS(lng,false),   'var(--accent2)'],
+            ['🌊 खोली',   '— (जमीन)',         'var(--warn)'],
+            ['🌡️ SST',    'N/A',              'var(--dim)'],
+            ['🌿 CHL',    'N/A',              'var(--dim)']
+        ]);
+        document.getElementById('to-lat').value=lat.toFixed(4);
+        document.getElementById('to-lng').value=lng.toFixed(4);
+        document.getElementById('side-menu').classList.remove('open');
+        return;
+    }
+
+    // Ocean click — show real data
+    const sstVal = getSST(lat, lng);
+    const chlVal = getCHL(lat, lng);
+    document.getElementById('sb-sst').textContent = sstVal !== '--' ? sstVal+'°C' : '--°C';
+    document.getElementById('sb-chl').textContent = chlVal !== '--' ? chlVal+' mg/m³' : '--';
+    document.getElementById('sb-depth').textContent = '…';
+
+    // Show popup with loading depth
+    const popupContent = `
+        <div style="font-family:'Space Mono',monospace;min-width:180px;">
+            <div style="font-size:11px;font-weight:700;color:#00c8ff;margin-bottom:6px;border-bottom:1px solid rgba(0,200,255,0.3);padding-bottom:4px;">📍 Ocean Location</div>
+            <div style="font-size:10px;line-height:1.6;">
+                <div style="color:#00ff88;font-weight:700;">${toDMS(lat,true)}</div>
+                <div style="color:#00ff88;font-weight:700;margin-bottom:6px;">${toDMS(lng,false)}</div>
+                <div style="color:#7090a0;">Depth: <span style="color:#00c8ff;"><span class="spin">⟳</span> loading...</span></div>
+                <div style="color:#7090a0;">SST: <span style="color:#ffaa00;">${sstVal !== '--' ? sstVal+'°C' : '--'}</span></div>
+                <div style="color:#7090a0;">CHL: <span style="color:#00ff88;">${chlVal !== '--' ? chlVal+' mg/m³' : '--'}</span></div>
+            </div>
+        </div>
+    `;
+    clickMarker.bindPopup(popupContent, {maxWidth: 250}).openPopup();
+
+    showPanel('📍 समुद्र माहिती', [
+        ['DMS',       toDMS(lat,true),                          'var(--accent2)'],
+        ['',          toDMS(lng,false),                         'var(--accent2)'],
+        ['🌊 खोली',   '<span class="spin">⟳</span> loading…',  'var(--dim)'],
+        ['🌡️ SST',    sstVal !== '--' ? sstVal+'°C' : '--°C',  'var(--warn)'],
+        ['🌿 CHL',    chlVal !== '--' ? chlVal+' mg/m³' : '--','var(--accent2)']
+    ]);
+
+    document.getElementById('to-lat').value=lat.toFixed(4);
+    document.getElementById('to-lng').value=lng.toFixed(4);
+    document.getElementById('side-menu').classList.remove('open');
+
+    // Async: fetch real depth, then update panel and popup
+    const depth = await fetchDepth(lat, lng);
+    document.getElementById('sb-depth').textContent = depth;
+
+    // Update depth row in info panel (row index 2)
+    const rows = document.getElementById('ip-body').querySelectorAll('.ip-row');
+    if(rows[2]) rows[2].querySelector('.ip-val').textContent = depth;
+
+    // Update popup with real depth
+    const updatedPopupContent = `
+        <div style="font-family:'Space Mono',monospace;min-width:180px;">
+            <div style="font-size:11px;font-weight:700;color:#00c8ff;margin-bottom:6px;border-bottom:1px solid rgba(0,200,255,0.3);padding-bottom:4px;">📍 Ocean Location</div>
+            <div style="font-size:10px;line-height:1.6;">
+                <div style="color:#00ff88;font-weight:700;">${toDMS(lat,true)}</div>
+                <div style="color:#00ff88;font-weight:700;margin-bottom:6px;">${toDMS(lng,false)}</div>
+                <div style="color:#7090a0;">Depth: <span style="color:#00c8ff;font-weight:700;">${depth}</span></div>
+                <div style="color:#7090a0;">SST: <span style="color:#ffaa00;">${sstVal !== '--' ? sstVal+'°C' : '--'}</span></div>
+                <div style="color:#7090a0;">CHL: <span style="color:#00ff88;">${chlVal !== '--' ? chlVal+' mg/m³' : '--'}</span></div>
+            </div>
+        </div>
+    `;
+    clickMarker.setPopupContent(updatedPopupContent);
+});
+
+map.on('dblclick',function(){
+    if(routeMode&&routePoints.length>1){
+        const total=routePoints.reduce((s,p,i)=>i===0?0:s+haversine(routePoints[i-1][0],routePoints[i-1][1],p[0],p[1]),0);
+        alert('Route Complete!\nWaypoints: '+routePoints.length+'\nDistance: '+total.toFixed(1)+' km ('+(total*0.5399).toFixed(1)+' nm)');
+        routeMode=false;
+    }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// UI HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+function showPanel(title,rows){
+    document.getElementById('ip-title').innerHTML=title;
+    document.getElementById('ip-body').innerHTML=rows.map(r=>'<div class="ip-row"><span class="ip-lbl">'+r[0]+'</span><span class="ip-val" style="color:'+(r[2]||'var(--accent2)')+'">'+r[1]+'</span></div>').join('');
+    document.getElementById('info-panel').style.display='block';
+}
+function closeDrawer(){ document.getElementById('bottom-drawer').classList.remove('open'); }
+function showPFZDetail(content) {
+    document.getElementById('pfz-detail-content').innerHTML = content;
+    document.getElementById('pfz-detail-panel').classList.add('open');
+}
+function closePFZDetail() {
+    document.getElementById('pfz-detail-panel').classList.remove('open');
+}
+function toggleINCOIS() {
+    const panel = document.getElementById('incois-panel');
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open')) {
+        loadINCOISAdvisory();
+    }
+    document.getElementById('side-menu').classList.remove('open');
+}
+function loadINCOISAdvisory() {
+    const container = document.getElementById('incois-content');
+    container.innerHTML = '<div class="incois-loading">⟳ Loading INCOIS advisory...</div>';
+    fetch(API_BASE + '/api/incois/advisory?_t=' + Date.now()).then(r => r.json()).then(data => {
+        let html = '';
+        // Metadata bar
+        html += '<div style="padding:8px 16px;font-size:9px;color:var(--dim);border-bottom:1px solid var(--border);">';
+        html += '<div style="color:var(--accent2);font-weight:700;margin-bottom:3px;">📡 ' + (data.source || 'SAMUDRA AI') + '</div>';
+        html += '<div>Issued: ' + (data.issued || '--').substring(0, 19) + '</div>';
+        html += '<div>Season: ' + (data.season?.name || '--') + ' | Activity: ' + ((data.season?.activity || 0) * 100).toFixed(0) + '%</div>';
+        html += '<div>Methodology: ' + (data.methodology || '--') + '</div>';
+        html += '<div style="margin-top:3px;color:var(--accent);">Total Zones: ' + (data.total_zones || 0) + ' across ' + (data.sectors_covered || []).length + ' sectors</div>';
+        html += '</div>';
+        // Sectors
+        const sectors = data.sectors || {};
+        Object.keys(sectors).forEach(sectorName => {
+            const sector = sectors[sectorName];
+            html += '<div class="incois-sector">';
+            html += '<div class="incois-sector-title"><span>📌 ' + sectorName + '</span><span class="incois-sector-count">' + sector.zone_count + ' zones</span></div>';
+            (sector.zones || []).forEach((z, i) => {
+                const confColor = z.confidence === 'high' ? '#ff4444' : (z.confidence === 'medium' ? '#ffaa00' : '#00ff88');
+                html += '<div class="incois-zone">';
+                html += '<div class="incois-zone-row"><span class="incois-zone-label">Zone ' + (i+1) + '</span><span style="color:' + confColor + ';font-weight:700;text-transform:uppercase;">' + (z.confidence || 'medium') + ' (' + ((z.score || 0) * 100).toFixed(0) + '%)</span></div>';
+                html += '<div class="incois-zone-row"><span class="incois-zone-label">📍 Location</span><span class="incois-zone-val">' + (z.lat||0).toFixed(3) + '°N, ' + (z.lon||0).toFixed(3) + '°E</span></div>';
+                html += '<div class="incois-zone-row"><span class="incois-zone-label">🌡️ SST</span><span class="incois-zone-val" style="color:var(--warn)">' + (z.sst||'--') + '°C</span></div>';
+                if (z.chl) html += '<div class="incois-zone-row"><span class="incois-zone-label">🌿 CHL</span><span class="incois-zone-val" style="color:var(--accent2)">' + z.chl + ' mg/m³</span></div>';
+                html += '<div class="incois-zone-row"><span class="incois-zone-label">📏 Depth</span><span class="incois-zone-val">' + (z.depth_m||'--') + ' m</span></div>';
+                if (z.distance_from_coast_km) html += '<div class="incois-zone-row"><span class="incois-zone-label">🏖️ From coast</span><span class="incois-zone-val">' + z.distance_from_coast_km.toFixed(0) + ' km ' + (z.direction_from_landmark||'') + '</span></div>';
+                if (z.nearest_landmark) html += '<div class="incois-zone-row"><span class="incois-zone-label">⚓ Landmark</span><span class="incois-zone-val">' + z.nearest_landmark + '</span></div>';
+                if (z.fish_species) html += '<div class="incois-zone-row"><span class="incois-zone-label">🐟 Species</span><span class="incois-zone-val" style="font-size:9px">' + z.fish_species + '</span></div>';
+                if (z.best_fishing_time) html += '<div class="incois-zone-row"><span class="incois-zone-label">⏰ Best Time</span><span class="incois-zone-val" style="color:#ff88ff">' + z.best_fishing_time + '</span></div>';
+                html += '<div style="margin-top:4px;"><button class="pfz-popup-btn secondary" style="width:100%;font-size:9px;padding:5px;" onclick="map.setView([' + z.lat + ',' + z.lon + '],10);toggleINCOIS();">🎯 View on Map</button></div>';
+                html += '</div>';
+            });
+            html += '</div>';
+        });
+        // Disclaimer
+        html += '<div class="incois-meta">';
+        html += '<div style="color:var(--warn);margin-bottom:4px;">⚠️ Disclaimer</div>';
+        html += data.disclaimer || '';
+        html += '<div style="margin-top:4px;">Reference: ' + (data.reference || '') + '</div>';
+        html += '</div>';
+        container.innerHTML = html;
+    }).catch(e => {
+        container.innerHTML = '<div class="incois-loading" style="color:#ff6666;">❌ Failed to load INCOIS advisory<br><span style="font-size:9px;color:var(--dim);">' + e.message + '</span></div>';
+    });
+}
+function toggleMenu(){ document.getElementById('side-menu').classList.toggle('open'); }
+function toggleForecast() {
+    const el = document.getElementById('forecast-panel');
+    if (el.style.display === 'block') {
+        el.style.display = 'none';
+    } else {
+        el.style.display = 'block';
+        loadForecast();
+    }
+}
+function setLang(l,btn){
+    lang=l;
+    document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+let gpsMarker=null;
+function locateMe(){
+    navigator.geolocation.getCurrentPosition(pos=>{
+        const lat=pos.coords.latitude,lng=pos.coords.longitude;
+        if(gpsMarker) map.removeLayer(gpsMarker);
+        gpsMarker=L.circleMarker([lat,lng],{radius:9,fillColor:'#00c8ff',color:'#fff',weight:2,fillOpacity:0.95}).addTo(map).bindPopup('📍 तुमचं स्थान').openPopup();
+        map.setView([lat,lng],11);
+        document.getElementById('from-lat').value=lat.toFixed(4);
+        document.getElementById('from-lng').value=lng.toFixed(4);
+    },()=>alert('GPS चालू करा!'));
+}
+function sendSOS(){
+    if(!confirm('🆘 SOS पाठवायचं का?')) return;
+    navigator.geolocation.getCurrentPosition(pos=>alert('SOS!\nLat:'+pos.coords.latitude.toFixed(4)+'\nLng:'+pos.coords.longitude.toFixed(4)+'\n📞 Coast Guard: 1554'),()=>alert('📞 Coast Guard: 1554'));
+}
+function shareLocation(){
+    navigator.geolocation.getCurrentPosition(pos=>{
+        const lat=pos.coords.latitude.toFixed(4),lng=pos.coords.longitude.toFixed(4);
+        const text='📍 माझं स्थान:\n'+toDMS(+lat,true)+', '+toDMS(+lng,false)+'\nhttps://maps.google.com/?q='+lat+','+lng;
+        if(navigator.share) navigator.share({title:'PFZ Location',text});
+        else{navigator.clipboard.writeText(text);alert('✅ Copied!');}
+    },()=>alert('GPS चालू करा!'));
+}
+function saveLog(){
+    const log=document.getElementById('fish-log').value;
+    if(!log.trim()) return alert('काहीतरी लिहा!');
+    localStorage.setItem('pfz-log-'+new Date().toLocaleDateString(),log);
+    alert('✅ Save झाली!');
+}
+
+function tick(){ document.getElementById('update-time').textContent=new Date().toLocaleTimeString('mr-IN',{hour:'2-digit',minute:'2-digit'}); }
+tick(); setInterval(tick,60000);
+document.getElementById('log-date').textContent=new Date().toLocaleDateString('mr-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// AUTO-START WIND LAYER ON PAGE LOAD (with 3s delay so map loads first)
+// ══════════════════════════════════════════════════════════════════════════════
+setTimeout(function() {
+    console.log('🌬️ Auto-starting wind layer...');
+    const windToggle = document.getElementById('tog-wind-main');
+    if (windToggle && !windToggle.classList.contains('on')) {
+        toggleWindMain(windToggle);
+    }
+}, 3000);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 6-DAY MARINE FORECAST — auto-load on page start
+// ══════════════════════════════════════════════════════════════════════════════
+(function positionForecastPanel(){
+    // Position forecast panel just below data-layers-panel
+    const dlp = document.getElementById('data-layers-panel');
+    const fp = document.getElementById('forecast-panel');
+    if (dlp && fp) {
+        const r = dlp.getBoundingClientRect();
+        fp.style.top = (r.bottom + 6) + 'px';
+    }
+})();
+
+function loadForecast() {
+    const iconMap = {sun:'☀️',['cloud-sun']:'⛅',fog:'🌫️',drizzle:'🌧️',rain:'🌧️',snow:'🌨️',storm:'⛈️'};
+    const fishMap = {good:{en:'🟢 Good',mr:'🟢 चांगले'},moderate:{en:'🟡 Moderate',mr:'🟡 साधारण'},risky:{en:'🔴 Risky',mr:'🔴 धोकादायक'}};
+    fetch(API_BASE + '/api/forecast/6day?_t=' + Date.now())
+    .then(r => r.json())
+    .then(data => {
+        const container = document.getElementById('forecast-tiles');
+        if (!data.days || !data.days.length) {
+            container.innerHTML = '<div style="color:var(--dim);font-size:9px;padding:8px;">Forecast unavailable</div>';
+            return;
+        }
+        const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        const dayNamesMr = ['रवि','सोम','मंगळ','बुध','गुरु','शुक्र','शनि'];
+        let html = '';
+        data.days.forEach((d, i) => {
+            const dt = new Date(d.date + 'T00:00:00');
+            const dayName = lang === 'mr' ? dayNamesMr[dt.getDay()] : dayNames[dt.getDay()];
+            const dateStr = (dt.getMonth()+1) + '/' + dt.getDate();
+            const fKey = d.fishing_en || 'moderate';
+            const fishing = (fishMap[fKey] || fishMap.moderate)[lang] || (fishMap[fKey] || fishMap.moderate).en;
+            const weatherIcon = iconMap[d.icon] || '🌤️';
+            const waveStr = d.wave_height_m ? d.wave_height_m + 'm' : '--';
+            html += `<div class="fc-tile">
+                <div class="fc-tile-icon">${weatherIcon}</div>
+                <div class="fc-tile-info">
+                    <div class="fc-tile-day">${i===0?(lang==='mr'?'आज':'Today'):dayName} ${dateStr}</div>
+                    <div class="fc-tile-desc">${d.desc} ${d.temp_max}°/${d.temp_min}°</div>
+                    <div class="fc-tile-detail">🌬️${d.wind_max_kmh}km/h ${d.wind_dir} 🌊${waveStr}</div>
+                </div>
+                <div class="fc-tile-fish">${fishing}</div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    })
+    .catch(() => {
+        document.getElementById('forecast-tiles').innerHTML =
+            '<div style="color:var(--dim);font-size:9px;padding:8px;">⚠️ Forecast error</div>';
+    });
+}
+// Load forecast on page start and refresh every 3 hours
+setTimeout(loadForecast, 2000);
+setInterval(loadForecast, 3 * 60 * 60 * 1000);
+
+// ── AUTHENTICATION & RBAC SYSTEM ─────────────────────────────────────────────
+let AUTH_TOKEN = localStorage.getItem('samudra_token');
+let USER_ROLE = localStorage.getItem('samudra_role');
+let SESSION_TIMER = null;
+let HEARTBEAT_TIMER = null;
+let FLEET_GROUP = L.layerGroup();
+let FLEET_INTERVAL = null;
+
+function toggleFleetShortcut(btn) {
+    const tog = document.getElementById('tog-fleet');
+    toggleFleet(tog);
+    if (tog.classList.contains('on')) {
+        btn.style.background = 'var(--accent2)';
+        btn.style.color = '#000';
+    } else {
+        btn.style.background = 'rgba(0,255,136,0.1)';
+        btn.style.color = '#00ff88';
+    }
+}
+
+function showBroadcast() {
+    document.getElementById('broadcast-panel').style.display = 'block';
+    document.getElementById('admin-panel').style.display = 'none';
+}
+
+async function sendBroadcast() {
+    const msg = document.getElementById('broadcast-msg').value;
+    if (!msg) return alert('Enter a message');
+    try {
+        const r = await fetch(API_BASE + '/api/auth/broadcast', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${AUTH_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message: msg })
+        });
+        if (r.ok) {
+            alert('Broadcast sent successfully!');
+            document.getElementById('broadcast-panel').style.display = 'none';
+            document.getElementById('broadcast-msg').value = '';
+        }
+    } catch (e) { alert('Broadcast failed'); }
+}
+
+async function sendHeartbeat() {
+    if (!AUTH_TOKEN || USER_ROLE === 'admin') return;
+    navigator.geolocation.getCurrentPosition(async pos => {
+        try {
+            const r = await fetch(API_BASE + '/api/auth/ping', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${AUTH_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    lat: pos.coords.latitude,
+                    lon: pos.coords.longitude
+                })
+            });
+            if (r.ok) {
+                const data = await r.json();
+                if (data.broadcast) {
+                    const disp = document.getElementById('broadcast-display');
+                    const cont = document.getElementById('broadcast-content');
+                    if (cont.textContent !== data.broadcast) {
+                        cont.textContent = data.broadcast;
+                        disp.style.display = 'block';
+                        // Auto hide after 30 seconds
+                        setTimeout(() => disp.style.display = 'none', 30000);
+                    }
+                }
+            }
+        } catch (e) { console.warn('Heartbeat failed', e); }
+    }, e => console.warn('GPS denied for heartbeat', e), { enableHighAccuracy: true });
+}
+
+async function renderFleetMarkers() {
+    if (!AUTH_TOKEN || USER_ROLE !== 'admin') return;
+    try {
+        const r = await fetch(API_BASE + '/api/auth/admin/sessions', {
+            headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
+        });
+        if (!r.ok) return;
+        const sessions = await r.json();
+
+        // Also fetch safety alerts
+        const ra = await fetch(API_BASE + '/api/auth/admin/alerts', {
+            headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
+        });
+        const alerts = ra.ok ? await ra.json() : [];
+
+        FLEET_GROUP.clearLayers();
+
+        Object.entries(sessions).forEach(([token, s]) => {
+            if (s.role === 'admin' || !s.lat || !s.lon) return;
+
+            const lastSeen = new Date(s.last_seen);
+            const isOnline = (new Date() - lastSeen) < 120000; // 2 mins
+            const color = s.is_inside_eez === false ? '#ff4444' : (isOnline ? '#00ff88' : '#7090a0');
+            const heading = s.heading || 0;
+
+            const boatIcon = L.divIcon({
+                className: '',
+                html: `<div style="width:16px;height:16px;display:flex;align-items:center;justify-content:center;">
+                         <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:12px solid ${color};transform:rotate(${heading}deg);box-shadow:0 0 8px ${color};"></div>
+                       </div>`,
+                iconSize: [16, 16]
+            });
+
+            const marker = L.marker([s.lat, s.lon], { icon: boatIcon });
+            const alertText = s.is_inside_eez === false ? '<br><span style="color:#ff4444;font-weight:bold;">⚠️ BEYOND EEZ!</span>' : '';
+            marker.bindTooltip(`<b>${s.full_name}</b><br>${isOnline ? '🟢 ONLINE' : '⚪ OFFLINE'}${alertText}<br>Last: ${lastSeen.toLocaleTimeString()}<br>Heading: ${heading.toFixed(0)}°`, { sticky: true });
+            FLEET_GROUP.addLayer(marker);
+
+            // Pulse effect for EEZ violation
+            if (s.is_inside_eez === false) {
+                const pulse = L.circleMarker([s.lat, s.lon], {
+                    radius: 20,
+                    color: '#ff4444',
+                    weight: 2,
+                    fillOpacity: 0.1,
+                    className: 'eez-pulse'
+                }).addTo(FLEET_GROUP);
+            }
+        });
+
+        // Handle visual alerts in UI if needed
+        if (alerts.length > 0) {
+            const latest = alerts[alerts.length-1];
+            const alertTime = new Date(latest.timestamp);
+            if ((new Date() - alertTime) < 60000) { // New alert in last minute
+                console.warn('CRITICAL SAFETY ALERT:', latest);
+            }
+        }
+
+    } catch (e) { console.error('Fleet render failed', e); }
+}
+
+async function showBroadcastHistory() {
+    const panel = document.getElementById('history-panel');
+    const content = document.getElementById('history-content');
+    panel.style.display = 'block';
+    content.innerHTML = '<div style="color:var(--dim);font-size:12px;">Loading history...</div>';
+
+    try {
+        const r = await fetch(API_BASE + '/api/auth/broadcast-history', {
+            headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
+        });
+        if (r.ok) {
+            const history = await r.json();
+            if (history.length === 0) {
+                content.innerHTML = '<div style="color:var(--dim);font-size:12px;text-align:center;padding:20px;">No broadcast history found.</div>';
+                return;
+            }
+            content.innerHTML = history.reverse().map(b => `
+                <div style="background:rgba(255,255,255,0.05);padding:12px;border-radius:8px;margin-bottom:10px;border-left:4px solid var(--warn);">
+                    <div style="font-size:12px;line-height:1.5;color:var(--text);margin-bottom:6px;">${b.message}</div>
+                    <div style="font-size:10px;color:var(--dim);display:flex;justify-content:space-between;">
+                        <span>🗓️ ${new Date(b.sent_at).toLocaleDateString()}</span>
+                        <span>⏰ ${new Date(b.sent_at).toLocaleTimeString()}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (e) { content.innerHTML = '<div style="color:var(--warn);font-size:12px;">Failed to load history.</div>'; }
+}
+
+function toggleFleet(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        FLEET_GROUP.addTo(map);
+        renderFleetMarkers();
+        FLEET_INTERVAL = setInterval(renderFleetMarkers, 30000);
+    } else {
+        map.removeLayer(FLEET_GROUP);
+        if (FLEET_INTERVAL) clearInterval(FLEET_INTERVAL);
+    }
+}
+
+async function checkSession() {
+    if (!AUTH_TOKEN) return showLogin();
+    try {
+        const r = await fetch(API_BASE + '/api/auth/session-status', {
+            headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
+        });
+        if (r.ok) {
+            const data = await r.json();
+            startSessionTimer(data.expires_in_seconds);
+            hideLogin();
+            if (data.role === 'admin') {
+                document.getElementById('admin-btn').style.display = 'flex';
+                document.getElementById('fleet-view-btn').style.display = 'block';
+            } else {
+                // Start fisherman heartbeat
+                sendHeartbeat();
+                HEARTBEAT_TIMER = setInterval(sendHeartbeat, 60000);
+            }
+        } else if (r.status === 401) {
+            handleLogout();
+        } else {
+            // Server error but not auth failure — keep session, retry later
+            console.warn('Session check returned', r.status, '— retrying in 30s');
+            hideLogin();
+            setTimeout(checkSession, 30000);
+        }
+    } catch (e) {
+        // Network error — don't logout, show offline state, retry
+        console.warn('Session check failed (network) — retrying in 15s', e);
+        hideLogin();
+        setTimeout(checkSession, 15000);
+    }
+}
+
+function showLogin() {
+    document.getElementById('auth-overlay').style.display = 'flex';
+    document.getElementById('login-form').style.display = 'block';
+    document.getElementById('request-form').style.display = 'none';
+}
+
+function hideLogin() {
+    document.getElementById('auth-overlay').style.display = 'none';
+}
+
+function handleLogout() {
+    localStorage.removeItem('samudra_token');
+    localStorage.removeItem('samudra_role');
+    AUTH_TOKEN = null;
+    location.reload();
+}
+
+function startSessionTimer(seconds) {
+    if (SESSION_TIMER) clearInterval(SESSION_TIMER);
+    const el = document.getElementById('session-timer');
+    if (!el) return;
+    el.style.display = 'block';
+
+    const update = () => {
+        if (seconds <= 0) {
+            clearInterval(SESSION_TIMER);
+            handleLogout();
+            return;
+        }
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        el.textContent = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        seconds--;
+    };
+    update();
+    SESSION_TIMER = setInterval(update, 1000);
+}
+
+document.getElementById('login-btn').onclick = async () => {
+    const u = document.getElementById('username_input').value;
+    const p = document.getElementById('password_input').value;
+    const err = document.getElementById('login-error');
+    err.textContent = '';
+
+    try {
+        const r = await fetch(API_BASE + '/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ username: u, password: p })
+        });
+        if (r.ok) {
+            const data = await r.json();
+            localStorage.setItem('samudra_token', data.token);
+            localStorage.setItem('samudra_role', data.user.role);
+            AUTH_TOKEN = data.token;
+            USER_ROLE = data.user.role;
+            location.reload();
+        } else {
+            err.textContent = 'Invalid Username or Access Key';
+        }
+    } catch (e) { err.textContent = 'Connection Error'; }
+};
+
+document.getElementById('request-toggle').onclick = () => {
+    document.getElementById('login-form').style.display = 'none';
+    document.getElementById('request-form').style.display = 'block';
+};
+
+document.getElementById('back-to-login').onclick = () => {
+    document.getElementById('login-form').style.display = 'block';
+    document.getElementById('request-form').style.display = 'none';
+};
+
+document.getElementById('submit-request').onclick = async () => {
+    const name = document.getElementById('req-name').value;
+    const boat = document.getElementById('req-boat').value;
+    const phone = document.getElementById('req-phone').value;
+    if (!name || !boat || !phone) return alert('Fill all details');
+
+    try {
+        const r = await fetch(API_BASE + '/api/auth/request-access', {
+            method: 'POST',
+            body: JSON.stringify({ name, boat_name: boat, phone })
+        });
+        if (r.ok) {
+            document.getElementById('request-success').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('back-to-login').click();
+                document.getElementById('request-success').style.display = 'none';
+            }, 3000);
+        }
+    } catch (e) { alert('Request failed'); }
+};
+
+document.getElementById('admin-btn').onclick = () => {
+    document.getElementById('admin-panel').style.display = 'flex';
+    refreshAdminData();
+};
+
+function closeAdmin() { document.getElementById('admin-panel').style.display = 'none'; }
+
+async function refreshAdminData() {
+    const reqsEl = document.getElementById('admin-requests');
+    const sessEl = document.getElementById('admin-sessions');
+
+    const [reqsRes, sessRes] = await Promise.all([
+        fetch(API_BASE + '/api/auth/admin/requests', { headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` } }),
+        fetch(API_BASE + '/api/auth/admin/sessions', { headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` } })
+    ]);
+
+    const reqs = await reqsRes.json();
+    const sess = await sessRes.json();
+
+    reqsEl.innerHTML = reqs.filter(r => r.status === 'pending').map(r => `
+        <div class="admin-item">
+            <div class="admin-item-title">${r.full_name} (${r.boat_name})</div>
+            <div class="admin-item-meta">📞 ${r.phone} | 🕒 ${new Date(r.requested_at).toLocaleString()}</div>
+            <div class="admin-actions">
+                <button class="mini-btn approve" onclick="approveUser('${r.id}', 12)">APPROVE 12H</button>
+                <button class="mini-btn approve" onclick="approveUser('${r.id}', 24)">24H</button>
+            </div>
+        </div>
+    `).join('') || '<div style="color:var(--dim);font-size:11px;">No pending requests</div>';
+
+    sessEl.innerHTML = Object.entries(sess).map(([token, s]) => `
+        <div class="admin-item" style="border-left-color: var(--accent2)">
+            <div class="admin-item-title">${s.full_name} (${s.role})</div>
+            <div class="admin-item-meta">Expires: ${new Date(s.expiry).toLocaleTimeString()}</div>
+            <div class="admin-actions">
+                <button class="mini-btn kill" onclick="killSession('${token}')">KILL SESSION</button>
+            </div>
+        </div>
+    `).join('') || '<div style="color:var(--dim);font-size:11px;">No active sessions</div>';
+}
+
+async function approveUser(id, hours) {
+    const r = await fetch(API_BASE + '/api/auth/admin/approve', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${AUTH_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: id, hours })
+    });
+    const data = await r.json();
+    alert('USER APPROVED!\\nACCESS KEY: ' + data.access_key);
+    refreshAdminData();
+}
+
+async function killSession(token) {
+    if (!confirm('Kill this session? User will be logged out.')) return;
+    await fetch(API_BASE + '/api/auth/admin/kill', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${AUTH_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+    });
+    refreshAdminData();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DATA LAYERS PANEL + CONNECTIVITY + SETTINGS + EXPORT
+// ══════════════════════════════════════════════════════════════════════════════
+
+function toggleDataLayersPanel() {
+    const p = document.getElementById('data-layers-panel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+// ── CONNECTIVITY CHECKER ─────────────────────────────────────────────────────
+let _connOK = false;
+async function checkConnectivity() {
+    const dot = document.getElementById('conn-dot');
+    const txt = document.getElementById('conn-text');
+    if (!dot || !txt) return;
+    try {
+        const r = await fetch(API_BASE + '/api/health', { signal: AbortSignal.timeout(5000) });
+        _connOK = r.ok;
+        if (r.ok) {
+            const d = await r.json();
+            dot.style.background = '#00ff88';
+            txt.textContent = d.active_sources + '/' + d.total_sources + ' sources';
+            txt.style.color = 'var(--accent2)';
+        } else {
+            dot.style.background = '#ffaa00';
+            txt.textContent = 'Degraded';
+            txt.style.color = 'var(--warn)';
+        }
+    } catch (e) {
+        _connOK = false;
+        dot.style.background = '#ff4444';
+        txt.textContent = 'Offline';
+        txt.style.color = '#ff6666';
+    }
+}
+checkConnectivity();
+setInterval(checkConnectivity, 30000);
+
+// ── CHL LAYER (Chlorophyll heatmap from chlGrid) ────────────────────────────
+let chlLayer = null;
+function toggleCHL(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        if (!chlGrid.length) { el.classList.remove('on'); alert('CHL data not loaded yet'); return; }
+        chlLayer = L.layerGroup();
+        chlGrid.forEach(pt => {
+            const v = pt.chl;
+            const c = v > 2 ? '#00ff00' : v > 1 ? '#88ff00' : v > 0.5 ? '#ffff00' : v > 0.2 ? '#00aaff' : '#0044ff';
+            L.circleMarker([pt.lat, pt.lon], { radius: 4, color: c, fillColor: c, fillOpacity: 0.5, weight: 0 }).addTo(chlLayer);
+        });
+        chlLayer.addTo(map);
+    } else {
+        if (chlLayer) { map.removeLayer(chlLayer); chlLayer = null; }
+    }
+}
+
+// ── INCOIS MAP MARKERS ──────────────────────────────────────────────────────
+let incoisMapGroup = L.layerGroup();
+let incoisMapLoaded = false;
+async function loadINCOISMapMarkers() {
+    if (incoisMapLoaded) return;
+    try {
+        const r = await fetch(API_BASE + '/api/incois/advisory?_t=' + Date.now());
+        const data = await r.json();
+        const sectors = data.sectors || {};
+        Object.values(sectors).forEach(s => {
+            (s.zones || []).forEach(z => {
+                if (!z.lat || !z.lon) return;
+                const col = z.confidence === 'high' ? '#ff00ff' : z.confidence === 'medium' ? '#ff88ff' : '#cc88cc';
+                L.circleMarker([z.lat, z.lon], {
+                    radius: 8, fillColor: col, color: '#fff', weight: 1.5, fillOpacity: 0.8
+                }).bindPopup('<b>INCOIS PFZ</b><br>Score: ' + ((z.score||0)*100).toFixed(0) + '%<br>SST: ' + (z.sst||'--') + '°C<br>Species: ' + (z.fish_species||'--'))
+                .addTo(incoisMapGroup);
+            });
+        });
+        incoisMapLoaded = true;
+    } catch (e) { console.warn('INCOIS markers load failed:', e); }
+}
+
+function toggleINCOISMarkers(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        loadINCOISMapMarkers().then(() => incoisMapGroup.addTo(map));
+    } else {
+        map.removeLayer(incoisMapGroup);
+    }
+}
+
+// ── AGENT PFZ TOGGLE ────────────────────────────────────────────────────────
+function toggleAgentPFZ(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        if (agentZonesData.length === 0) {
+            // Trigger analysis if not done yet
+            runAgentAnalysis();
+        }
+        agentPFZGroup.addTo(map);
+    } else {
+        map.removeLayer(agentPFZGroup);
+    }
+}
+
+// ── SAMUDRA 2.0 PFZ ────────────────────────────────────────────────────────
+let samudraGroup = L.layerGroup();
+let samudraLoaded = false;
+async function fetchSamudraData() {
+    if (samudraLoaded) return;
+    try {
+        const r = await fetch(API_BASE + '/api/samudra/coordinates?_t=' + Date.now());
+        const data = await r.json();
+        (data.zones || []).forEach(z => {
+            const col = z.confidence === 'high' ? '#00ffff' : z.confidence === 'medium' ? '#00bbcc' : '#008899';
+            const circle = L.circle([z.lat, z.lon], {
+                radius: (z.radius_km || 15) * 1000,
+                color: col, fillColor: col, fillOpacity: 0.15, weight: 2, dashArray: '6,4'
+            }).bindPopup('<b>Samudra 2.0 Zone</b><br>Score: ' + ((z.incois_score||0)*100).toFixed(0) + '%<br>SST: ' + (z.sst||'--') + '°C<br>Species: ' + (z.species||'--'));
+            circle.addTo(samudraGroup);
+            L.circleMarker([z.lat, z.lon], { radius: 5, fillColor: col, color: '#fff', weight: 1, fillOpacity: 0.9 }).addTo(samudraGroup);
+        });
+        samudraLoaded = true;
+    } catch (e) { console.warn('Samudra data failed:', e); }
+}
+
+function toggleSamudraPFZ(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        fetchSamudraData().then(() => samudraGroup.addTo(map));
+    } else {
+        map.removeLayer(samudraGroup);
+    }
+}
+
+// ── EXPORT: PDF REPORT ──────────────────────────────────────────────────────
+function exportPDF() {
+    const win = window.open('', '_blank');
+    const now = new Date().toLocaleString('en-IN');
+    const pfzCount = pfzGroup ? pfzGroup.getLayers().length : 0;
+    const agentCount = agentPFZGroup ? agentPFZGroup.getLayers().length : 0;
+
+    let pfzHTML = '';
+    if (typeof pfzZonesData !== 'undefined' && pfzZonesData.length) {
+        pfzZonesData.forEach((z, i) => {
+            pfzHTML += '<tr><td>Zone ' + (i+1) + '</td><td>' + (z.lat||0).toFixed(3) + '°N, ' + (z.lon||0).toFixed(3) + '°E</td><td>' + (z.sst||'--') + '°C</td><td>' + (z.score ? (z.score*100).toFixed(0) + '%' : '--') + '</td></tr>';
+        });
+    }
+
+    win.document.write(`<!DOCTYPE html><html><head><title>Samudra 2.0 - PFZ Report</title>
+    <style>body{font-family:Arial,sans-serif;padding:30px;color:#222;max-width:800px;margin:auto}
+    h1{color:#0066aa;border-bottom:3px solid #0066aa;padding-bottom:10px}
+    table{width:100%;border-collapse:collapse;margin:15px 0}th,td{border:1px solid #ccc;padding:8px;text-align:left;font-size:13px}
+    th{background:#f0f5ff}
+    .meta{color:#666;font-size:12px;margin-bottom:20px}</style></head><body>
+    <h1>🌊 Samudra 2.0 — PFZ Advisory Report</h1>
+    <div class="meta">Generated: ${now} | Source: Samudra AI Platform | Coverage: India West Coast (8°N - 24°N)</div>
+    <h3>Algorithm PFZ Zones (${pfzCount} detected)</h3>
+    <table><tr><th>Zone</th><th>Location</th><th>SST</th><th>Score</th></tr>${pfzHTML || '<tr><td colspan=4>No zones currently detected</td></tr>'}</table>
+    <h3>Agent AI Zones: ${agentCount}</h3>
+    <p style="font-size:11px;color:#888;">Disclaimer: PFZ advisories are based on satellite-derived oceanographic parameters. Actual fishing success depends on local conditions. Always follow safety protocols.</p>
+    <button onclick="window.print()" style="padding:10px 30px;background:#0066aa;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:14px;">🖨️ Print / Save PDF</button>
+    </body></html>`);
+    win.document.close();
+}
+
+// ── EXPORT: GeoJSON ─────────────────────────────────────────────────────────
+function exportGeoJSON() {
+    const features = [];
+    // Algorithm PFZ zones
+    if (typeof pfzZonesData !== 'undefined') {
+        pfzZonesData.forEach(z => {
+            features.push({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [z.lon, z.lat] },
+                properties: { source: 'algorithm', sst: z.sst, score: z.score, label: z.label || '' }
+            });
+        });
+    }
+    // Agent zones
+    if (agentZonesData.length) {
+        agentZonesData.forEach(z => {
+            features.push({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [z.lon || z.lng, z.lat] },
+                properties: { source: 'agent_ai', species: z.species, confidence: z.confidence }
+            });
+        });
+    }
+    const geojson = { type: 'FeatureCollection', features };
+    const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'samudra_pfz_' + new Date().toISOString().slice(0, 10) + '.geojson';
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+// ── SETTINGS TOGGLES ────────────────────────────────────────────────────────
+let autoRefreshEnabled = true;
+
+function toggleAutoRefresh(el) {
+    el.classList.toggle('on');
+    autoRefreshEnabled = el.classList.contains('on');
+    if (autoRefreshEnabled) {
+        pfzRefreshTimer = setInterval(loadPFZLive, (parseInt(document.getElementById('refresh-interval').value) || 30) * 60000);
+    } else {
+        if (pfzRefreshTimer) { clearInterval(pfzRefreshTimer); pfzRefreshTimer = null; }
+    }
+}
+
+function toggleAutoWind(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on')) {
+        // Auto-show wind layer
+        const windTog = document.querySelector('#data-layers-panel .tog-row .tog');
+        if (windTog && !windTog.classList.contains('on')) toggleWind(windTog);
+    }
+}
+
+function toggleDarkTheme(el) {
+    el.classList.toggle('on');
+    // Already dark by default — toggle to light
+    if (!el.classList.contains('on')) {
+        document.documentElement.style.setProperty('--bg', '#f0f2f5');
+        document.documentElement.style.setProperty('--panel', 'rgba(255,255,255,0.95)');
+        document.documentElement.style.setProperty('--text', '#222');
+        document.documentElement.style.setProperty('--dim', '#666');
+        document.documentElement.style.setProperty('--border', 'rgba(0,0,0,0.1)');
+    } else {
+        document.documentElement.style.setProperty('--bg', '#0a0e14');
+        document.documentElement.style.setProperty('--panel', 'rgba(12,18,28,0.96)');
+        document.documentElement.style.setProperty('--text', '#e0e8f0');
+        document.documentElement.style.setProperty('--dim', '#5a7080');
+        document.documentElement.style.setProperty('--border', 'rgba(255,255,255,0.06)');
+    }
+}
+
+function toggleLegendVis(el) {
+    el.classList.toggle('on');
+    const legend = document.getElementById('legend');
+    if (legend) legend.style.display = el.classList.contains('on') ? 'block' : 'none';
+}
+
+function toggleNotif(el) {
+    el.classList.toggle('on');
+    if (el.classList.contains('on') && 'Notification' in window) {
+        Notification.requestPermission();
+    }
+}
+
+function toggleCache(el) {
+    el.classList.toggle('on');
+    localStorage.setItem('samudra_cache_enabled', el.classList.contains('on') ? '1' : '0');
+}
+
+function setRefreshInterval(mins) {
+    if (pfzRefreshTimer) clearInterval(pfzRefreshTimer);
+    if (autoRefreshEnabled) {
+        pfzRefreshTimer = setInterval(loadPFZLive, parseInt(mins) * 60000);
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// THREE-LANGUAGE SYSTEM (Marathi / Hindi / English)
+// ══════════════════════════════════════════════════════════════════════════════
+const TRANSLATIONS = {
+    mr: {
+        pfz_title: 'संभाव्य मासेमारी क्षेत्र',
+        depth: 'खोली', sst: 'समुद्र तापमान', wind: 'वारा', waves: 'लाटा', currents: 'प्रवाह',
+        forecast: 'हवामान अंदाज', settings: 'सेटिंग्ज', export_pdf: 'PDF अहवाल',
+        high: 'उच्च', medium: 'मध्यम', low: 'कमी',
+        locate_me: 'माझं स्थान', route_plan: 'मार्ग नियोजन', anchor_alarm: 'अँकर अलार्म',
+        offline: 'ऑफलाइन', online: 'ऑनलाइन', loading: 'लोड होत आहे...',
+        species: 'मासे प्रजाती', confidence: 'विश्वासार्हता', score: 'गुण',
+        from_coast: 'किनाऱ्यापासून', best_time: 'सर्वोत्तम वेळ',
+        no_zones: 'सध्या कोणतेही क्षेत्र आढळले नाही',
+        disclaimer: 'हा सल्ला उपग्रह डेटावर आधारित आहे. स्थानिक परिस्थिती वेगळी असू शकते.',
+        legend: 'दंतकथा', layers: 'डेटा स्तर', search_port: 'बंदर शोधा'
+    },
+    hi: {
+        pfz_title: 'संभावित मछली पकड़ने का क्षेत्र',
+        depth: 'गहराई', sst: 'समुद्री तापमान', wind: 'हवा', waves: 'लहरें', currents: 'धाराएं',
+        forecast: 'मौसम पूर्वानुमान', settings: 'सेटिंग्स', export_pdf: 'PDF रिपोर्ट',
+        high: 'उच्च', medium: 'मध्यम', low: 'कम',
+        locate_me: 'मेरा स्थान', route_plan: 'मार्ग योजना', anchor_alarm: 'एंकर अलार्म',
+        offline: 'ऑफलाइन', online: 'ऑनलाइन', loading: 'लोड हो रहा है...',
+        species: 'मछली प्रजातियां', confidence: 'विश्वसनीयता', score: 'अंक',
+        from_coast: 'तट से', best_time: 'सर्वोत्तम समय',
+        no_zones: 'वर्तमान में कोई क्षेत्र नहीं मिला',
+        disclaimer: 'यह सलाह उपग्रह डेटा पर आधारित है। स्थानीय स्थिति भिन्न हो सकती है।',
+        legend: 'संकेत', layers: 'डेटा परतें', search_port: 'बंदरगाह खोजें'
+    },
+    en: {
+        pfz_title: 'Potential Fishing Zone',
+        depth: 'Depth', sst: 'Sea Surface Temp', wind: 'Wind', waves: 'Waves', currents: 'Currents',
+        forecast: 'Weather Forecast', settings: 'Settings', export_pdf: 'PDF Report',
+        high: 'High', medium: 'Medium', low: 'Low',
+        locate_me: 'My Location', route_plan: 'Route Planning', anchor_alarm: 'Anchor Alarm',
+        offline: 'Offline', online: 'Online', loading: 'Loading...',
+        species: 'Fish Species', confidence: 'Confidence', score: 'Score',
+        from_coast: 'From coast', best_time: 'Best Time',
+        no_zones: 'No zones currently detected',
+        disclaimer: 'Advisory based on satellite data. Local conditions may vary.',
+        legend: 'Legend', layers: 'Data Layers', search_port: 'Search port'
+    }
+};
+
+function setLanguage(langCode) {
+    lang = langCode;
+    document.querySelectorAll('.lang-btn').forEach(b => {
+        b.classList.toggle('active', b.textContent.trim().toLowerCase().includes(langCode === 'mr' ? 'मर' : langCode === 'hi' ? 'हिं' : 'en'));
+    });
+    const T = TRANSLATIONS[langCode] || TRANSLATIONS.en;
+    // Update key UI elements
+    const depthLbl = document.querySelector('#statusbar .sb-lbl');
+    if (depthLbl && depthLbl.textContent.match(/खोली|गहराई|Depth/)) depthLbl.textContent = T.depth;
+    const legendEl = document.getElementById('legend');
+    if (legendEl) {
+        const title = legendEl.querySelector('div:first-child');
+        if (title) title.textContent = T.legend;
+    }
+    // Store preference
+    localStorage.setItem('samudra_lang', langCode);
+}
+
+// Restore language preference
+(function() {
+    const savedLang = localStorage.getItem('samudra_lang');
+    if (savedLang && savedLang !== 'mr') setLanguage(savedLang);
+})();
+
+// Initialize session check
+checkSession();
+
+// ── SPLASH SCREEN — auto-hide after 2.8s ─────────────────────────────────────
+(function() {
+    const splash = document.getElementById('samudra-splash');
+    if (!splash) return;
+    const SHOW_MS = 2800;
+    const hide = () => {
+        splash.classList.add('fadeout');
+        setTimeout(() => { if (splash.parentNode) splash.parentNode.removeChild(splash); }, 950);
+    };
+    // Hide after delay — or immediately if page load is slow
+    const timer = setTimeout(hide, SHOW_MS);
+    // Also hide on first user touch (fishermen tap to skip)
+    splash.addEventListener('click', () => { clearTimeout(timer); hide(); }, { once: true });
+})();
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PWA — Service Worker registration + Install prompt
+// ══════════════════════════════════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+            .then(reg => {
+                console.log('[SW] Registered, scope:', reg.scope);
+                // Listen for PFZ_UPDATED message from SW background sync
+                navigator.serviceWorker.addEventListener('message', e => {
+                    if (e.data?.type === 'PFZ_UPDATED') {
+                        loadLivePFZ(true);
+                    }
+                });
+            })
+            .catch(err => console.warn('[SW] Registration failed:', err));
+    });
+}
+
+// PWA install banner — show "Install App" button in topbar when prompted
+let _deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _deferredInstall = e;
+    // Show a subtle install button in the topbar
+    const btn = document.createElement('button');
+    btn.id = 'pwa-install-btn';
+    btn.textContent = '📲 Install App';
+    btn.style.cssText = 'background:rgba(0,200,255,0.15);border:1px solid rgba(0,200,255,0.4);color:#00c8ff;padding:4px 10px;border-radius:4px;font-family:Space Mono,monospace;font-size:10px;cursor:pointer;letter-spacing:1px;white-space:nowrap;';
+    btn.onclick = () => {
+        _deferredInstall.prompt();
+        _deferredInstall.userChoice.then(choice => {
+            if (choice.outcome === 'accepted') btn.remove();
+            _deferredInstall = null;
+        });
+    };
+    document.getElementById('topbar').appendChild(btn);
+});
+
+window.addEventListener('appinstalled', () => {
+    const btn = document.getElementById('pwa-install-btn');
+    if (btn) btn.remove();
+    console.log('[PWA] App installed successfully');
+});
+
+</script>
+</body>
+</html>
