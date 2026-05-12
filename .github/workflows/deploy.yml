@@ -19,7 +19,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.41.6'
+          flutter-version: '3.32.0'
           channel: 'stable'
           cache: true
 
@@ -111,7 +111,7 @@ jobs:
 
     services:
       postgres:
-        image: timescale/timescaledb-ha:pg16-latest
+        image: postgis/postgis:16-3.4-alpine
         env:
           POSTGRES_DB: daryasagar_test
           POSTGRES_USER: darya
