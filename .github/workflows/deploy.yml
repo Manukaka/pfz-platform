@@ -205,18 +205,28 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/daryasagar-ml:${{ github.sha }}
 
       - name: Deploy to Render
-        if: ${{ secrets.RENDER_DEPLOY_HOOK != '' }}
+        env:
+          RENDER_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
         run: |
-          curl -s -o /dev/null -w "%{http_code}" \
-            -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+          if [ -n "$RENDER_HOOK" ]; then
+            curl -s -o /dev/null -w "%{http_code}" -X POST "$RENDER_HOOK"
+          else
+            echo "RENDER_DEPLOY_HOOK not set — skipping"
+          fi
 
       - name: Notify Sentry of release
-        if: ${{ secrets.SENTRY_AUTH_TOKEN != '' }}
+        env:
+          SENTRY_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
         run: |
-          curl -s -X POST "https://sentry.io/api/0/organizations/${{ secrets.SENTRY_ORG }}/releases/" \
-            -H "Authorization: Bearer ${{ secrets.SENTRY_AUTH_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d "{\"version\": \"${{ github.sha }}\", \"projects\": [\"daryasagar\"]}"
+          if [ -n "$SENTRY_TOKEN" ]; then
+            curl -s -X POST "https://sentry.io/api/0/organizations/$SENTRY_ORG/releases/" \
+              -H "Authorization: Bearer $SENTRY_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"version\": \"${{ github.sha }}\", \"projects\": [\"daryasagar\"]}"
+          else
+            echo "SENTRY_AUTH_TOKEN not set — skipping"
+          fi
 
       - name: Deployment summary
         run: |
