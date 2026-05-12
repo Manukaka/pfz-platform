@@ -179,18 +179,21 @@ jobs:
     needs: [flutter-build, backend-test]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    environment: production
+    env:
+      DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Log in to Docker Hub
+        if: env.DOCKER_USER != ''
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build & push API image
+        if: env.DOCKER_USER != ''
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -201,6 +204,7 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/daryasagar-api:${{ github.sha }}
 
       - name: Build & push ML worker image
+        if: env.DOCKER_USER != ''
         uses: docker/build-push-action@v6
         with:
           context: ./backend
