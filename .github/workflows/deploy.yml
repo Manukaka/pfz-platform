@@ -31,11 +31,9 @@ jobs:
       # Inject Mapbox token into local.properties (Mapbox reads this at build time)
       - name: Write local.properties
         run: |
-          cat > flutter_app/android/local.properties << EOF
-          flutter.sdk=$FLUTTER_ROOT
-          sdk.dir=$ANDROID_SDK_ROOT
-          MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }}
-          EOF
+          echo "flutter.sdk=$FLUTTER_ROOT" > flutter_app/android/local.properties
+          echo "sdk.dir=$ANDROID_SDK_ROOT" >> flutter_app/android/local.properties
+          echo "MAPBOX_ACCESS_TOKEN=${{ secrets.MAPBOX_ACCESS_TOKEN }}" >> flutter_app/android/local.properties
 
       - name: Install dependencies
         working-directory: flutter_app

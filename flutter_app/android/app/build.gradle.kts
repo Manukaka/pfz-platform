@@ -14,7 +14,9 @@ if (localPropertiesFile.exists()) {
     localPropertiesFile.inputStream().use { localProperties.load(it) }
 }
 
-val mapboxToken: String = localProperties.getProperty("MAPBOX_ACCESS_TOKEN", "")
+val mapboxToken: String = (localProperties.getProperty("MAPBOX_ACCESS_TOKEN")
+    ?: System.getenv("MAPBOX_ACCESS_TOKEN")
+    ?: "").ifBlank { "pk.placeholder_debug_no_maps" }
 
 android {
     namespace = "com.daryasagar.darya_sagar"
