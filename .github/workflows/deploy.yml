@@ -132,6 +132,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libgdal-dev libproj-dev libgeos-dev \
+            gdal-bin proj-bin \
+            libpq-dev gcc
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
