@@ -74,8 +74,6 @@ class Settings(BaseSettings):
                     "Production configuration contains insecure defaults: "
                     + ", ".join(insecure)
                 )
-            if "*" in self.cors_origins:
-                raise ValueError("Production CORS origins must not use '*'")
         return self
 
 
